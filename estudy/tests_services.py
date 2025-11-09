@@ -10,6 +10,7 @@ from .services.lesson_detail import build_lesson_detail_payload
 from .services.lessons import build_lesson_blocks
 from .services.recommendations import (calculate_recommendations,
                                        refresh_recommendations)
+from .services.lessons import prepare_lessons_list
 
 
 class ServicesSmokeTests(TestCase):
@@ -99,3 +100,21 @@ class ServicesSmokeTests(TestCase):
         dashboard = build_student_dashboard(self.user)
         self.assertIn("progress", dashboard)
         self.assertEqual(dashboard["progress"]["percent"], progress["percent"])
+
+    def test_prepare_lessons_list_service(self):
+        # ensure the service returns expected keys and respects defaults
+        ctx = prepare_lessons_list(self.user, params=None)
+        self.assertIsInstance(ctx, dict)
+        for key in (
+            "subjects",
+            "lessons",
+            "lesson_blocks",
+            "filters",
+            "badge_summary",
+        ):
+            self.assertIn(key, ctx)
+        # default filters should be empty/false
+        self.assertEqual(ctx["filters"]["query"], "")
+        self.assertEqual(ctx["filters"]["subject"], "")
+        self.assertEqual(ctx["filters"]["difficulty"], "")
+        self.assertFalse(ctx["filters"]["upcoming"])
