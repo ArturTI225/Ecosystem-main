@@ -1,277 +1,264 @@
 {% extends 'base.html' %}
 
-{% block title %}Catalog lecții · UnITex{% endblock %}
-
-{% block content %}
-<section class="rounded-4 bg-white shadow-sm p-4 p-lg-5 mb-4">
-    <div class="row g-4 align-items-center">
-        <div class="col-lg-7">
-            <h1 class="display-6 fw-bold text-primary">Explorator de lecții</h1>
-            <p class="lead text-muted mb-4">Alege lecțiile potrivite nivelului tău, câștigă puncte de experiență și descoperă recomandări personalizate.</p>
-            <div class="d-flex flex-wrap gap-4">
-                <div>
-                    <span class="d-block text-uppercase small text-muted">Progres</span>
-                    <span class="fs-3 fw-bold">{{ progress.percent|default:0 }}%</span>
+{% block workspace_banner %}
+<section class="lessons-hero" data-animate>
+    <div class="container lessons-hero__inner">
+        <div class="lessons-hero__copy">
+            <span class="lessons-hero__eyebrow">Explorator de lecții</span>
+            <h1>Învățare digitală simplă și practică</h1>
+            <p>Alege lecțiile potrivite pentru ritmul tău și descoperă abilități noi.</p>
+            <div class="lessons-hero__cta">
+                <a class="btn btn--primary" href="{% url 'signup' %}">Creează contul</a>
+                <a class="btn btn--ghost" href="#lesson-catalog">Vezi modulele</a>
+            </div>
+            <div class="lessons-hero__progress" role="group" aria-label="Progres general">
+                <div class="progress-line" data-progress-container data-progress-initial="{{ progress.percent|default:0 }}">
+                    <span
+                        class="progress-line__fill"
+                        data-progress-bar
+                        data-progress-initial="{{ progress.percent|default:0 }}"
+                        role="progressbar"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        aria-valuenow="{{ progress.percent|default:0|floatformat:0 }}"
+                    ></span>
                 </div>
-                <div>
-                    <span class="d-block text-uppercase small text-muted">Lecții finalizate</span>
-                    <span class="fs-3 fw-bold">{{ progress.completed|default:0 }}/{{ progress.total|default:0 }}</span>
-                </div>
-                <div>
-                    <span class="d-block text-uppercase small text-muted">Insigne evidențiate</span>
-                    <div class="d-flex gap-2 mt-1">
-                        {% for badge in highlighted_badges %}
-                            <span class="badge" style="background: {{ badge.badge.color }}33; color: {{ badge.badge.color }};">
-                                <i class="fa {{ badge.badge.icon }} me-1"></i>{{ badge.badge.name }}
-                            </span>
-                        {% empty %}
-                            <span class="text-muted small">Încă nu ai insigne, dar aventura abia începe!</span>
-                        {% endfor %}
-                    </div>
-                </div>
+                <span class="progress-line__label">
+                    <strong data-progress-completed>{{ progress.completed|default:0 }}</strong>/<span data-progress-total>{{ progress.total|default:0 }}</span> lecții finalizate
+                </span>
             </div>
         </div>
-        <div class="col-lg-5">
-            <form method="get" class="card border-0 shadow-sm">
-                <div class="card-body">
-                    <h2 class="h5 mb-3">Filtrează și caută</h2>
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label" for="q">Căutare</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
-                                <input type="search" id="q" name="q" value="{{ filters.query }}" class="form-control" placeholder="Titlu, subiect, idee cheie…">
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="subject">Subiect</label>
-                            <select id="subject" name="subject" class="form-select">
+        <figure class="lessons-hero__visual" aria-hidden="true">
+            <img src="https://illustrations.popsy.co/emerald/online-learning.svg" alt="">
+        </figure>
+    </div>
+    <nav class="lessons-quick-nav" aria-label="Navigație UNITEX">
+        <div class="container">
+            <ul>
+                <li><a href="{% url 'estudy:dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'estudy:lessons_list' %}" class="is-active">Lecții</a></li>
+                <li><a href="{% url 'estudy:missions' %}">Misiuni</a></li>
+                <li><a href="{% url 'estudy:leaderboard' %}">Clasament</a></li>
+                <li><a href="{% url 'estudy:projects' %}">Proiecte</a></li>
+                <li><a href="{% url 'estudy:classrooms' %}">Clase</a></li>
+                <li><a href="{% url 'estudy:community' %}">Comunitate</a></li>
+            </ul>
+        </div>
+    </nav>
+</section>
+{% endblock %}
+
+{% block page_content %}
+<main class="catalog-layout" data-lessons-dashboard>
+    <section class="catalog-filters" aria-labelledby="catalog-filters-title" data-filters>
+        <div class="container catalog-filters__container">
+            <header class="catalog-filters__header">
+                <div>
+                    <h2 id="catalog-filters-title">Găsește lecția perfectă</h2>
+                    <p>Folosește filtrul pentru a descoperi module potrivite intereselor și nivelului tău.</p>
+                </div>
+                <div class="catalog-filters__summary" aria-live="polite">
+                    <span class="catalog-filters__chip">
+                        <i class="fa-solid fa-sparkles" aria-hidden="true"></i>
+                        <span data-progress-summary>
+                            {% if progress.completed|default:0 == 1 %}
+                                1 lecție finalizată din {{ progress.total|default:0 }}
+                            {% else %}
+                                {{ progress.completed|default:0 }} lecții finalizate din {{ progress.total|default:0 }}
+                            {% endif %}
+                        </span>
+                    </span>
+                </div>
+            </header>
+            <form method="get" class="catalog-filters__form" data-filter-form>
+                <div class="catalog-filters__grid">
+                    <label class="catalog-field">
+                        <span class="catalog-field__label" for="q">Caută</span>
+                        <span class="catalog-field__wrapper">
+                            <span class="catalog-field__icon" aria-hidden="true"><i class="fa-solid fa-magnifying-glass"></i></span>
+                            <input
+                                type="search"
+                                id="q"
+                                name="q"
+                                value="{{ filters.query }}"
+                                placeholder="Ex: Python, Internet sigur, Alfabetizare digitală…"
+                                autocomplete="off"
+                            >
+                        </span>
+                    </label>
+                    <label class="catalog-field">
+                        <span class="catalog-field__label" for="subject">Subiect</span>
+                        <span class="catalog-field__wrapper">
+                            <span class="catalog-field__icon" aria-hidden="true"><i class="fa-solid fa-book"></i></span>
+                            <select id="subject" name="subject">
                                 <option value="">Toate</option>
                                 {% for subject in subjects %}
                                     <option value="{{ subject.id }}" {% if filters.subject == subject.id|stringformat:'s' %}selected{% endif %}>{{ subject.name }}</option>
                                 {% endfor %}
                             </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label" for="difficulty">Nivel</label>
-                            <select id="difficulty" name="difficulty" class="form-select">
+                        </span>
+                    </label>
+                    <label class="catalog-field">
+                        <span class="catalog-field__label" for="difficulty">Nivel</span>
+                        <span class="catalog-field__wrapper">
+                            <span class="catalog-field__icon" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></span>
+                            <select id="difficulty" name="difficulty">
                                 <option value="">Oricare</option>
                                 {% for value, label in difficulty_choices %}
                                     <option value="{{ value }}" {% if filters.difficulty == value %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
-                        </div>
-                        <div class="col-12">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="1" id="upcoming" name="upcoming" {% if filters.upcoming %}checked{% endif %}>
-                                <label class="form-check-label" for="upcoming"><i class="fa-solid fa-calendar-day me-1 text-primary"></i>Doar lecțiile viitoare</label>
-                            </div>
-                        </div>
-                        <div class="col-12 d-flex justify-content-between">
-                            <a class="btn btn-outline-secondary" href="{% url 'estudy:lessons_list' %}">Resetează</a>
-                            <button class="btn btn-primary" type="submit">Aplică filtre</button>
-                        </div>
-                    </div>
+                        </span>
+                    </label>
+                </div>
+                <div class="catalog-filters__actions">
+                    <button type="button" class="catalog-link-reset" data-filter-reset>Resetează filtrele</button>
+                    <button type="submit" class="btn btn--primary" data-filter-apply>Aplică filtrul</button>
                 </div>
             </form>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="lesson-blocks-wrapper mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h4 mb-0">Trasee și blocuri tematice</h2>
-        <span class="badge bg-primary-subtle text-primary">{{ lessons|length }} rezultate</span>
-    </div>
-    {% if lesson_blocks %}
-        <div class="lesson-blocks d-flex flex-column gap-5">
-            {% for block in lesson_blocks %}
-                <article class="lesson-block card shadow-sm border-0" id="block-{{ block.slug }}">
-                    <div class="lesson-block__header card-body d-flex flex-column flex-lg-row justify-content-between gap-4">
-                        <div class="lesson-block__meta flex-grow-1">
-                            <div class="d-flex flex-wrap gap-2 mb-2">
-                                {% if block.type == 'path' %}
-                                    <span class="badge bg-primary-subtle text-primary"><i class="fa-solid fa-compass me-1"></i>Parcurs tematic</span>
-                                    <span class="badge bg-info-subtle text-info"><i class="fa-solid fa-gauge-high me-1"></i>{{ block.difficulty_label }}</span>
-                                {% else %}
-                                    <span class="badge bg-secondary-subtle text-secondary"><i class="fa-solid fa-book me-1"></i>Subiect</span>
-                                {% endif %}
-                                {% if block.total %}
-                                    <span class="badge bg-success-subtle text-success"><i class="fa-solid fa-circle-check me-1"></i>{{ block.completed }}/{{ block.total }} finalizate</span>
-                                {% endif %}
-                            </div>
-                            <h3 class="lesson-block__title mb-1">{{ block.title }}</h3>
-                            <p class="lesson-block__description text-muted mb-0">{{ block.description|default:"Acest traseu adună lecțiile potrivite pentru nivelul tău." }}</p>
-                        </div>
-                        <div class="lesson-block__progress text-center text-lg-start">
-                            <span class="lesson-block__progress-label text-uppercase small text-muted d-block">Progres bloc</span>
-                            <div class="progress progress-thin bg-light my-2">
-                                <div class="progress-bar bg-primary" style="width: {{ block.progress_percent }}%;" aria-valuenow="{{ block.progress_percent }}" aria-valuemin="0" aria-valuemax="100"></div>
-                            </div>
-                            <div class="lesson-block__cta d-flex flex-column gap-2">
-                                {% if block.next_lesson %}
-                                    <a class="btn btn-primary btn-sm align-self-lg-start" href="{% url 'estudy:lesson_detail' slug=block.next_lesson.slug %}">
-                                        {% if block.next_lesson.is_completed %}<i class="fa-solid fa-arrow-rotate-right me-1"></i>Revezi{% elif block.next_lesson.is_accessible %}<i class="fa-solid fa-play me-1"></i>Continuă parcursul{% else %}<i class="fa-solid fa-flag-checkered me-1"></i>Start bloc{% endif %}
-                                    </a>
-                                {% endif %}
-                                <span class="small text-muted">{{ block.progress_percent }}% complet · {{ block.completed }} / {{ block.total }} lecții</span>
-                            </div>
-                        </div>
+    <section class="catalog-modules" id="lesson-catalog" aria-labelledby="catalog-modules-title">
+        <div class="container catalog-modules__container">
+            <header class="catalog-modules__header">
+                <h2 id="catalog-modules-title">Module disponibile</h2>
+                <p>Explorează traseele UNITEX și pornește lecțiile preferate. Fiecare card arată progresul tău.</p>
+            </header>
+            <div class="module-grid" data-lessons-list>
+                <article class="module-card" data-module-slug="modul-1-alfabetizare-digitala" data-module-completed="1" data-module-total="4" data-animate>
+                    <div class="module-card__icon" aria-hidden="true">💻</div>
+                    <div class="module-card__head">
+                        <h3>Alfabetizare digitală</h3>
+                        <p>Primii pași într-o lume sigură și responsabilă online.</p>
                     </div>
-                    <div class="lesson-block__lessons pb-4 px-3 px-lg-4">
-                        <div class="row g-4">
-                            {% for lesson in block.lessons %}
-                                {% with palette=lesson.difficulty_palette %}
-                                <div class="col-md-6 col-xl-4">
-                                    {% with completed=lesson.is_completed accessible=lesson.is_accessible sequence=lesson.sequence %}
-                                    <article class="lesson-card lesson-card--grid{% if completed %} lesson-card--completed{% elif not accessible %} lesson-card--locked{% endif %}">
-                                        <div class="lesson-card__statusbar">
-                                            {% if sequence %}
-                                                <span class="lesson-card__sequence badge bg-dark bg-opacity-25 text-white"><i class="fa-solid fa-route me-1"></i>Pas {{ sequence.index }} din {{ sequence.total }}</span>
-                                            {% endif %}
-                                            <span class="lesson-card__state badge {% if completed %}bg-success-subtle text-success{% elif accessible %}bg-primary-subtle text-primary{% else %}bg-secondary-subtle text-secondary{% endif %}">
-                                                {% if completed %}
-                                                    <i class="fa-solid fa-check me-1"></i>Finalizat
-                                                {% elif accessible %}
-                                                    <i class="fa-solid fa-unlock-keyhole me-1"></i>Pregătit
-                                                {% else %}
-                                                    <i class="fa-solid fa-lock me-1"></i>Blocat
-                                                {% endif %}
-                                            </span>
-                                        </div>
-                                        <div class="lesson-card__image" style="background: {{ palette.bg }};">
-                                            <div class="p-3 text-white d-flex justify-content-between">
-                                                <span class="badge bg-dark bg-opacity-25">{{ lesson.subject.name }}</span>
-                                                <span class="fs-3">{{ palette.emoji }}</span>
-                                            </div>
-                                        </div>
-                                        <div class="lesson-card__body">
-                                            <h3 class="h5 mb-1"><a {% if accessible or completed %}href="{% url 'estudy:lesson_detail' slug=lesson.slug %}"{% else %}href="#" class="stretched-link disabled" aria-disabled="true"{% endif %}>{{ lesson.title }}</a></h3>
-                                            <p class="text-muted small mb-3">{{ lesson.excerpt|default:"Pregătește-te pentru o aventură de învățare!" }}</p>
-                                            <div class="d-flex flex-wrap gap-2 small">
-                                                <span class="badge rounded-pill bg-primary-subtle text-primary"><i class="fa-solid fa-trophy me-1"></i>{{ lesson.xp_reward }} XP</span>
-                                                <span class="badge rounded-pill bg-secondary-subtle text-secondary"><i class="fa-solid fa-gauge-high me-1"></i>{{ lesson.get_difficulty_display }}</span>
-                                                <span class="badge rounded-pill bg-success-subtle text-success"><i class="fa-solid fa-clock me-1"></i>{{ lesson.duration_minutes }} min</span>
-                                            </div>
-                                        </div>
-                                        <div class="lesson-card__footer d-flex justify-content-between align-items-center">
-                                            <span class="small text-muted"><i class="fa-solid fa-calendar-day me-1"></i>{{ lesson.date|date:"d MMM" }}</span>
-                                            {% if completed %}
-                                                <a class="btn btn-sm btn-outline-success" href="{% url 'estudy:lesson_detail' slug=lesson.slug %}"><i class="fa-solid fa-rotate-left me-1"></i>Reia</a>
-                                            {% elif accessible %}
-                                                <a class="btn btn-sm btn-primary" href="{% url 'estudy:lesson_detail' slug=lesson.slug %}"><i class="fa-solid fa-play me-1"></i>Continuă</a>
-                                            {% else %}
-                                                <button class="btn btn-sm btn-outline-secondary" type="button" disabled><i class="fa-solid fa-lock me-1"></i>Dezblochează</button>
-                                            {% endif %}
-                                        </div>
-                                        {% if not accessible and not completed %}
-                                            <div class="lesson-card__lock">
-                                                <i class="fa-solid fa-lock lesson-card__lock-icon"></i>
-                                                {% if lesson.locked_reason %}
-                                                    <p class="lesson-card__lock-text">Finalizează "{{ lesson.locked_reason.title }}" mai întâi pentru a continua traseul.</p>
-                                                {% else %}
-                                                    <p class="lesson-card__lock-text">Finalizează lecția precedentă pentru a continua.</p>
-                                                {% endif %}
-                                            </div>
-                                        {% endif %}
-                                    </article>
-                                    {% endwith %}
-                                </div>
-                                {% endwith %}
-                            {% endfor %}
+                    <ul class="module-card__points">
+                        <li>Reguli de siguranță și gestionarea datelor.</li>
+                        <li>Instrumente digitale utile pentru școală.</li>
+                        <li>Plan personal de învățare.</li>
+                    </ul>
+                    <div class="module-card__footer">
+                        <div class="module-card__progress">
+                            <div class="module-progress" role="presentation">
+                                <span class="module-progress__fill" data-module-progress-bar></span>
+                            </div>
+                            <span class="module-progress__label" data-module-progress-label>1 din 4 lecții</span>
                         </div>
+                        <a class="btn btn--primary" href="{% url 'estudy:lesson_module_digital_literacy' %}">Începe lecția</a>
                     </div>
                 </article>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="text-center py-5 bg-white rounded-4 shadow-sm">
-            <h3 class="h5 mb-2">Nu am găsit lecții pentru filtrele alese.</h3>
-            <p class="text-muted mb-0">Resetează filtrele sau revino curând pentru lecții noi.</p>
-        </div>
-    {% endif %}
-</section>
 
-<section class="row g-4 mb-5">
-    <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h2 class="h5 mb-0">Recomandări pentru tine</h2>
-                <span class="badge bg-secondary-subtle text-secondary"><i class="fa-solid fa-sparkles me-1"></i>Personalizat</span>
-            </div>
-            <div class="card-body">
-                {% if recommendations %}
-                    <ul class="list-group list-group-flush">
-                        {% for item in recommendations %}
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ item.lesson.title }}</strong>
-                                    <div class="text-muted small">{{ item.lesson.subject.name }}</div>
-                                </div>
-                                <a class="btn btn-sm btn-outline-primary" href="{% url 'estudy:lesson_detail' slug=item.lesson.slug %}">Pornește</a>
-                            </li>
-                        {% endfor %}
+                <article class="module-card" data-module-slug="modul-2-exploratori-logici" data-module-completed="0" data-module-total="5" data-animate>
+                    <div class="module-card__icon" aria-hidden="true">🧠</div>
+                    <div class="module-card__head">
+                        <h3>Gândire logică</h3>
+                        <p>Construiește algoritmi prietenoși și rezolvă provocări creative.</p>
+                    </div>
+                    <ul class="module-card__points">
+                        <li>Structuri logice și diagrame de flux.</li>
+                        <li>Instrucțiuni condiționale și bucle.</li>
+                        <li>Jocuri de puzzle pentru antrenarea minții.</li>
                     </ul>
-                {% else %}
-                    <p class="text-muted mb-0">Toate lecțiile recomandate sunt bifate! Continuă aventura în ritmul tău.</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
-            <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <h2 class="h5 mb-0">Ce urmează</h2>
-                <span class="badge bg-primary-subtle text-primary"><i class="fa-solid fa-calendar-check me-1"></i>Calendar</span>
-            </div>
-            <div class="card-body">
-                {% if upcoming_lessons %}
-                    <ul class="timeline list-unstyled mb-0">
-                        {% for lesson in upcoming_lessons %}
-                            <li class="timeline-item">
-                                <div class="timeline-date">{{ lesson.date|date:"d MMM" }}</div>
-                                <div class="timeline-content">
-                                    <h3 class="h6 mb-1">{{ lesson.title }}</h3>
-                                    <p class="text-muted small mb-1">{{ lesson.subject.name }}</p>
-                                    <a class="small text-decoration-none" href="{% url 'estudy:lesson_detail' slug=lesson.slug %}">Detalii lecție</a>
-                                </div>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                {% else %}
-                    <p class="text-muted mb-0">Nu ai lecții viitoare programate. Poți alege una chiar acum!</p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</section>
-
-<section class="mb-5">
-    <div class="card shadow-sm">
-        <div class="card-header bg-white">
-            <h2 class="h5 mb-0">Actualizate recent</h2>
-        </div>
-        <div class="card-body">
-            {% if latest_lessons %}
-                <div class="row g-3">
-                    {% for lesson in latest_lessons %}
-                        <div class="col-md-4">
-                            <div class="p-3 rounded-3 border h-100">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-info-subtle text-info"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Nou</span>
-                                    <span class="small text-muted">{{ lesson.updated_at|date:"d MMM" }}</span>
-                                </div>
-                                <h3 class="h6 mb-1">{{ lesson.title }}</h3>
-                                <p class="text-muted small mb-3">{{ lesson.subject.name }}</p>
-                                <a class="btn btn-sm btn-outline-secondary" href="{% url 'estudy:lesson_detail' slug=lesson.slug %}">Vezi lecția</a>
+                    <div class="module-card__footer">
+                        <div class="module-card__progress">
+                            <div class="module-progress" role="presentation">
+                                <span class="module-progress__fill" data-module-progress-bar></span>
                             </div>
+                            <span class="module-progress__label" data-module-progress-label>0 din 5 lecții</span>
                         </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="text-muted mb-0">Momentan nu există actualizări. Revino mai târziu!</p>
-            {% endif %}
+                        <button type="button" class="btn btn--ghost" disabled aria-disabled="true">În curând</button>
+                    </div>
+                </article>
+
+                <article class="module-card" data-module-slug="modul-3-programare-python" data-module-completed="0" data-module-total="6" data-animate>
+                    <div class="module-card__icon" aria-hidden="true">🐍</div>
+                    <div class="module-card__head">
+                        <h3>Programare în Python</h3>
+                        <p>Scrie cod real și construiește mini-aplicații utile.</p>
+                    </div>
+                    <ul class="module-card__points">
+                        <li>Variabile, funcții și structuri de date.</li>
+                        <li>Proiecte practice în consolă și Jupyter.</li>
+                        <li>Provocări cu feedback imediat.</li>
+                    </ul>
+                    <div class="module-card__footer">
+                        <div class="module-card__progress">
+                            <div class="module-progress" role="presentation">
+                                <span class="module-progress__fill" data-module-progress-bar></span>
+                            </div>
+                            <span class="module-progress__label" data-module-progress-label>0 din 6 lecții</span>
+                        </div>
+                        <button type="button" class="btn btn--ghost" disabled aria-disabled="true">În curând</button>
+                    </div>
+                </article>
+
+                <article class="module-card" data-module-slug="modul-4-creare-jocuri" data-module-completed="0" data-module-total="5" data-animate>
+                    <div class="module-card__icon" aria-hidden="true">🎮</div>
+                    <div class="module-card__head">
+                        <h3>Creare de mini-jocuri</h3>
+                        <p>Transformă ideile în jocuri animate și interactive.</p>
+                    </div>
+                    <ul class="module-card__points">
+                        <li>Design de personaje și decoruri.</li>
+                        <li>Logica jocului și evenimente.</li>
+                        <li>Testare și prezentarea proiectului.</li>
+                    </ul>
+                    <div class="module-card__footer">
+                        <div class="module-card__progress">
+                            <div class="module-progress" role="presentation">
+                                <span class="module-progress__fill" data-module-progress-bar></span>
+                            </div>
+                            <span class="module-progress__label" data-module-progress-label>0 din 5 lecții</span>
+                        </div>
+                        <button type="button" class="btn btn--ghost" disabled aria-disabled="true">În curând</button>
+                    </div>
+                </article>
+
+                <article class="module-card" data-module-slug="modul-5-introducere-web" data-module-completed="0" data-module-total="5" data-animate>
+                    <div class="module-card__icon" aria-hidden="true">🌐</div>
+                    <div class="module-card__head">
+                        <h3>Introducere în web</h3>
+                        <p>Descoperă cum se construiesc site-urile și aplică ideile tale.</p>
+                    </div>
+                    <ul class="module-card__points">
+                        <li>Structura HTML și stilizare CSS.</li>
+                        <li>Interactivitate de bază cu JavaScript.</li>
+                        <li>Mini-portofoliu publicat online.</li>
+                    </ul>
+                    <div class="module-card__footer">
+                        <div class="module-card__progress">
+                            <div class="module-progress" role="presentation">
+                                <span class="module-progress__fill" data-module-progress-bar></span>
+                            </div>
+                            <span class="module-progress__label" data-module-progress-label>0 din 5 lecții</span>
+                        </div>
+                        <button type="button" class="btn btn--ghost" disabled aria-disabled="true">În curând</button>
+                    </div>
+                </article>
+
+                <article class="module-card" data-module-slug="modul-6-proiecte-avansate" data-module-completed="0" data-module-total="4" data-animate>
+                    <div class="module-card__icon" aria-hidden="true">🎨</div>
+                    <div class="module-card__head">
+                        <h3>Proiecte creative</h3>
+                        <p>Aplică tot ce ai învățat și construiește un portofoliu memorabil.</p>
+                    </div>
+                    <ul class="module-card__points">
+                        <li>Planificarea și documentarea proiectului.</li>
+                        <li>Colaborare și prezentare în echipă.</li>
+                        <li>Feedback și îmbunătățire continuă.</li>
+                    </ul>
+                    <div class="module-card__footer">
+                        <div class="module-card__progress">
+                            <div class="module-progress" role="presentation">
+                                <span class="module-progress__fill" data-module-progress-bar></span>
+                            </div>
+                            <span class="module-progress__label" data-module-progress-label>0 din 4 lecții</span>
+                        </div>
+                        <button type="button" class="btn btn--ghost" disabled aria-disabled="true">În curând</button>
+                    </div>
+                </article>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
+</main>
 {% endblock %}

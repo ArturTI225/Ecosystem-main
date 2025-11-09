@@ -1,37 +1,58 @@
-from django.shortcuts import render, redirect
-from django.contrib.auth import login, authenticate
-from django.contrib.auth.forms import AuthenticationForm
-from django.http import HttpResponse
-from django.core.mail import send_mail
+import re
+
 from django.conf import settings
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render
+from django.views.decorators.http import require_POST
+
+from django.core.mail import send_mail
+
 
 def index(request):
-    return render(request, 'unitexapp/index.html')
+    return render(request, "unitexapp/index.html")
 
 
-from django.core.mail import send_mail
-from django.http import HttpResponse
-from django.conf import settings
+def _is_ajax(request):
+    return request.headers.get("x-requested-with") == "XMLHttpRequest"
 
+
+def _json_or_text(request, payload, *, status=200):
+    if _is_ajax(request):
+        return JsonResponse(payload, status=status)
+    return HttpResponse(payload.get("message", ""), status=status)
+
+
+@require_POST
 def submit_form(request):
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        phone = request.POST.get('phone')
-        
-        subject = "Новая заявка с сайта"
-        message = f"Имя: {name}\nНомер телефона: {phone}"
-        from_email = settings.EMAIL_HOST_USER
-        recipient_list = ['recipient_email@example.com']
+    name = (request.POST.get("name") or "").strip()
+    phone = (request.POST.get("phone") or "").strip()
+    message = (request.POST.get("message") or "").strip()
 
-        try:
-            # Отправка письма
-            sent_count = send_mail(subject, message, from_email, recipient_list)
-            
-            if sent_count > 0:
-                return HttpResponse(f"Данные получены и отправлены на почту: {name}, {phone}")
-            else:
-                return HttpResponse("Ошибка отправки письма.")
-        except Exception as e:
-            return HttpResponse(f"Ошибка при отправке письма: {str(e)}")
-    
-    return HttpResponse("Ошибка запроса")
+    errors = {}
+    if len(name) < 2:
+        errors["name"] = "Te rugăm să scrii un nume valid."
+    phone_digits = re.sub(r"[^\d+]", "", phone)
+    if len(phone_digits) < 7:
+        errors["phone"] = "Introdu un număr de telefon valid."
+
+    if errors:
+        return _json_or_text(request, {"success": False, "errors": errors, "message": "Formular incomplet."}, status=400)
+
+    email_subject = "Cerere nouă de pe UNITEX"
+    email_body = f"Nume: {name}\nTelefon: {phone}\nMesaj: {message or '—'}"
+
+    try:
+        send_mail(
+            email_subject,
+            email_body,
+            settings.EMAIL_HOST_USER,
+            [settings.EMAIL_HOST_USER],
+        )
+    except Exception as exc:  # pragma: no cover - defensive
+        return _json_or_text(
+            request,
+            {"success": False, "message": "Nu am putut trimite formularul. Încearcă din nou în câteva minute."},
+            status=500,
+        )  # noqa: PERF203
+
+    return _json_or_text(request, {"success": True, "message": "Mulțumim! Echipa noastră te va contacta în scurt timp."})

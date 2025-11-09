@@ -1,132 +1,77 @@
+{% extends 'unitexapp/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="ro" data-theme="light">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}UnITex{% endblock %}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+{% block page_title %}
+    {% block title %}UNITEX • Univers interactiv{% endblock %}
+{% endblock %}
+
+{% block body_class %}workspace-body{% endblock %}
+
+{% block extra_css %}
+    {{ block.super }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1Bf1cJQ6nKQ4C4eOtm6l6R9GqUy1Ik5+pUvV0sWPuQgSve/92pT9bkOuM54q9WUF0A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{% static 'estudy/style.css' %}">
-    <script>
-        (function() {
-            try {
-                var stored = localStorage.getItem('unitex-theme');
-                if (!stored && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                    stored = 'dark';
-                }
-                document.documentElement.setAttribute('data-theme', stored === 'dark' ? 'dark' : 'light');
-            } catch (error) {
-                document.documentElement.setAttribute('data-theme', 'light');
-            }
-        })();
-    </script>
-    {% block extra_css %}{% endblock %}
-</head>
-<body class="app-body">
-    {% with request.resolver_match.url_name|default:'' as current_url %}
-    <nav class="navbar navbar-expand-lg navbar-dark app-navbar shadow-sm">
-        <div class="container-fluid px-4">
-            <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{% url 'estudy:dashboard' %}">
-                <span class="brand-emblem d-inline-flex align-items-center justify-content-center"><i class="fa-solid fa-bolt"></i></span>
-                <span>UnITex</span>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="mainNav">
-                <ul class="navbar-nav me-auto align-items-lg-center">
-                    <li class="nav-item"><a class="nav-link{% if current_url == 'dashboard' or current_url == 'student_dashboard' or current_url == 'teacher_dashboard' or current_url == 'admin_dashboard' or current_url == 'parent_dashboard' %} active{% endif %}" href="{% url 'estudy:dashboard' %}"><i class="fa-solid fa-compass me-1"></i>Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link{% if current_url == 'lessons_list' or current_url == 'lesson_detail' %} active{% endif %}" href="{% url 'estudy:lessons_list' %}"><i class="fa-solid fa-book me-1"></i>Lecții</a></li>
-                    <li class="nav-item"><a class="nav-link{% if current_url == 'missions' %} active{% endif %}" href="{% url 'estudy:missions' %}"><i class="fa-solid fa-flag-checkered me-1"></i>Misiuni</a></li>
-                    <li class="nav-item"><a class="nav-link{% if current_url == 'leaderboard' %} active{% endif %}" href="{% url 'estudy:leaderboard' %}"><i class="fa-solid fa-medal me-1"></i>Clasament</a></li>
-                    <li class="nav-item"><a class="nav-link{% if current_url == 'projects' or current_url == 'project_submit' %} active{% endif %}" href="{% url 'estudy:projects' %}"><i class="fa-solid fa-lightbulb me-1"></i>Proiecte</a></li>
-                    <li class="nav-item"><a class="nav-link{% if current_url == 'classrooms' or current_url == 'classroom_detail' %} active{% endif %}" href="{% url 'estudy:classrooms' %}"><i class="fa-solid fa-people-group me-1"></i>Clase</a></li>
-                    <li class="nav-item"><a class="nav-link{% if current_url == 'community' or current_url == 'community_thread' %} active{% endif %}" href="{% url 'estudy:community' %}"><i class="fa-solid fa-comments me-1"></i>Comunitate</a></li>
-                </ul>
-                <div class="navbar-nav ms-auto align-items-lg-center gap-3">
-                    <button class="btn theme-toggle" type="button" data-theme-toggle aria-label="Comută tema">
-                        <span class="theme-toggle__icon theme-toggle__icon--sun"><i class="fa-solid fa-sun"></i></span>
-                        <span class="theme-toggle__icon theme-toggle__icon--moon"><i class="fa-solid fa-moon"></i></span>
-                        <span class="theme-toggle__label" data-theme-toggle-label>Zi</span>
-                    </button>
-                    {% if user.is_authenticated %}
-                        <a class="nav-link position-relative" href="{% url 'estudy:notifications' %}">
-                            <i class="fa-solid fa-bell"></i>
-                            <span class="visually-hidden">Notificări</span>
-                        </a>
-                        <div class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fa-solid fa-user-astronaut me-2"></i>{{ user.get_short_name|default:user.username }}
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-end shadow">
-                                <li><a class="dropdown-item" href="{% url 'inregistrare_profile' %}"><i class="fa-solid fa-id-badge me-2"></i>Profil</a></li>
-                                <li><a class="dropdown-item" href="{% url 'estudy:overview' %}"><i class="fa-solid fa-map me-2"></i>Panorama lecții</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item text-danger" href="/logout/"><i class="fa-solid fa-right-from-bracket me-2"></i>Ieșire</a></li>
-                            </ul>
-                        </div>
-                    {% else %}
-                        <a class="btn btn-light" href="/login/"><i class="fa-solid fa-right-to-bracket me-2"></i>Autentificare</a>
-                    {% endif %}
+    {% block workspace_extra_css %}{% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="{% static 'estudy/script.js' %}" defer></script>
+    {% block workspace_extra_js %}{% endblock %}
+{% endblock %}
+
+{% block content %}
+<div class="workspace-shell" data-workspace-shell>
+    {% block workspace_banner %}
+    <section class="workspace-banner" aria-labelledby="workspace-banner-title" data-animate>
+        <div class="container workspace-banner__inner">
+            <div class="workspace-banner__copy">
+                <span class="workspace-banner__tag">
+                    <span aria-hidden="true">🚀</span>
+                    Univers UNITEX
+                </span>
+                <h1 id="workspace-banner-title">
+                    {% block workspace_title %}Invatare personalizata pentru fiecare explorator{% endblock %}
+                </h1>
+                <p class="workspace-banner__subtitle">
+                    {% block workspace_subtitle %}
+                        Bine ai venit in hub-ul tau digital. Continua lectiile, revendica insigne stralucitoare si urca in clasament cu fiecare misiune finalizata.
+                    {% endblock %}
+                </p>
+                {% block workspace_actions %}{% endblock %}
+            </div>
+            <div class="workspace-banner__visual" aria-hidden="true">
+                <div class="workspace-illustration">
+                    <figure class="workspace-illustration__main">
+                        <img src="https://illustrations.popsy.co/emerald/online-learning.svg" alt="" loading="lazy">
+                    </figure>
+                    <figure class="workspace-illustration__card">
+                        <img src="https://illustrations.popsy.co/emerald/creative-teamwork.svg" alt="" loading="lazy">
+                    </figure>
                 </div>
+                <div class="workspace-spot workspace-spot--one"></div>
+                <div class="workspace-spot workspace-spot--two"></div>
             </div>
         </div>
-    </nav>
+    </section>
+    {% endblock %}
 
-    <div class="app-subheader py-2">
-        <div class="container-fluid px-4">
-            <div class="d-flex flex-wrap align-items-center gap-3 small app-subheader__content">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-battery-three-quarters text-primary"></i>
-                    <span>Progres general:</span>
-                    {% with p=global_progress.percent|default:0 %}
-                    <div class="progress progress-thin" style="width:160px;">
-                        <div class="progress-bar" data-progress-bar data-progress-initial="{{ p }}" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ p }}"><span data-progress-percent>{{ p }}</span>%</div>
-                    </div>
-                    {% endwith %}
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <i class="fa-solid fa-star text-warning"></i>
-                    <span><span data-progress-completed>{{ global_progress.completed|default:0 }}</span> lecții finalizate din <span data-progress-total>{{ global_progress.total|default:0 }}</span></span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <main class="container-fluid px-4 py-4">
+    <div class="container workspace-main" id="workspace-main">
         {% if messages %}
-            <div class="row">
-                <div class="col-lg-8 mx-auto">
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags|default:'primary' }} alert-dismissible fade show shadow-sm" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
-                </div>
+        <div class="workspace-messages" role="status">
+            {% for message in messages %}
+            <div class="workspace-message workspace-message--{{ message.tags|default:'info' }}" data-message>
+                <span class="workspace-message__icon" aria-hidden="true">✨</span>
+                <div class="workspace-message__body">{{ message }}</div>
+                <button type="button" class="workspace-message__close" data-dismiss-message aria-label="Închide">×</button>
             </div>
+            {% endfor %}
+        </div>
         {% endif %}
 
-        {% block content %}{% endblock %}
-    </main>
-
-    <footer class="app-footer border-top py-4">
-        {% now "Y" as current_year %}
-        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
-            <span class="text-muted">&copy; {{ current_year }} UnITex – Aventuri digitale pentru minți curioase.</span>
-            <div class="d-flex gap-3">
-                <a class="link-secondary" href="mailto:contact@unitex.ro"><i class="fa-solid fa-envelope me-1"></i>contact@unitex.ro</a>
-                <a class="link-secondary" href="tel:+40123456789"><i class="fa-solid fa-phone me-1"></i>+40 123 456 789</a>
-            </div>
-        </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'estudy/script.js' %}" defer></script>
-    {% block extra_js %}{% endblock %}
-    {% endwith %}
-</body>
-</html>
+        {% block page_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

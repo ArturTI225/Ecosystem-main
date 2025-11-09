@@ -1,86 +1,79 @@
+{% load static %}
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="ro" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    {% load static %}
+    {% block meta %}{% endblock %}
+    <script>
+        (function () {
+            var fallback = 'light';
+            try {
+                var storedTheme = localStorage.getItem('unitex-theme');
+                if (storedTheme === 'dark' || storedTheme === 'light') {
+                    fallback = storedTheme;
+                }
+            } catch (error) {
+                /* ignore storage access errors */
+            }
+            document.documentElement.setAttribute('data-theme', fallback);
+        })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700&family=Manrope:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'unitexapp/style.css' %}">
-    <title>Școala IT UnITex</title>
+    {% block extra_css %}{% endblock %}
+    <title>{% block page_title %}Scoala IT UNITEX{% endblock %}</title>
 </head>
-<body>
-    <div class="scrollable-content">
-        <!-- Navbar -->
-        <nav id="navbar">
-            <div class="logo">
-                <img src="{% static 'images/logo.gif' %}" alt="Logo" width="100" height="100"  ></img>
+<body class="site-body {% block body_class %}{% endblock %}" data-barba="wrapper">
+    <div class="site-shell">
+        <nav class="site-navbar" data-navbar>
+            <div class="container navbar__inner">
+                <a class="navbar__brand" href="{% url 'index' %}">
+                    <span class="navbar__emblem">
+                        <img src="{% static 'images/logo.gif' %}" alt="Sigla UNITEX">
+                    </span>
+                    <span>UNITEX</span>
+                </a>
+                <button class="navbar__toggle" type="button" aria-expanded="false" aria-controls="primary-nav" data-navbar-toggle>
+                    <span class="navbar__toggle-bar"></span>
+                </button>
+                <div class="navbar__menu" id="primary-nav" data-navbar-menu>
+                    <ul class="navbar__links" role="list">
+                        <li><a class="navbar__link nav-link" href="{% url 'index' %}">Acasa</a></li>
+                        <li><a class="navbar__link nav-link" href="{% url 'estudy:lessons_list' %}">Lectii</a></li>
+                        {% if user.is_authenticated %}
+                            <li><a class="navbar__link nav-link" href="{% url 'inregistrare_profile' %}">Profil</a></li>
+                            <li><a class="navbar__link nav-link" href="{% url 'logout' %}">Deconectare</a></li>
+                        {% else %}
+                            <li><a class="navbar__link nav-link" href="{% url 'signup' %}">Inregistrare</a></li>
+                            <li><a class="navbar__link nav-link" href="{% url 'login' %}">Autentificare</a></li>
+                        {% endif %}
+                    </ul>
+                    <div class="navbar__actions">
+                        <button class="theme-toggle" type="button" aria-label="Comuta tema" data-theme-toggle data-theme="light">
+                            <span class="theme-toggle__track" aria-hidden="true">
+                                <span class="theme-toggle__thumb">
+                                    <span class="theme-toggle__icon" aria-hidden="true">&#9728;</span>
+                                </span>
+                            </span>
+                            <span class="theme-toggle__label" data-theme-toggle-label>Zi</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <ul class="navbar-items">
-                <li class="navbar-item">
-                    <a href="{% url 'index' %}">Acasă</a>
-                </li>
-                <li class="navbar-item">
-                    <a href="{% url 'estudy:lessons_list' %}">Invatamant online</a>
-                </li>
-                {% if user.is_authenticated %}
-                    <li class="navbar-item">
-                        <a href="{% url 'inregistrare_profile' %}">Profil</a>
-                    </li>
-                    <li class="navbar-item">
-                        <a href="{% url 'logout' %}">Logout</a>
-                    </li>
-                {% else %}
-                    <li class="navbar-item">
-                        <a href="{% url 'signup' %}">Înregistrare</a>
-                    </li>
-                    <li class="navbar-item">
-                        <a href="{% url 'login' %}">Autentificare</a>
-                    </li>      
-                {% endif %}
-            </ul>
         </nav>
-
-        <!-- Main content -->
-        <main id="main">
+        <main id="main" class="site-main" tabindex="-1" data-barba="container" data-barba-namespace="{% block page_namespace %}default{% endblock %}">
             {% block content %}{% endblock %}
         </main>
-
-        <!-- Footer -->
-<footer class="footer">
-    <div class="footer-content">
-        <!-- Location Section -->
-        <div class="map">
-            <h2>Locația Noastră</h2>
-            <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d169.40381725510184!2d27.802359708637912!3d47.20755991948427!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x40cb01006e887725%3A0x88367241cbbec41d!2sUnITex!5e0!3m2!1sen!2s!4v1721050423300!5m2!1sen!2s" width="600" height="400" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-        </div>
-
-        <!-- Schedule Section -->
-        <div class="schedule-section">
-            <h2>Orarul Nostru</h2>
-            <ul>
-                <li>Luni - Vineri: 9:00 - 18:00</li>
-                <li>Sâmbătă: 10:00 - 16:00</li>
-                <li>Duminică: Închis</li>
-            </ul>
-        </div>
-
-        <!-- Contact Info Section -->
-        <div class="contact-info">
-            <h2>Contactează-ne</h2>
-            <p>Email: pyt.unitex@gmail.com</p>
-            <p>Telefon: +373 69 792 355</p>
-            <p>Adresă: Ungheni, Str. Feroviară 39A</p>
-        </div>
-
-        <!-- Social Media Links -->
-        <div class="social-media">
-            <h2>Urmărește-ne</h2>
-            <a href="https://www.facebook.com/PYTUNITEX">Facebook</a>
-            <a href="#">Instagram</a>
-            <a href="https://www.tiktok.com/@unitex.ungheni">TikTok</a>
-        </div>
     </div>
-</footer>
-
-<script src="{% static 'unitexapp/script.js' %}"></script>
+    <div class="scroll-progress" data-scroll-progress></div>
+    <button class="scroll-top-button" type="button" aria-label="Inapoi sus" data-scroll-top>↑</button>
+    <div class="page-transition-layer" data-page-transition aria-hidden="true"></div>
+    <script src="{% static 'unitexapp/script.js' %}" defer></script>
+    <script src="{% static 'unitexapp/vendor/barba.umd.js' %}" defer></script>
+    <script src="{% static 'unitexapp/page-transitions.js' %}" defer></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

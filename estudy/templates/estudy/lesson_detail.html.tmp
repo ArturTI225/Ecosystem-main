@@ -1,0 +1,548 @@
+0003 
+0005 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" integrity="sha512-M2b6l1ps/ivFl9WKw8cUqGyaemHK8Ir70GSgi9Bz3S0wkXqvrJ9nG4eKvi7EocBoGp0oOBmGXyCkspsHKxuXWw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+0006 <style>
+0008         --lesson-bg: #0b1120;
+0009         --lesson-surface: #0f172a;
+0010         --lesson-card: #111f37;
+0011         --lesson-card-soft: rgba(30, 64, 175, 0.12);
+0012         --lesson-border: rgba(148, 163, 184, 0.18);
+0013         --lesson-line: rgba(56, 189, 248, 0.25);
+0014         --lesson-ink: #e2e8f0;
+0015         --lesson-muted: #94a3b8;
+0016         --lesson-accent: #60a5fa;
+0017         --lesson-accent-strong: #38bdf8;
+0018         --lesson-success: #34d399;
+0019         --lesson-danger: #fb7185;
+0020         --lesson-radius-lg: 28px;
+0021         --lesson-radius-md: 20px;
+0022         --lesson-radius-sm: 14px;
+0023         --lesson-shadow: 0 36px 120px -60px rgba(15, 23, 42, 0.65);
+0025 
+0027         max-width: 900px;
+0028         margin: 0 auto;
+0029         padding: clamp(2rem, 3vw, 3rem) clamp(1rem, 3vw, 2rem) clamp(4rem, 6vw, 5rem);
+0030         color: var(--lesson-ink);
+0031         display: flex;
+0032         flex-direction: column;
+0033         gap: clamp(2rem, 3vw, 3rem);
+0035 
+0037         background: linear-gradient(135deg, rgba(59, 130, 246, 0.22), rgba(129, 140, 248, 0.14));
+0038         border: 1px solid var(--lesson-border);
+0039         border-radius: var(--lesson-radius-lg);
+0040         padding: clamp(1.6rem, 3vw, 2.6rem);
+0041         box-shadow: var(--lesson-shadow);
+0042         display: grid;
+0043         gap: clamp(1.5rem, 2vw, 2.4rem);
+0045 
+0047         display: flex;
+0048         flex-wrap: wrap;
+0049         align-items: center;
+0050         justify-content: space-between;
+0051         gap: 1.2rem;
+0053 
+0055         display: inline-flex;
+0056         align-items: center;
+0057         gap: .4rem;
+0058         padding: .5rem 1.05rem;
+0059         border-radius: 999px;
+0060         border: 1px solid rgba(96, 165, 250, 0.35);
+0061         background: rgba(59, 130, 246, 0.18);
+0062         text-transform: uppercase;
+0063         letter-spacing: .26em;
+0064         font-size: .68rem;
+0065         font-weight: 600;
+0066         color: var(--lesson-accent-strong);
+0068 
+0070         display: flex;
+0071         flex-wrap: wrap;
+0072         gap: 1rem;
+0074 
+0076         display: grid;
+0077         gap: .25rem;
+0078         min-width: 120px;
+0080 
+0082         font-size: .72rem;
+0083         text-transform: uppercase;
+0084         letter-spacing: .18em;
+0085         color: var(--lesson-muted);
+0087 
+0089         font-size: 1.05rem;
+0090         font-weight: 600;
+0092 
+0094         font-size: clamp(2.4rem, 5vw, 3rem);
+0095         font-weight: 800;
+0096         margin: 0;
+0097         letter-spacing: -.02em;
+0099 
+0101         background: var(--lesson-card);
+0102         border: 1px solid var(--lesson-border);
+0103         border-radius: var(--lesson-radius-lg);
+0104         padding: clamp(1.8rem, 2.5vw, 2.4rem) clamp(1.6rem, 2.5vw, 2.4rem);
+0105         box-shadow: var(--lesson-shadow);
+0106         display: grid;
+0107         gap: 1.3rem;
+0109 
+0111         display: flex;
+0112         align-items: center;
+0113         justify-content: space-between;
+0114         flex-wrap: wrap;
+0115         gap: 1rem;
+0117 
+0119         display: inline-flex;
+0120         align-items: center;
+0121         gap: .5rem;
+0122         padding: .4rem .9rem;
+0123         border-radius: 999px;
+0124         background: rgba(59, 130, 246, 0.18);
+0125         border: 1px solid rgba(59, 130, 246, 0.25);
+0126         letter-spacing: .24em;
+0127         font-size: .68rem;
+0128         font-weight: 600;
+0129         text-transform: uppercase;
+0130         color: var(--lesson-accent-strong);
+0132 
+0134         margin: 0;
+0135         font-size: clamp(1.4rem, 2.6vw, 1.8rem);
+0136         font-weight: 700;
+0138 
+0140         color: var(--lesson-muted);
+0141         line-height: 1.75;
+0142         display: grid;
+0143         gap: 1rem;
+0145 
+0147         margin: 0;
+0149 
+0150     .lesson-prose ul,
+0152         margin: 0;
+0153         padding-left: 1.3rem;
+0155 
+0157         height: 1px;
+0158         background: linear-gradient(90deg, transparent, var(--lesson-line), transparent);
+0159         border: none;
+0161 
+0163         background: rgba(59, 130, 246, 0.08);
+0164         border: 1px solid rgba(59, 130, 246, 0.22);
+0165         border-radius: var(--lesson-radius-md);
+0166         padding: 1.2rem 1.4rem;
+0167         display: grid;
+0168         gap: .6rem;
+0169         color: var(--lesson-ink);
+0171 
+0173         display: inline-flex;
+0174         align-items: center;
+0175         justify-content: center;
+0176         gap: .5rem;
+0177         padding: .75rem 1.5rem;
+0178         border-radius: 999px;
+0179         background: linear-gradient(135deg, #2563eb, #38bdf8);
+0180         color: #fff;
+0181         font-weight: 600;
+0182         border: none;
+0183         text-decoration: none;
+0184         transition: transform .18s ease, box-shadow .18s ease;
+0185         box-shadow: 0 26px 72px -42px rgba(37, 99, 235, 0.65);
+0187 
+0189         transform: translateY(-2px);
+0190         box-shadow: 0 34px 80px -40px rgba(37, 99, 235, 0.7);
+0192 
+0194         background: transparent;
+0195         border: 1px solid rgba(148, 163, 184, 0.28);
+0196         color: var(--lesson-accent-strong);
+0197         box-shadow: none;
+0199 
+0201         background: #0b1628;
+0202         border: 1px solid rgba(15, 23, 42, 0.55);
+0203         border-radius: var(--lesson-radius-md);
+0204         padding: 1.25rem;
+0205         overflow: hidden;
+0207 
+0209         margin: 0;
+0210         border-radius: calc(var(--lesson-radius-md) - 10px);
+0211         background: #0b1628 !important;
+0213 
+0215         display: inline-flex;
+0216         align-items: center;
+0217         gap: .35rem;
+0218         padding: .25rem .6rem;
+0219         border-radius: 999px;
+0220         font-size: .75rem;
+0221         background: rgba(52, 211, 153, 0.12);
+0222         color: var(--lesson-success);
+0224 
+0226         display: grid;
+0227         gap: 1.5rem;
+0229 
+0231         background: rgba(15, 23, 42, 0.55);
+0232         border: 1px solid rgba(148, 163, 184, 0.24);
+0233         border-radius: var(--lesson-radius-md);
+0234         padding: 1.4rem 1.6rem;
+0235         display: grid;
+0236         gap: 1rem;
+0238 
+0240         width: 100%;
+0241         min-height: 240px;
+0242         border-radius: var(--lesson-radius-sm);
+0243         border: 1px solid rgba(148, 163, 184, 0.25);
+0244         background: #0b1628;
+0245         color: #cbd5f5;
+0246         font-family: "Fira Code", Consolas, monospace;
+0247         font-size: .95rem;
+0248         padding: 1rem 1.1rem;
+0249         resize: vertical;
+0251 
+0253         min-height: 120px;
+0254         background: rgba(0, 0, 0, 0.55);
+0255         border-radius: var(--lesson-radius-sm);
+0256         padding: 1rem;
+0257         font-family: "Fira Code", Consolas, monospace;
+0258         font-size: .92rem;
+0259         color: var(--lesson-success);
+0260         white-space: pre-wrap;
+0261         word-break: break-word;
+0263 
+0264     .match-slot,
+0266         border-radius: var(--lesson-radius-sm);
+0267         border: 1px dashed rgba(148, 163, 184, 0.32);
+0268         padding: .95rem 1rem;
+0269         background: rgba(15, 23, 42, 0.6);
+0270         color: var(--lesson-ink);
+0271         transition: border-color .18s ease, background .18s ease;
+0273 
+0275         cursor: grab;
+0277 
+0279         font-size: .75rem;
+0280         text-transform: uppercase;
+0281         letter-spacing: .14em;
+0282         color: var(--lesson-muted);
+0284 
+0286         display: grid;
+0287         gap: 1rem;
+0289 
+0291         display: flex;
+0292         align-items: center;
+0293         justify-content: space-between;
+0294         gap: 1rem;
+0295         padding: 1rem 1.2rem;
+0296         border-radius: var(--lesson-radius-sm);
+0297         border: 1px solid rgba(148, 163, 184, 0.2);
+0298         background: rgba(15, 23, 42, 0.4);
+0300 
+0302         color: var(--lesson-accent-strong);
+0303         text-decoration: none;
+0304         font-weight: 600;
+0306 
+0308         display: flex;
+0309         flex-direction: column;
+0310         gap: 1rem;
+0312 
+0314         font-size: .85rem;
+0315         color: var(--lesson-muted);
+0317 
+0320             padding: 1.5rem 1rem 3.5rem;
+0323 </style>
+0325 
+0327 <main class="lesson-page">
+0328     <header class="lesson-hero">
+0329         <div class="lesson-hero__top">
+0330             <div class="lesson-chip">{ lesson.subject.name }</div>
+0331             <div class="lesson-meta">
+0332                 <div class="lesson-meta__item">
+0333                     <span>Durată</span>
+0334                     <span>{ lesson.duration_minutes } minute</span>
+0335                 </div>
+0336                 <div class="lesson-meta__item">
+0337                     <span>Nivel</span>
+0338                     <span>{ lesson.get_difficulty_display }</span>
+0339                 </div>
+0340                 <div class="lesson-meta__item">
+0341                     <span>XP</span>
+0342                     <span>+{ lesson.xp_reward } xp</span>
+0343                 </div>
+0344             </div>
+0345         </div>
+0346         <div class="lesson-hero__body">
+0347             <h1 class="lesson-title">{ lesson.title }</h1>
+0348             <p class="lesson-prose">
+0349                 { lesson.theory_intro|default:lesson.excerpt|default:"Această lecție te poartă pas cu pas prin concepte, exemple și aplicații practice ca să înțelegi rapid și sigur tema." }
+0350             </p>
+0351         </div>
+0352         <div class="lesson-hero__footer">
+0353             <button class="lesson-button toggle-completion"
+0354                     data-complete-btn
+0355                     data-label-pending='<i class="fa-regular fa-circle-check"></i><span>Marchează reușita</span>'
+0356                     data-label-completed='<i class="fa-solid fa-check"></i><span>Lecția bifată</span>'
+0359                     <i class="fa-solid fa-check"></i><span>Lecția bifată</span>
+0361                     <i class="fa-regular fa-circle-check"></i><span>Marchează reușita</span>
+0363             </button>
+0364         </div>
+0365     </header>
+0366 
+0367     <section class="lesson-section" id="intro">
+0368         <div class="lesson-section__header">
+0369             <span class="lesson-section__label">Intro</span>
+0370             <h2 class="lesson-section__title">De ce merită să cunoști conceptul</h2>
+0371         </div>
+0372         <div class="lesson-prose">
+0374                 <ul>
+0376                         <li>{ point }</li>
+0378                 </ul>
+0380                 <ul>
+0382                         <li>{ step.detail }</li>
+0384                 </ul>
+0386                 <p>Notează două aplicații din viața ta în care ai folosit deja acest principiu fără să îți dai seama. Lecția te va ajuta să le explici clar și să le optimizezi.</p>
+0388         </div>
+0389         <hr class="lesson-divider">
+0390         <div class="lesson-card">
+0391             <strong>Scurt checklist</strong>
+0392             <p>După această secțiune ar trebui să poți descrie conceptul în cuvintele tale și să-l conectezi la o problemă reală din proiectul tău.</p>
+0393         </div>
+0394     </section>
+0395 
+0396     <section class="lesson-section" id="concept">
+0397         <div class="lesson-section__header">
+0398             <span class="lesson-section__label">Concept</span>
+0399             <h2 class="lesson-section__title">Principiul explicat rapid</h2>
+0400         </div>
+0401         <div class="lesson-prose">
+0402             { lesson.content|linebreaks }
+0403         </div>
+0405             <div class="lesson-card">
+0406                 <strong>Imagini mentale</strong>
+0407                 <ul>
+0409                         <li><span class="lesson-inline-hint">{ card.emoji|default:'💡' }</span> { card.description }</li>
+0411                 </ul>
+0412             </div>
+0414     </section>
+0415 
+0416     <section class="lesson-section" id="code-example">
+0417         <div class="lesson-section__header">
+0418             <span class="lesson-section__label">Code Example</span>
+0419             <h2 class="lesson-section__title">Aplicația practică în cod</h2>
+0420         </div>
+0423                 <p class="lesson-prose">{ challenge.description|default:"Observă codul de mai jos și pregătește-te să îl rulezi în secțiunea de practică." }</p>
+0424                 <div class="lesson-code-block">
+0425                     <pre><code class="language-python">{ challenge.starter|default:"print('Salut, UnITex!')\nprint('Schimbă mesajul și rulează din nou!')" }</code></pre>
+0426                 </div>
+0428                     <p class="lesson-inline-hint"><i class="fa-solid fa-lightbulb"></i> { challenge.hint }</p>
+0432             <p class="lesson-prose">Codul de mai jos demonstrează ideea centrală. Analizează-l și încearcă să anticipezi output-ul înainte să îl rulezi.</p>
+0433             <div class="lesson-code-block">
+0434                 <pre><code class="language-python">import datetime as dt
+0435 
+0436 start = dt.datetime.now()
+0438 
+0439 print(message)
+0440 print("Acum este:", start.strftime("%Y-%m-%d %H:%M"))</code></pre>
+0441             </div>
+0443         <div class="lesson-next">
+0444             <a class="lesson-button" href="#practice"><i class="fa-solid fa-flask"></i> Încearcă singur</a>
+0445             <p class="lesson-tagline">Apasă butonul pentru a trece direct la secțiunea de practică și a rula codul.</p>
+0446         </div>
+0447     </section>
+0448 
+0449     <section class="lesson-section" id="explanation">
+0450         <div class="lesson-section__header">
+0451             <span class="lesson-section__label">Explanation</span>
+0452             <h2 class="lesson-section__title">Ce se întâmplă în spatele rezultatului</h2>
+0453         </div>
+0454         <div class="lesson-prose">
+0455             { lesson.explainer|default:lesson.content|linebreaks }
+0456         </div>
+0458             <div class="lesson-card">
+0459                 <strong>Aplică în realitate</strong>
+0460                 <p>{ enrichment.real_example }</p>
+0462                     <ol>
+0464                             <li>{ step }</li>
+0466                     </ol>
+0468             </div>
+0470     </section>
+0471 
+0472     <section class="lesson-section" id="practice">
+0473         <div class="lesson-section__header">
+0474             <span class="lesson-section__label">Try it Yourself</span>
+0475             <h2 class="lesson-section__title">Testează ideea în trei pași</h2>
+0476         </div>
+0477         <div class="lesson-tagline">Rulează codul, ordonează elementele logice și verifică printr-un mini test.</div>
+0478 
+0479         <div class="lesson-practice-grid">
+0480             <div class="practice-panel" id="practice-code">
+0481                 <div class="lesson-section__header">
+0482                     <h3 class="lesson-section__title">1. Rulează codul de probă</h3>
+0483                     <span class="lesson-inline-hint"><i class="fa-solid fa-terminal"></i> editor interactiv</span>
+0484                 </div>
+0487                 <div class="lesson-card">
+0488                     <div class="lesson-section__header">
+0489                         <button type="button" class="lesson-button lesson-button--ghost" data-code-run><i class="fa-solid fa-play"></i> Rulează</button>
+0490                         <span class="lesson-inline-hint"><i class="fa-solid fa-hourglass"></i> Output instant</span>
+0491                     </div>
+0492                     <pre data-code-output>Scrie codul și apasă „Rulează” pentru a vedea rezultatul.</pre>
+0493                 </div>
+0494             </div>
+0495 
+0497             <div class="practice-panel" id="practice-dnd">
+0498                 <div class="lesson-section__header">
+0499                     <h3 class="lesson-section__title">2. Potrivește elementele corecte</h3>
+0500                     <span class="lesson-inline-hint"><i class="fa-solid fa-object-group"></i> drag & drop</span>
+0501                 </div>
+0503                     <p class="lesson-tagline">{ practice.instructions }</p>
+0505                 <div class="lesson-divider"></div>
+0506                 <div class="lesson-card">
+0507                     <h4>Elemente disponibile</h4>
+0508                     <ul class="lesson-prose" data-draggable-source>
+0511                                 <li class="match-token" draggable="true" data-id="{ item.id }">{ item.label }</li>
+0514                             <li class="match-token" draggable="true" data-id="concept">Concept cheie</li>
+0515                             <li class="match-token" draggable="true" data-id="definitie">Definiție</li>
+0516                             <li class="match-token" draggable="true" data-id="exemplu">Exemplu</li>
+0518                     </ul>
+0519                 </div>
+0520                 <div class="lesson-card">
+0521                     <h4>Ordinea corectă</h4>
+0523                         <li class="lesson-tagline">Trage elementele aici în ordinea corectă.</li>
+0524                     </ul>
+0525                     <div class="lesson-section__header">
+0526                         <button type="button" class="lesson-button lesson-button--ghost" data-order-check><i class="fa-solid fa-circle-check"></i> Verifică</button>
+0527                         <button type="button" class="lesson-button lesson-button--ghost" data-order-reset><i class="fa-solid fa-arrow-rotate-left"></i> Resetează</button>
+0528                     </div>
+0529                     <p class="lesson-inline-hint hidden" data-order-feedback></p>
+0530                 </div>
+0531             </div>
+0533 
+0534             <div class="practice-panel" id="practice-quiz">
+0535                 <div class="lesson-section__header">
+0536                     <h3 class="lesson-section__title">3. Mini test ghidat</h3>
+0537                     <span class="lesson-inline-hint"><i class="fa-solid fa-question"></i> verifică înțelegerea</span>
+0538                 </div>
+0541                         <form data-test-form data-correct-answer="{ test.correct_answer }" class="lesson-card">
+0542                             <div class="lesson-prose">
+0543                                 <p><strong>Întrebare:</strong> { test.question }</p>
+0544                                 <p class="lesson-tagline">Alege varianta corectă. Primești feedback imediat.</p>
+0545                             </div>
+0546                             <div class="lesson-divider"></div>
+0547                             <div class="lesson-prose" data-test-answers>
+0549                                     <label class="material-item" data-test-option>
+0550                                         <span>
+0551                                             <input type="radio" class="form-check-input me-2" name="answer" value="{ answer }">
+0552                                             { answer }
+0553                                         </span>
+0554                                         <i class="fa-solid fa-chevron-right"></i>
+0555                                     </label>
+0557                             </div>
+0558                             <button type="submit" class="lesson-button lesson-button--ghost"><i class="fa-solid fa-bolt"></i> Trimite răspunsul</button>
+0559                             <p class="lesson-inline-hint hidden" data-test-feedback></p>
+0560                         </form>
+0563                     <div class="lesson-card">
+0564                         <p>Mini testul nu este disponibil încă. Revizuiește teoria și revino mai târziu pentru verificare.</p>
+0565                     </div>
+0567             </div>
+0568         </div>
+0569     </section>
+0570 
+0572     <section class="lesson-section" id="materials">
+0573         <div class="lesson-section__header">
+0574             <span class="lesson-section__label">Next / Notes</span>
+0575             <h2 class="lesson-section__title">Materiale recomandate</h2>
+0576         </div>
+0577         <div class="lesson-materials">
+0579                 <div class="material-item">
+0580                     <div>
+0581                         <strong>{ material.title }</strong>
+0582                         <p class="lesson-tagline">{ material.get_resource_type_display }</p>
+0583                     </div>
+0584                     <a href="{ material.url }" target="_blank" rel="noopener"><i class="fa-solid fa-arrow-up-right-from-square"></i></a>
+0585                 </div>
+0587         </div>
+0588     </section>
+0590 
+0592     <section class="lesson-section" id="next">
+0593         <div class="lesson-section__header">
+0594             <span class="lesson-section__label">Next</span>
+0595             <h2 class="lesson-section__title">Pasul următor în traseu</h2>
+0596         </div>
+0597         <p class="lesson-tagline">Continuă traseul cu <strong>{ next_lesson.title }</strong>.</p>
+0600                 <i class="fa-solid fa-lock"></i> Lecția este blocată până finalizezi prezentul modul
+0602                 <i class="fa-solid fa-arrow-right"></i> Continuă către următoarea lecție
+0604         </a>
+0605     </section>
+0607 </main>
+0609 
+0611 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-9cFSiyA27DBA1j7zItnhR0n+sgd4CIqfWS4qEXnKq57RNiK0yu+C4b9TtmeknUzMFZUciVDyZNdE83lZ2xudPQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+0612 <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js" integrity="sha512-z7o4yECA+B0bgiSC34InHn/csje+BuPQyuprC2MyFDPeZgTLDPTOVXY/cZf41jcMlojyGQfeTuYFPr1q+K+J7w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+0613 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+0614 <script>
+0617             window.hljs.highlightAll();
+0619 
+0620         const runButton = document.querySelector('[data-code-run]');
+0621         const editor = document.querySelector('[data-code-editor]');
+0622         const output = document.querySelector('[data-code-output]');
+0623 
+0626                 const code = editor.value;
+0627                 const logs = [];
+0629                     log: (...args) => logs.push(args.join(' ')),
+0631                     warn: (...args) => logs.push(args.join(' ')),
+0634                     // eslint-disable-next-line no-new-func
+0635                     const fn = new Function('console', code);
+0636                     const result = fn(sandboxConsole);
+0638                         logs.push(String(result));
+0640                     output.textContent = logs.length ? logs.join('\n') : 'Nu există output - adaugă console.log() sau returnează o valoare.';
+0641                     output.classList.remove('text-rose-400');
+0642                     output.classList.add('text-emerald-300');
+0644                     output.textContent = error.message;
+0645                     output.classList.remove('text-emerald-300');
+0646                     output.classList.add('text-rose-400');
+0650 
+0651         const sourceList = document.querySelector('[data-draggable-source]');
+0652         const targetList = document.querySelector('[data-draggable-target]');
+0653         const checkButton = document.querySelector('[data-order-check]');
+0654         const resetButton = document.querySelector('[data-order-reset]');
+0655         const feedback = document.querySelector('[data-order-feedback]');
+0656         const expectedOrder = (targetList?.dataset.expectedOrder || '')
+0657             .split(',')
+0658             .map((item) => item.trim())
+0659             .filter(Boolean);
+0660         const initialTargetHtml = targetList ? targetList.innerHTML : '';
+0661 
+0665                 sort: false,
+0666                 animation: 180,
+0667                 ghostClass: 'opacity-30',
+0670 
+0674                 sort: true,
+0675                 animation: 180,
+0676                 ghostClass: 'opacity-30',
+0678                     evt.item.classList.add('bg-indigo-500/30', 'text-white');
+0679                     feedback?.classList.add('hidden');
+0683 
+0686                 return;
+0688             const currentOrder = Array.from(targetList.children)
+0689                 .filter((item) => item.dataset.id)
+0690                 .map((item) => item.dataset.id);
+0691             const correct = expectedOrder.length
+0692                 ? expectedOrder.every((id, index) => currentOrder[index] === id)
+0693                 : currentOrder.length > 0;
+0694             feedback.textContent = correct
+0695                 ? (targetList.dataset.successMessage || 'Super! Ordinea este corectă.')
+0696                 : 'Mai încearcă – unele elemente nu sunt în ordinea bună.';
+0697             feedback.classList.remove('hidden');
+0698             feedback.classList.toggle('text-emerald-300', correct);
+0699             feedback.classList.toggle('text-rose-400', !correct);
+0701 
+0704                 targetList.innerHTML = initialTargetHtml;
+0706             feedback?.classList.add('hidden');
+0708 
+0709         const testForm = document.querySelector('[data-test-form]');
+0710         const testFeedback = document.querySelector('[data-test-feedback]');
+0711         const answersContainer = document.querySelector('[data-test-answers]');
+0712 
+0714             const answers = Array.from(answersContainer.children);
+0716                 const j = Math.floor(Math.random() * (i + 1));
+0717                 answersContainer.appendChild(answers[j]);
+0720 
+0722             event.preventDefault();
+0723             const selected = testForm.querySelector('input[name="answer"]:checked');
+0725                 return;
+0727             const correctAnswer = testForm.dataset.correctAnswer;
+0728             const isCorrect = selected.value === correctAnswer;
+0729             testFeedback.textContent = isCorrect
+0730                 ? 'Super! Ai identificat logica corectă.'
+0732             testFeedback.classList.remove('hidden');
+0733             testFeedback.classList.toggle('text-emerald-300', isCorrect);
+0734             testFeedback.classList.toggle('text-rose-400', !isCorrect);
+0737 </script>

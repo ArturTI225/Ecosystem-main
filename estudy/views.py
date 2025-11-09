@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 from functools import wraps
+from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -70,6 +71,9 @@ ROLE_TEACHER = UserProfile.ROLE_PROFESSOR
 ROLE_ADMIN = UserProfile.ROLE_ADMIN
 ROLE_PARENT = UserProfile.ROLE_PARENT
 
+MODULE_LESSON_ALIASES = {
+    "modul-1-alfabetizare-digitala": "nivel-1-prieteni-cu-variabilele",
+}
 
 
 
@@ -105,6 +109,25 @@ def role_required(*roles):
 def is_admin(user: User) -> bool:
     profile = getattr(user, "userprofile", None)
     return bool(profile and profile.status == ROLE_ADMIN)
+
+
+COMPETITOR_DOMAINS = {
+    "khanacademy.org",
+    "code.org",
+    "codecademy.com",
+    "udemy.com",
+    "coursera.org",
+    "skillshare.com",
+    "pluralsight.com",
+    "brilliant.org",
+}
+
+
+def _is_competitor_link(url: str) -> bool:
+    if not url:
+        return False
+    host = urlparse(url).netloc.lower()
+    return any(domain in host for domain in COMPETITOR_DOMAINS)
 
 
 LESSON_ENRICHMENTS = {
@@ -740,6 +763,22 @@ def community_thread(request, pk):
 
 
 @login_required
+def lesson_module_digital_literacy(request):
+    alias_slug = MODULE_LESSON_ALIASES.get("modul-1-alfabetizare-digitala", "modul-1-alfabetizare-digitala")
+    try:
+        return lesson_detail(request, slug=alias_slug)
+    except Http404:
+        context = {
+            "module_name": "Modul 1 - Alfabetizare digitala",
+        }
+        return render(
+            request,
+            "estudy/lesson_module_digital_literacy.html",
+            with_progress(context, request.user),
+        )
+
+
+@login_required
 def lesson_detail(request, slug):
     lesson = get_object_or_404(
         Lesson.objects.select_related("subject").prefetch_related(
@@ -765,7 +804,12 @@ def lesson_detail(request, slug):
         return redirect("estudy:lesson_detail", slug=blocking_lesson.slug)
 
     progress = LessonProgress.objects.filter(user=request.user, lesson=lesson).first()
-    tests = lesson.tests.order_by("id")
+    tests = list(lesson.tests.order_by("id"))
+    quiz_test = tests[0] if tests else None
+    quiz_options = []
+    if quiz_test:
+        quiz_options = [quiz_test.correct_answer, *quiz_test.wrong_answers]
+        random.shuffle(quiz_options)
     recommendations = refresh_recommendations(request.user)
     enrichment = LESSON_ENRICHMENTS.get(slug, {})
     practice = getattr(lesson, "practice", None)
@@ -807,10 +851,16 @@ def lesson_detail(request, slug):
             info_snippets.append(story_text)
     lesson_voice_text = " ".join(part for part in info_snippets if part).strip()
 
+    lesson_materials = [
+        material for material in lesson.materials.all() if not _is_competitor_link(material.url)
+    ]
+
     context = {
         "lesson": lesson,
         "progress": progress,
         "tests": tests,
+        "quiz_test": quiz_test,
+        "quiz_options": quiz_options,
         "recommendations": recommendations,
         "enrichment": enrichment,
         "badges": get_badge_summary(request.user),
@@ -822,6 +872,7 @@ def lesson_detail(request, slug):
         "lesson_position": current_index + 1,
         "subject_total": len(subject_lessons),
         "lesson_voice_text": lesson_voice_text,
+        "lesson_materials": lesson_materials,
     }
     return render(request, "estudy/lesson_detail.html", with_progress(context, request.user))
 
