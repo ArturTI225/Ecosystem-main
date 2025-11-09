@@ -1,203 +1,901 @@
 {% extends "unitexapp/base.html" %}
 {% load static %}
 
+{% block page_title %}UNITEX — învățare digitală jucăușă pentru copii și adolescenți{% endblock %}
+
+{% block body_class %}landing-page{% endblock %}
+{% block page_namespace %}landing{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'unitexapp/homepage.css' %}">
+{% endblock %}
+
+{% block meta %}
+<meta name="description" content="UNITEX îi ghidează pe elevi prin lecții digitale captivante și proiecte interactive pentru a construi abilități reale.">
+<meta property="og:title" content="UNITEX — învățare digitală jucăușă pentru copii și adolescenți">
+<meta property="og:description" content="Descoperă lecții scurte, quiz-uri dinamice și suport inteligent. Începe călătoria digitală cu UNITEX.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="ro_RO">
+<meta property="og:image" content="{% static 'unitexapp/illustrations/hero-learning.svg' %}">
+<meta name="twitter:card" content="summary_large_image">
+{% endblock %}
+
 {% block content %}
+<article class="landing" data-page="landing">
+    <section class="hero" id="hero" data-section="hero" data-layer="hero">
+        <div class="hero__background" aria-hidden="true" data-layer="hero-bg">
+            <span class="hero__glow hero__glow--top" data-layer="bg-glow-1"></span>
+            <span class="hero__glow hero__glow--bottom" data-layer="bg-glow-2"></span>
+            <span class="hero__bubble hero__bubble--one" data-parallax data-layer="blob-1" data-hero-blob></span>
+            <span class="hero__bubble hero__bubble--two" data-parallax data-layer="blob-2" data-hero-blob></span>
+            <span class="hero__bubble hero__bubble--three" data-parallax data-layer="blob-3" data-hero-blob></span>
+            <svg class="hero__shape hero__shape--ring" viewBox="0 0 220 220" role="presentation" data-layer="hero-ring">
+                <circle cx="110" cy="110" r="86" fill="none" stroke="url(#heroRingGradient)" stroke-width="3" stroke-dasharray="20 14" stroke-linecap="round" />
+                <defs>
+                    <linearGradient id="heroRingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.85" />
+                        <stop offset="100%" stop-color="#2563EB" stop-opacity="0.35" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            <svg class="hero__shape hero__shape--grid" viewBox="0 0 180 180" role="presentation" data-layer="hero-grid">
+                <g stroke="rgba(148, 163, 184, 0.35)" stroke-width="1.5">
+                    <path d="M0 30h180M0 60h180M0 90h180M0 120h180M0 150h180" />
+                    <path d="M30 0v180M60 0v180M90 0v180M120 0v180M150 0v180" />
+                </g>
+                <rect x="52" y="52" width="76" height="76" rx="18" fill="rgba(37, 99, 235, 0.08)" stroke="#2563EB" stroke-width="2"/>
+                <circle cx="90" cy="90" r="12" fill="#38BDF8" />
+            </svg>
+        </div>
+        <div class="container hero__inner" data-layer="hero-content">
+            <div class="hero__copy" data-layer="hero-copy">
+                <span class="hero__tagline" data-layer="tagline">Platforma UNITEX</span>
+                <h1 class="hero__title" data-layer="title">Învățare digitală prietenoasă, plină de descoperiri</h1>
+                <p class="hero__subtitle" data-layer="subtitle">
+                    Creează-ți super-puteri digitale cu lecții scurte, mini provocări și feedback inteligent.
+                    UNITEX combină joaca și programarea ca să transformi curiozitatea în competențe reale.
+                </p>
+                <div class="hero__actions" data-layer="ctas">
+                    <a href="{% url 'signup' %}" class="btn btn--primary" data-layer="cta-primary" aria-label="Începe acum cu UNITEX">Începe acum</a>
+                    <a href="#how-it-works" class="btn btn--secondary" data-layer="cta-secondary" data-scroll aria-label="Vezi cum funcționează platforma UNITEX">Vezi cum funcționează</a>
+                </div>
+                <dl class="hero__stats" data-layer="hero-stats">
+                    <div class="hero__stat" data-layer="stat-lessons">
+                        <dt>lecții finalizate</dt>
+                        <dd data-count="12500" data-suffix="+">0+</dd>
+                    </div>
+                    <div class="hero__stat" data-layer="stat-users">
+                        <dt>utilizatori activi</dt>
+                        <dd data-count="4200" data-suffix="+">0+</dd>
+                    </div>
+                </dl>
+                <div class="hero__scroll-hint" data-layer="scroll-indicator" aria-hidden="true">
+                    <span>Derulează</span>
+                    <span class="hero__scroll-arrow">↓</span>
+                </div>
+            </div>
+            <figure class="hero__visual" aria-hidden="true" data-layer="hero-illustration">
+                <div class="hero__visual-card" data-layer="hero-illustration-card">
+                    <img src="{% static 'unitexapp/illustrations/hero-learning.svg' %}" alt="" loading="eager" decoding="async">
+                    <span class="hero__icon hero__icon--spark" data-hero-icon data-layer="hero-icon-1">
+                        <svg viewBox="0 0 48 48" aria-hidden="true" role="presentation">
+                            <path d="M24 6l3.4 8.7L36 18l-8.6 3.3L24 30l-3.4-8.7L12 18l8.6-3.3L24 6z" fill="#60A5FA" fill-opacity="0.85"></path>
+                        </svg>
+                    </span>
+                    <span class="hero__icon hero__icon--code" data-hero-icon data-layer="hero-icon-2">
+                        <svg viewBox="0 0 44 44" aria-hidden="true" role="presentation">
+                            <path d="M16 14L8 22l8 8" stroke="#1E3A8A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+                            <path d="M28 14l8 8-8 8" stroke="#2563EB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+                        </svg>
+                    </span>
+                    <span class="hero__icon hero__icon--chat" data-hero-icon data-layer="hero-icon-3">
+                        <svg viewBox="0 0 46 46" aria-hidden="true" role="presentation">
+                            <path d="M10 14c0-3.3 2.7-6 6-6h14c3.3 0 6 2.7 6 6v6c0 3.3-2.7 6-6 6h-7l-6 6v-6h-1c-3.3 0-6-2.7-6-6v-6z" fill="#22C55E" fill-opacity="0.85"></path>
+                            <circle cx="18" cy="20" r="2.4" fill="#0F172A"></circle>
+                            <circle cx="23" cy="20" r="2.4" fill="#0F172A"></circle>
+                            <circle cx="28" cy="20" r="2.4" fill="#0F172A"></circle>
+                        </svg>
+                    </span>
+                </div>
+            </figure>
+        </div>
+    </section>
 
-<!-- Секция приветствия -->
-<div class="welcome-section">
-    <div class="shapes-container">
-        <div class="shape shape-wave"></div>
-        <div class="shape shape-hexagon"></div>
-        <div class="shape shape-circle"></div>
-    </div>
-    <div class="welcome-content">
-        <h1>Descoperă-ți creativitatea cu cele mai bune cursuri IT!</h1>
-        <p>UnITex este o școală de IT din Ungheni pentru copii cu vârste între 7 și 17 ani. Oferim programe educaționale 
-            adaptate fiecărei grupe de vârstă, încurajând creativitatea și abilitățile de rezolvare a problemelor prin activități 
-            interactive și distractive.</p>
-        <a href="#programs" class="btn">Vezi cursurile noastre</a>
-    </div>
-</div>
-<!-- Секция "De ce să alegi UnITex?" -->
-<section class="features-section">
-    <div class="container">
-        <h2>De ce să alegi UnITex?</h2>
-        <div class="features-grid">
-            <div class="feature feature-small-1">
-                <img src="{% static 'images/about-back.jpg' %}" alt="Învățare interactivă">
-                <div class="feature-content">
-                    <h3>Învățare interactivă</h3>
-                    <p>Cursuri atractive și interactive adaptate fiecărei grupe de vârstă.</p>
-                </div>
-            </div>
-            <div class="feature feature-small-2">
-                <img src="{% static 'images/about-back.jpg' %}" alt="Educatori experimentați">
-                <div class="feature-content">
-                    <h3>Educatori experimentați</h3>
-                    <p>Profesori experți dedicați dezvoltării tinerelor talente.</p>
-                </div>
-            </div>
-            <div class="feature feature-medium">
-                <img src="{% static 'images/about-back.jpg' %}" alt="Proiecte din lumea reală">
-                <div class="feature-content">
-                    <h3>Proiecte din lumea reală</h3>
-                    <p>Proiecte practice care pregătesc elevii pentru provocările viitoare.</p>
-                </div>
-            </div>
-            <div class="feature feature-medium-2">
-                <img src="{% static 'images/about-back.jpg' %}" alt="Învățare interactivă">
-                <div class="feature-content">
-                    <h3>Învățare interactivă</h3>
-                    <p>Cursuri atractive și interactive adaptate fiecărei grupe de vârstă.</p>
-                </div>
+    <section class="steps" id="how-it-works" data-section="steps">
+        <span class="section-shape section-shape--steps-dots" aria-hidden="true">
+            <svg viewBox="0 0 160 160" role="presentation">
+                <g fill="rgba(96, 165, 250, 0.2)">
+                    <circle cx="20" cy="20" r="6"></circle>
+                    <circle cx="60" cy="20" r="6"></circle>
+                    <circle cx="100" cy="20" r="6"></circle>
+                    <circle cx="140" cy="20" r="6"></circle>
+                    <circle cx="20" cy="60" r="6"></circle>
+                    <circle cx="60" cy="60" r="6"></circle>
+                    <circle cx="100" cy="60" r="6"></circle>
+                    <circle cx="140" cy="60" r="6"></circle>
+                    <circle cx="20" cy="100" r="6"></circle>
+                    <circle cx="60" cy="100" r="6"></circle>
+                    <circle cx="100" cy="100" r="6"></circle>
+                    <circle cx="140" cy="100" r="6"></circle>
+                </g>
+            </svg>
+        </span>
+        <span class="section-shape section-shape--steps-wave" aria-hidden="true">
+            <svg viewBox="0 0 220 140" role="presentation">
+                <defs>
+                    <linearGradient id="stepsWaveGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#C7D2FE" stop-opacity="0.35"></stop>
+                        <stop offset="100%" stop-color="#93C5FD" stop-opacity="0.2"></stop>
+                    </linearGradient>
+                </defs>
+                <path d="M0 60 Q 40 10 90 30 T 180 20 L 220 140 L 0 140 Z" fill="url(#stepsWaveGradient)"></path>
+            </svg>
+        </span>
+        <div class="container steps__inner">
+            <header class="section-heading">
+                <span class="section-heading__tag">Cum funcționează</span>
+                <h2 class="section-heading__title">3 pași simpli până la primele rezultate</h2>
+                <p class="section-heading__subtitle">
+                    Totul durează sub două minute: îți creezi contul, alegi traseul potrivit și înveți cu sprijin la fiecare etapă.
+                </p>
+            </header>
+            <div class="steps__grid" data-stagger>
+                <article class="step-card" data-animate-item>
+                    <span class="step-card__icon" data-icon="account" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-account"></use>
+                        </svg>
+                    </span>
+                    <h3 class="step-card__title">Creezi un cont</h3>
+                    <p class="step-card__text">Completezi profilul și setezi obiectivele. Platforma te ghidează pas cu pas.</p>
+                </article>
+                <article class="step-card" data-animate-item>
+                    <span class="step-card__icon" data-icon="curriculum" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-curriculum"></use>
+                        </svg>
+                    </span>
+                    <h3 class="step-card__title">Alegi un curs</h3>
+                    <p class="step-card__text">Selectezi trasee pe nivel și interese. Toate lecțiile sunt colorate și dinamice.</p>
+                </article>
+                <article class="step-card" data-animate-item>
+                    <span class="step-card__icon" data-icon="learning" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-learning"></use>
+                        </svg>
+                    </span>
+                    <h3 class="step-card__title">Înveți pas cu pas</h3>
+                    <p class="step-card__text">Lecții scurte, quiz-uri și feedback instant. Vezi progresul și primești insigne.</p>
+                </article>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-
-<!--Group age-->
-<div class="age-groups">
-    <div class="age-group">
-        <img src="{% static 'images/age7-9.jpg' %}" alt="Copii cu vârsta între 7 și 9 ani">
-        <div class="age-group-content">
-            <h2>Vârsta 7-9 ani</h2>
-            <p>Introducere în programare prin activități interactive și distractive.</p>
-            <button class="learn-more" data-age-group="7-9 ani">Află mai multe</button>
-        </div>
-    </div>
-    <div class="age-group">
-        <img src="{% static 'images/age10-13.jpg' %}" alt="Copii cu vârsta între 10 și 13 ani">
-        <div class="age-group-content">
-            <h2>Vârsta 10-13 ani</h2>
-            <p>Explorarea conceptelor avansate de programare și crearea proiectelor mai complexe.</p>
-            <button class="learn-more" data-age-group="10-13 ani">Află mai multe</button>
-        </div>
-    </div>
-    <div class="age-group">
-        <img src="{% static 'images/age13-15.jpg' %}" alt="Adolescenți cu vârsta între 13 și 15 ani">
-        <div class="age-group-content">
-            <h2>Vârsta 13-15 ani</h2>
-            <p>Dezvoltarea abilităților intermediare și avansate de programare și lucrul cu aplicații din lumea reală.</p>
-            <button class="learn-more" data-age-group="13-15 ani">Află mai multe</button>
-        </div>
-    </div>
-    <div class="age-group">
-        <img src="{% static 'images/age15-17.jpg' %}" alt="Adolescenți cu vârsta între 15 și 17 ani">
-        <div class="age-group-content">
-            <h2>Vârsta 15-17 ani</h2>
-            <p>Stăpânirea tehnicilor avansate de programare și pregătirea pentru cariere viitoare în tehnologie.</p>
-            <button class="learn-more" data-age-group="15-17 ani">Află mai multe</button>
-        </div>
-    </div>
-</div>
-
-<!-- Модальное окно -->
-<div id="modal" class="modal">
-    <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2 id="modal-title"></h2>
-        <p id="modal-description"></p>
-    </div>
-</div>
-
-
-
-<!-- Секция "Programele Noastre" -->
-<div id="programs">
-    <div class="programs-section">
-        <div class="cerc"></div>
-        <div class="cerc2"></div>
-        <div class="cerc3"></div>
-        <h2>Programele Noastre</h2>
-        <div class="programs-grid">
-            <div class="program-card">
-                <img src="{% static 'images/python.svg' %}" alt="Python Icon">
-                <div class="program-info">
-                    <strong class="program-title">Programare de bază</strong>
-                    <span>Introducere în Python pentru vârstele 7-9 ani</span>
-                </div>
+    <section class="catalog" id="categories" data-section="catalog">
+        <span class="section-shape section-shape--catalog-arc" aria-hidden="true">
+            <svg viewBox="0 0 260 180" role="presentation">
+                <path d="M10 170 C40 40 220 40 250 170" stroke="rgba(37, 99, 235, 0.18)" stroke-width="24" stroke-linecap="round" fill="none"></path>
+            </svg>
+        </span>
+        <span class="section-shape section-shape--catalog-node" aria-hidden="true">
+            <svg viewBox="0 0 160 160" role="presentation">
+                <defs>
+                    <linearGradient id="catalogNodeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.3"></stop>
+                        <stop offset="100%" stop-color="#22D3EE" stop-opacity="0.15"></stop>
+                    </linearGradient>
+                </defs>
+                <circle cx="80" cy="80" r="68" fill="url(#catalogNodeGradient)"></circle>
+                <circle cx="80" cy="80" r="30" stroke="rgba(14, 165, 233, 0.5)" stroke-width="2.5" fill="none"></circle>
+                <circle cx="80" cy="24" r="6" fill="#38BDF8"></circle>
+                <circle cx="136" cy="80" r="6" fill="#38BDF8"></circle>
+                <circle cx="24" cy="80" r="6" fill="#38BDF8"></circle>
+            </svg>
+        </span>
+        <div class="container catalog__inner">
+            <header class="section-heading" data-animate="fade">
+                <span class="section-heading__tag">Ce poți învăța</span>
+                <h2 class="section-heading__title">Direcții adaptate pentru vârste 10–17 ani</h2>
+                <p class="section-heading__subtitle">
+                    Fiecare categorie are propriul vibe: culori, iconițe și misiuni progresive. Poți explora gratuit primele lecții.
+                </p>
+            </header>
+            <div class="catalog__grid" data-stagger>
+                <article class="catalog-card" data-category="digital" data-animate-item>
+                    <span class="catalog-card__icon" data-icon="digital" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-digital"></use>
+                        </svg>
+                    </span>
+                    <div class="catalog-card__chip">12 lecții • Nivel: Beginner</div>
+                    <h3 class="catalog-card__title">Digital basics</h3>
+                    <p class="catalog-card__text">Device-uri, cloud, siguranță online și bune practici pentru primele proiecte.</p>
+                    <a class="catalog-card__link" href="{% url 'estudy:lessons_list' %}" aria-label="Vezi cursurile de Digital basics">Vezi lecțiile</a>
+                </article>
+                <article class="catalog-card" data-category="python" data-animate-item>
+                    <span class="catalog-card__icon" data-icon="python" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-python"></use>
+                        </svg>
+                    </span>
+                    <div class="catalog-card__chip">18 lecții • Nivel: Intermediate</div>
+                    <h3 class="catalog-card__title">Python</h3>
+                    <p class="catalog-card__text">Algoritmi vizuali, console interactive și mini-proiecte cu feedback instant.</p>
+                    <a class="catalog-card__link" href="{% url 'estudy:lessons_list' %}" aria-label="Vezi cursurile de Python">Vezi lecțiile</a>
+                </article>
+                <article class="catalog-card" data-category="web" data-animate-item>
+                    <span class="catalog-card__icon" data-icon="web" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-web"></use>
+                        </svg>
+                    </span>
+                    <div class="catalog-card__chip">16 lecții • Nivel: Beginner</div>
+                    <h3 class="catalog-card__title">Web</h3>
+                    <p class="catalog-card__text">HTML, CSS și JavaScript cu proiecte type-card și previzualizare live.</p>
+                    <a class="catalog-card__link" href="{% url 'estudy:lessons_list' %}" aria-label="Vezi cursurile de Web">Vezi lecțiile</a>
+                </article>
+                <article class="catalog-card" data-category="logic" data-animate-item>
+                    <span class="catalog-card__icon" data-icon="logic" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-logic"></use>
+                        </svg>
+                    </span>
+                    <div class="catalog-card__chip">14 lecții • Nivel: Beginner</div>
+                    <h3 class="catalog-card__title">Logică & gândire</h3>
+                    <p class="catalog-card__text">Puzzle-uri, pattern-uri și provocări cu emoji pentru a antrena mintea.</p>
+                    <a class="catalog-card__link" href="{% url 'estudy:lessons_list' %}" aria-label="Vezi cursurile de Logică și gândire">Vezi lecțiile</a>
+                </article>
+                <article class="catalog-card" data-category="maker" data-animate-item>
+                    <span class="catalog-card__icon" data-icon="maker" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-maker"></use>
+                        </svg>
+                    </span>
+                    <div class="catalog-card__chip">10 lecții • Nivel: Beginner</div>
+                    <h3 class="catalog-card__title">Creative maker</h3>
+                    <p class="catalog-card__text">Experimente hands-on: circuite, roboți virtuali și provocări cu IoT.</p>
+                    <a class="catalog-card__link" href="{% url 'estudy:lessons_list' %}" aria-label="Vezi cursurile Creative maker">Vezi lecțiile</a>
+                </article>
+                <article class="catalog-card" data-category="gaming" data-animate-item>
+                    <span class="catalog-card__icon" data-icon="gaming" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" role="presentation">
+                            <use href="#unitex-icon-gaming"></use>
+                        </svg>
+                    </span>
+                    <div class="catalog-card__chip">9 lecții • Nivel: Intermediate</div>
+                    <h3 class="catalog-card__title">Game design</h3>
+                    <p class="catalog-card__text">Construiești scene, personaje și mecanici dinamic, cu scoring vizual.</p>
+                    <a class="catalog-card__link" href="{% url 'estudy:lessons_list' %}" aria-label="Vezi cursurile de Game design">Vezi lecțiile</a>
+                </article>
             </div>
-            <div class="program-card">
-                <img src="{% static 'images/java-icon.png' %}" alt="Java Icon">
-                <div class="program-info">
-                    <strong class="program-title">Programare avansată</strong>
-                    <span>Dezvoltare Java pentru vârstele 10-13 ani</span>
-                </div>
-            </div>
-            <div class="program-card">
-                <img src="{% static 'images/webdev-icon.png' %}" alt="Web Development Icon">
-                <div class="program-info">
-                    <strong class="program-title">Dezvoltare web</strong>
-                    <span>Crearea site-urilor web interactive pentru vârstele 13-15 ani</span>
-                </div>
-            </div>
-            <div class="program-card">
-                <img src="{% static 'images/mobile-icon.png' %}" alt="Mobile Apps Icon">
-                <div class="program-info">
-                    <strong class="program-title">Aplicații mobile</strong>
-                    <span>Dezvoltare Android și iOS pentru adolescenții de 15-17 ani</span>
-                </div>
-            </div>
-            <div class="program-card">
-                <img src="{% static 'images/arduino-icon.png' %}" alt="Arduino Icon">
-                <div class="program-info">
-                    <strong class="program-title">Robotica cu Arduino</strong>
-                    <span>Construcția și programarea roboților folosind Arduino pentru vârstele 10-15 ani</span>
-                </div>
-            </div>
-            <div class="program-card">
-                <img src="{% static 'images/scratch-icon.svg' %}" alt="Scratch Icon">
-                <div class="program-info">
-                    <strong class="program-title">Programare vizuală</strong>
-                    <span>Învățare prin joacă pentru vârstele 7-12 ani folosind Scratch</span>
-                </div>
-            </div>
-            <div class="program-card">
-                <img src="{% static 'images/ai-icon.png' %}" alt="AI Icon">
-                <div class="program-info">
-                    <strong class="program-title">Introducere în AI</strong>
-                    <span>Concepte de bază și aplicații ale inteligenței artificiale pentru vârstele 14-17 ani</span>
-                </div>
-            </div>
-            <div class="program-card">
-                <img src="{% static 'images/3d-moddeling.png' %}" alt="Python Icon">
-                <div class="program-info">
-                    <strong class="program-title">Modelarea 3D</strong>
-                    <span>Introducere în modelare 3D pentru vârstele 10-14 ani</span>
-                </div>
+            <div class="catalog__cta" data-animate="fade">
+                <a class="btn btn--primary catalog__cta-button" href="{% url 'estudy:lessons_list' %}" aria-label="Vezi toate cursurile din platforma UNITEX">Vezi toate cursurile</a>
             </div>
         </div>
-    </div>
-</div>
+    </section>
 
-
-<!-- Секция "Înscrie-te acum!" -->
-<div class="signup-section">
-    <form class="form-section">
-        <h2>Înscrie-te acum!</h2>
-        
-        <!-- Поле для имени (только буквы) -->
-        <div class="form-group">
-            <label for="name">Nume:</label>
-            <div class="input-container">
-                <input type="text" id="name" name="name" required>
+    <section class="lead-capture" id="contact" data-section="lead" data-animate="fade">
+        <div class="container lead-capture__grid">
+            <div class="lead-capture__copy">
+                <span class="lead-capture__tag">Hai să vorbim</span>
+                <h2 class="lead-capture__title">Vrei să testezi UNITEX în clasă sau acasă?</h2>
+                <p class="lead-capture__subtitle">
+                    Lasă-ne numele și numărul de telefon, iar un mentor UNITEX te sună pentru a configura lecțiile pilot
+                    potrivite pentru vârsta copilului tău.
+                </p>
+                <ul class="lead-capture__benefits">
+                    <li>Plan de lecții personalizat pe 2 săptămâni</li>
+                    <li>Acces demo la zona elevilor & rapoarte pentru părinți</li>
+                    <li>Consultanță gratuită despre cum să integrezi misiunile digitale</li>
+                </ul>
+                <div class="lead-capture__proof">
+                    <div class="lead-proof-card">
+                        <small>Parteneriate active</small>
+                        <strong>30+ școli</strong>
+                    </div>
+                    <div class="lead-proof-card">
+                        <small>Satisfacție părinți</small>
+                        <strong>95% recomandă</strong>
+                    </div>
+                    <div class="lead-proof-card">
+                        <small>Mentori certificați</small>
+                        <strong>100% STEM</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="lead-capture__panel">
+                <form class="lead-form" method="post" action="{% url 'submit_form' %}" data-lead-form novalidate>
+                    {% csrf_token %}
+                    <div class="lead-form__fields" data-lead-fields>
+                        <label class="lead-form__field">
+                            <span>Nume complet</span>
+                            <input type="text" name="name" placeholder="Maria Ionescu" autocomplete="name" required>
+                        </label>
+                        <label class="lead-form__field">
+                            <span>Telefon</span>
+                            <input type="tel" name="phone" placeholder="+40 712 345 678" autocomplete="tel" required>
+                        </label>
+                        <label class="lead-form__field lead-form__field--textarea">
+                            <span>Mesaj (opțional)</span>
+                            <textarea name="message" rows="3" placeholder="Spune-ne ce curs sau interval te interesează."></textarea>
+                        </label>
+                        <p class="lead-form__status lead-form__status--success" data-lead-success aria-live="polite" hidden></p>
+                        <p class="lead-form__status lead-form__status--error" data-lead-error aria-live="assertive" hidden></p>
+                        <button type="submit" class="btn btn--primary lead-form__button">Trimite mesajul</button>
+                        <p class="lead-form__privacy">Prin trimitere ești de acord să te contactăm telefonic. Nu facem spam și nu partajăm datele.</p>
+                    </div>
+                    <div class="lead-form__confirm" data-lead-confirm hidden>
+                        <div class="lead-form__confirm-icon" aria-hidden="true">✅</div>
+                        <h3>Mulțumim! Cererea ta a ajuns la noi.</h3>
+                        <p>Un mentor UNITEX te contactează în max. 24h pentru a stabili demo-ul. Între timp poți explora lecțiile noastre gratuite.</p>
+                        <div class="lead-form__confirm-actions">
+                            <a href="{% url 'estudy:lessons_list' %}" class="btn btn--primary">Vezi lecțiile demo</a>
+                            <button type="button" class="btn btn--ghost" data-lead-reset>Trimite alt mesaj</button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
+    </section>
 
-        <!-- Поле для номера (только цифры) -->
-        <div class="form-group">
-            <label for="phone">Numar:</label>
-            <div class="input-container">
-                <input type="text" id="phone" name="phone" required 
-                    oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+    <section class="social-proof" id="social-proof" data-section="social">
+        <span class="section-shape section-shape--social-grid" aria-hidden="true">
+            <svg viewBox="0 0 260 260" role="presentation">
+                <rect width="260" height="260" fill="none" stroke="rgba(148, 163, 184, 0.18)" stroke-width="1.4" stroke-dasharray="12 12"></rect>
+                <path d="M0 130h260M130 0v260" stroke="rgba(96, 165, 250, 0.22)" stroke-width="1.2" stroke-dasharray="6 8"></path>
+            </svg>
+        </span>
+        <span class="section-shape section-shape--social-burst" aria-hidden="true">
+            <svg viewBox="0 0 140 140" role="presentation">
+                <defs>
+                    <radialGradient id="socialBurstGradient">
+                        <stop offset="0%" stop-color="#FACC15" stop-opacity="0.45"></stop>
+                        <stop offset="100%" stop-color="#FACC15" stop-opacity="0"></stop>
+                    </radialGradient>
+                </defs>
+                <circle cx="70" cy="70" r="70" fill="url(#socialBurstGradient)"></circle>
+                <path d="M70 20v100M20 70h100M30 30l80 80M110 30l-80 80" stroke="rgba(250, 204, 21, 0.5)" stroke-width="2" stroke-linecap="round"></path>
+            </svg>
+        </span>
+        <div class="container social-proof__inner">
+            <div class="social-proof__stats" data-stagger>
+                <article class="stat-card" data-animate-item>
+                    <h3 class="stat-card__value" data-count="12500" data-suffix="+">0+</h3>
+                    <p class="stat-card__label">lecții finalizate</p>
+                </article>
+                <article class="stat-card" data-animate-item>
+                    <h3 class="stat-card__value" data-count="4200" data-suffix="+">0+</h3>
+                    <p class="stat-card__label">utilizatori activi lunar</p>
+                </article>
+                <article class="stat-card" data-animate-item>
+                    <h3 class="stat-card__value" data-count="95" data-suffix="%">0%</h3>
+                    <p class="stat-card__label">părinți recomandă UNITEX</p>
+                </article>
+            </div>
+            <div class="social-proof__quotes" data-quotes>
+                <figure class="quote-card" data-quote>
+                    <blockquote>
+                        „Copiii adoră misiunile scurte și efectele vizuale. Progresul se vede imediat în dashboard.”
+                    </blockquote>
+                    <figcaption>
+                        <span class="quote-card__name">Mara, părinte</span>
+                        <span class="quote-card__meta">Fiu 12 ani • Elev UNITEX din 2023</span>
+                    </figcaption>
+                </figure>
+                <figure class="quote-card" data-quote>
+                    <blockquote>
+                        „În 4 luni am trecut de la zero programare la primul meu mini-joc în JavaScript.”
+                    </blockquote>
+                    <figcaption>
+                        <span class="quote-card__name">Tudor, 14 ani</span>
+                        <span class="quote-card__meta">Level Web Explorer</span>
+                    </figcaption>
+                </figure>
+                <figure class="quote-card" data-quote>
+                    <blockquote>
+                        „Mentorii răspund rapid, iar feedback-ul cu emoji face diferența când testăm codul.”
+                    </blockquote>
+                    <figcaption>
+                        <span class="quote-card__name">Ana, 16 ani</span>
+                        <span class="quote-card__meta">Python Club</span>
+                    </figcaption>
+                </figure>
             </div>
         </div>
+    </section>
 
-        <button type="submit" class="btn">Trimite</button>
-    </form>
-</div>
+    <section class="final-cta" id="cta" data-section="cta">
+        <span class="section-shape section-shape--cta-glow" aria-hidden="true">
+            <svg viewBox="0 0 320 200" role="presentation">
+                <defs>
+                    <linearGradient id="ctaGlowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stop-color="#2563EB" stop-opacity="0.25"></stop>
+                        <stop offset="100%" stop-color="#38BDF8" stop-opacity="0.15"></stop>
+                    </linearGradient>
+                </defs>
+                <ellipse cx="160" cy="140" rx="150" ry="50" fill="url(#ctaGlowGradient)"></ellipse>
+                <circle cx="60" cy="60" r="18" fill="rgba(96, 165, 250, 0.35)"></circle>
+                <circle cx="260" cy="50" r="12" fill="rgba(59, 130, 246, 0.3)"></circle>
+            </svg>
+        </span>
+        <div class="container final-cta__inner">
+            <h2 class="final-cta__title">Începe călătoria ta digitală chiar azi</h2>
+            <p class="final-cta__subtitle">Este gratuit. Îți ia sub 2 minute să creezi contul și să deblochezi lecțiile demo.</p>
+            <a href="{% url 'signup' %}" class="btn btn--primary final-cta__button" aria-label="Creează cont UNITEX gratuit acum">Creează cont gratuit</a>
+        </div>
+    </section>
+</article>
+{% endblock %}
 
+{% block extra_js %}
+<script src="{% static 'unitexapp/vendor/gsap.min.js' %}"></script>
+<script src="{% static 'unitexapp/vendor/ScrollTrigger.min.js' %}"></script>
+<script data-unitex-page-script>
+document.addEventListener('DOMContentLoaded', () => {
+    const page = document.querySelector('[data-page="landing"]');
+    if (!page) {
+        return;
+    }
 
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const formatNumber = (value) => {
+        try {
+            return new Intl.NumberFormat('ro-RO').format(Math.round(value));
+        } catch (error) {
+            return Math.round(value).toString();
+        }
+    };
 
+    const applyStaticStates = () => {
+        page.querySelectorAll('[data-animate]').forEach(el => el.classList.add('is-visible'));
+        page.querySelectorAll('[data-animate-item]').forEach(el => el.classList.add('is-visible'));
+        page.querySelectorAll('[data-count]').forEach(el => {
+            const target = parseInt(el.dataset.count, 10) || 0;
+            const suffix = el.dataset.suffix || '';
+            const output = `${formatNumber(target)}${suffix}`;
+            el.textContent = output;
+            el.setAttribute('aria-label', output);
+        });
+        page.querySelectorAll('.final-cta__button').forEach(button => button.classList.remove('is-pulsing'));
+    };
+
+    if (prefersReducedMotion) {
+        applyStaticStates();
+        return;
+    }
+
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+        applyStaticStates();
+        return;
+    }
+
+    gsap.registerPlugin(ScrollTrigger);
+    page.classList.add('motion-enabled');
+
+    const counters = Array.from(page.querySelectorAll('[data-count]'));
+    counters.forEach(counter => {
+        const suffix = counter.dataset.suffix || '';
+        const initialValue = `0${suffix}`;
+        counter.textContent = initialValue;
+        counter.setAttribute('aria-label', initialValue);
+    });
+
+    const animatedCounters = new WeakSet();
+    const animateCounterValue = (element, duration = 1.2) => {
+        if (!element || animatedCounters.has(element)) {
+            return null;
+        }
+        animatedCounters.add(element);
+
+        const target = parseInt(element.dataset.count, 10) || 0;
+        const suffix = element.dataset.suffix || '';
+        const counter = { value: 0 };
+
+        return gsap.to(counter, {
+            value: target,
+            duration,
+            ease: 'power1.out',
+            onUpdate: () => {
+                const output = `${formatNumber(counter.value)}${suffix}`;
+                element.textContent = output;
+                element.setAttribute('aria-label', output);
+            },
+            onComplete: () => {
+                const output = `${formatNumber(target)}${suffix}`;
+                element.textContent = output;
+                element.setAttribute('aria-label', output);
+                gsap.fromTo(element, { scale: 1 }, {
+                    scale: 1.04,
+                    duration: 0.12,
+                    ease: 'power1.out',
+                    yoyo: true,
+                    repeat: 1,
+                    transformOrigin: 'center bottom'
+                });
+            }
+        });
+    };
+
+    const hero = page.querySelector('.hero');
+    if (hero) {
+        const heroBackground = hero.querySelector('.hero__background');
+        const heroBlobs = hero.querySelectorAll('[data-hero-blob]');
+        const heroTagline = hero.querySelector('.hero__tagline');
+        const heroTitle = hero.querySelector('.hero__title');
+        const heroSubtitle = hero.querySelector('.hero__subtitle');
+        const heroIllustrationCard = hero.querySelector('.hero__visual-card');
+        const heroIcons = hero.querySelectorAll('[data-hero-icon]');
+        const heroPrimary = hero.querySelector('.btn--primary[data-layer="cta-primary"]');
+        const heroSecondary = hero.querySelector('.btn--secondary[data-layer="cta-secondary"]');
+        const heroStats = hero.querySelectorAll('.hero__stat dd');
+        const heroScrollHint = hero.querySelector('.hero__scroll-hint');
+        const heroButtons = [heroPrimary, heroSecondary].filter(Boolean);
+
+        const heroTimeline = gsap.timeline({
+            defaults: { ease: 'power2.out' },
+            delay: 0.18
+        });
+
+        if (heroBackground) {
+            heroTimeline.fromTo(heroBackground, { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0);
+        }
+        if (heroBlobs.length) {
+            heroTimeline.fromTo(heroBlobs, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.3, stagger: 0.08 }, 0.12);
+        }
+        if (heroTagline) {
+            heroTimeline.fromTo(heroTagline, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.25 }, 0.36);
+        }
+        if (heroTitle) {
+            heroTimeline.fromTo(heroTitle, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.35 }, 0.56);
+        }
+        if (heroSubtitle) {
+            heroTimeline.fromTo(heroSubtitle, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3 }, 0.82);
+        }
+        if (heroPrimary) {
+            heroTimeline.fromTo(heroPrimary, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.25, ease: 'back.out(1.5)' }, 1.0);
+        }
+        if (heroSecondary) {
+            heroTimeline.fromTo(heroSecondary, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.25, ease: 'back.out(1.45)' }, 1.08);
+        }
+        if (heroIllustrationCard) {
+            heroTimeline.fromTo(heroIllustrationCard, { opacity: 0, x: 30, scale: 0.98 }, { opacity: 1, x: 0, scale: 1, duration: 0.45 }, 0.94);
+        }
+        if (heroIcons.length) {
+            heroTimeline.fromTo(heroIcons, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.25, stagger: 0.06 }, 1.22);
+        }
+        if (heroStats.length) {
+            heroTimeline.fromTo(heroStats, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.3, stagger: 0.08 }, 1.32);
+            heroTimeline.add(() => heroStats.forEach(stat => animateCounterValue(stat)), 1.36);
+        }
+        if (heroScrollHint) {
+            heroTimeline.to(heroScrollHint, { opacity: 0.7, duration: 0.4 }, 1.52);
+            heroTimeline.add(() => heroScrollHint.classList.add('is-live'), 1.72);
+        }
+
+        if (heroButtons.length) {
+            const toggleHeroHover = (state) => hero.classList.toggle('is-cta-hover', state);
+            heroButtons.forEach(button => {
+                button.addEventListener('pointerenter', () => toggleHeroHover(true));
+                button.addEventListener('pointerleave', () => toggleHeroHover(false));
+                button.addEventListener('focus', () => toggleHeroHover(true));
+                button.addEventListener('blur', () => toggleHeroHover(false));
+            });
+        }
+
+        if (heroIllustrationCard) {
+            const breathe = gsap.timeline({
+                repeat: -1,
+                yoyo: true,
+                paused: true,
+                defaults: { ease: 'sine.inOut' }
+            });
+            breathe.to(heroIllustrationCard, { scale: 1.02, duration: 1.5 });
+
+            heroIllustrationCard.addEventListener('pointerenter', () => {
+                breathe.restart();
+            });
+            heroIllustrationCard.addEventListener('pointerleave', () => {
+                breathe.pause(0);
+                gsap.to(heroIllustrationCard, { scale: 1, duration: 0.3, ease: 'power2.out' });
+            });
+        }
+
+        const heroPointerLayers = [];
+        hero.querySelectorAll('[data-parallax]').forEach((element, index) => {
+            heroPointerLayers.push({
+                element,
+                strengthX: 16 + index * 6,
+                strengthY: 18 + index * 5
+            });
+        });
+
+        [
+            { selector: '[data-layer="hero-bg"]', strengthX: 8, strengthY: 6 },
+            { selector: '[data-layer="bg-glow-1"]', strengthX: 12, strengthY: 10 },
+            { selector: '[data-layer="bg-glow-2"]', strengthX: 14, strengthY: 12 },
+            { selector: '[data-layer="hero-ring"]', strengthX: 22, strengthY: 18 },
+            { selector: '[data-layer="hero-grid"]', strengthX: 16, strengthY: 16 },
+            { selector: '[data-layer="hero-illustration-card"]', strengthX: 18, strengthY: 14 },
+            { selector: '[data-layer="hero-icon-1"]', strengthX: 20, strengthY: 16 },
+            { selector: '[data-layer="hero-icon-2"]', strengthX: 18, strengthY: 14 },
+            { selector: '[data-layer="hero-icon-3"]', strengthX: 22, strengthY: 18 }
+        ].forEach(config => {
+            const target = hero.querySelector(config.selector);
+            if (target) {
+                heroPointerLayers.push({
+                    element: target,
+                    strengthX: config.strengthX,
+                    strengthY: config.strengthY
+                });
+            }
+        });
+
+        const pointerMedia = window.matchMedia('(pointer: fine)');
+        if (pointerMedia.matches && heroPointerLayers.length) {
+            const pointerTargets = heroPointerLayers.map(layer => layer.element);
+            const updateParallax = (event) => {
+                const rect = hero.getBoundingClientRect();
+                const offsetX = (event.clientX - rect.left) / rect.width - 0.5;
+                const offsetY = (event.clientY - rect.top) / rect.height - 0.5;
+                heroPointerLayers.forEach(layer => {
+                    gsap.to(layer.element, {
+                        x: offsetX * layer.strengthX,
+                        y: offsetY * layer.strengthY,
+                        duration: 0.6,
+                        ease: 'power2.out'
+                    });
+                });
+            };
+            hero.addEventListener('pointermove', updateParallax);
+            hero.addEventListener('pointerleave', () => {
+                gsap.to(pointerTargets, {
+                    x: 0,
+                    y: 0,
+                    duration: 0.6,
+                    ease: 'power2.out'
+                });
+            });
+        }
+
+        const heroParallaxConfig = [
+            { selector: '[data-layer="hero-bg"]', yPercent: -6 },
+            { selector: '[data-layer="bg-glow-1"]', yPercent: -12 },
+            { selector: '[data-layer="bg-glow-2"]', yPercent: -16 },
+            { selector: '[data-layer="hero-ring"]', yPercent: -22 },
+            { selector: '[data-layer="hero-grid"]', yPercent: 16 },
+            { selector: '[data-layer="hero-illustration-card"]', yPercent: -10 },
+            { selector: '[data-layer="hero-icon-1"]', yPercent: -18 },
+            { selector: '[data-layer="hero-icon-2"]', yPercent: -24 },
+            { selector: '[data-layer="hero-icon-3"]', yPercent: -20 },
+            { selector: '[data-layer="hero-copy"]', yPercent: 5 },
+            { selector: '[data-layer="ctas"]', yPercent: 9 },
+            { selector: '[data-layer="hero-stats"]', yPercent: 12 },
+            { selector: '[data-layer="scroll-indicator"]', yPercent: 18 }
+        ];
+
+        const heroParallaxLayers = heroParallaxConfig
+            .map(config => {
+                const target = hero.querySelector(config.selector);
+                return target ? { element: target, yPercent: config.yPercent } : null;
+            })
+            .filter(Boolean);
+
+        if (heroParallaxLayers.length || heroBlobs.length) {
+            const heroMotionMedia = gsap.matchMedia();
+            heroMotionMedia.add('(min-width: 768px)', () => {
+                const parallaxTimeline = gsap.timeline({
+                    defaults: { ease: 'none' },
+                    scrollTrigger: {
+                        trigger: hero,
+                        start: 'top top',
+                        end: 'bottom top',
+                        scrub: 0.75
+                    }
+                });
+
+                heroParallaxLayers.forEach(layer => {
+                    parallaxTimeline.to(layer.element, { yPercent: layer.yPercent }, 0);
+                });
+
+                if (heroBlobs.length) {
+                    heroBlobs.forEach((blob, index) => {
+                        parallaxTimeline.to(blob, {
+                            yPercent: -12 - index * 6,
+                            rotation: index % 2 === 0 ? -4 : 4
+                        }, 0);
+                    });
+                }
+
+                return () => parallaxTimeline.kill();
+            });
+        }
+    }
+
+    gsap.utils.toArray('[data-animate="fade"]').forEach((element, index) => {
+        if (element.closest('.hero') || element.closest('.steps') || element.closest('.final-cta')) {
+            return;
+        }
+        gsap.fromTo(element, { opacity: 0, y: 48 }, {
+            opacity: 1,
+            y: 0,
+            duration: 0.64,
+            ease: 'power2.out',
+            delay: Math.min(index * 0.08, 0.32),
+            scrollTrigger: {
+                trigger: element,
+                start: 'top 80%',
+                once: true
+            }
+        });
+    });
+
+    gsap.utils.toArray('[data-stagger]').forEach(group => {
+        if (group.closest('.steps')) {
+            return;
+        }
+        const items = group.querySelectorAll('[data-animate-item]');
+        if (!items.length) {
+            return;
+        }
+        ScrollTrigger.batch(items, {
+            start: 'top 80%',
+            once: true,
+            onEnter: batch => {
+                gsap.to(batch, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.48,
+                    ease: 'power2.out',
+                    stagger: 0.12
+                });
+            },
+            onEnterBack: batch => {
+                gsap.to(batch, {
+                    opacity: 1,
+                    y: 0,
+                    duration: 0.48,
+                    ease: 'power2.out',
+                    stagger: 0.12
+                });
+            }
+        });
+    });
+
+    const stepsSection = page.querySelector('.steps');
+    if (stepsSection) {
+        const stepsHeader = stepsSection.querySelector('.section-heading');
+        const stepCards = stepsSection.querySelectorAll('.step-card');
+        const stepsTimeline = gsap.timeline({
+            defaults: { ease: 'power2.out' },
+            scrollTrigger: {
+                trigger: stepsSection,
+                start: 'top 75%',
+                once: true
+            }
+        });
+        if (stepsHeader) {
+            stepsTimeline.fromTo(stepsHeader, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.28 });
+        }
+        if (stepCards.length) {
+            stepsTimeline.fromTo(stepCards, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.32, stagger: 0.12 }, '-=0.12');
+        }
+    }
+
+    const catalogSection = page.querySelector('.catalog');
+    if (catalogSection) {
+        const catalogCards = Array.from(catalogSection.querySelectorAll('.catalog-card'));
+        if (catalogCards.length) {
+            const catalogTimeline = gsap.timeline({
+                defaults: { ease: 'power2.out' },
+                scrollTrigger: {
+                    trigger: catalogSection,
+                    start: 'top 75%',
+                    once: true
+                }
+            });
+            catalogCards.forEach((card, index) => {
+                const offset = index * 0.12;
+                catalogTimeline.fromTo(card, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.32 }, offset);
+                const chip = card.querySelector('.catalog-card__chip');
+                if (chip) {
+                    catalogTimeline.fromTo(chip, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.24 }, offset + 0.12);
+                }
+            });
+        }
+    }
+
+    const finalCTA = page.querySelector('.final-cta');
+    if (finalCTA) {
+        const finalTitle = finalCTA.querySelector('.final-cta__title');
+        const finalSubtitle = finalCTA.querySelector('.final-cta__subtitle');
+        const finalButton = finalCTA.querySelector('.final-cta__button');
+
+        const finalTimeline = gsap.timeline({
+            defaults: { ease: 'power2.out' },
+            scrollTrigger: {
+                trigger: finalCTA,
+                start: 'top 80%',
+                once: true
+            }
+        });
+
+        finalTimeline.fromTo(finalCTA, { y: 24, opacity: 0.85 }, { y: 0, opacity: 1, duration: 0.6 });
+        if (finalTitle) {
+            finalTimeline.fromTo(finalTitle, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.32 }, '-=0.32');
+        }
+        if (finalSubtitle) {
+            finalTimeline.fromTo(finalSubtitle, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3 }, '-=0.24');
+        }
+        if (finalButton) {
+            finalTimeline.fromTo(finalButton, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.32 }, '-=0.2');
+            finalTimeline.add(() => finalButton.classList.add('is-pulsing'), '+=0.2');
+        }
+    }
+
+    page.querySelectorAll('[data-count]').forEach(counterElement => {
+        ScrollTrigger.create({
+            trigger: counterElement,
+            start: 'top 80%',
+            once: true,
+            onEnter: () => animateCounterValue(counterElement)
+        });
+    });
+
+    const quotes = Array.from(page.querySelectorAll('[data-quote]'));
+    if (quotes.length > 1) {
+        quotes.forEach((quote, index) => {
+            gsap.set(quote, {
+                opacity: index === 0 ? 1 : 0,
+                y: index === 0 ? 0 : 18,
+                pointerEvents: index === 0 ? 'auto' : 'none'
+            });
+        });
+
+        let currentIndex = 0;
+        const showQuote = (nextIndex) => {
+            if (nextIndex === currentIndex) {
+                return;
+            }
+            const currentQuote = quotes[currentIndex];
+            const nextQuote = quotes[nextIndex];
+            gsap.to(currentQuote, {
+                opacity: 0,
+                y: -18,
+                duration: 0.4,
+                ease: 'power1.out',
+                onComplete: () => {
+                    currentQuote.style.pointerEvents = 'none';
+                }
+            });
+            gsap.fromTo(nextQuote, { opacity: 0, y: 18 }, {
+                opacity: 1,
+                y: 0,
+                duration: 0.4,
+                ease: 'power2.out',
+                onStart: () => {
+                    nextQuote.style.pointerEvents = 'auto';
+                }
+            });
+            currentIndex = nextIndex;
+        };
+
+        let autoplay = window.setInterval(() => {
+            const nextIndex = (currentIndex + 1) % quotes.length;
+            showQuote(nextIndex);
+        }, 4500);
+
+        quotes.forEach(quote => {
+            quote.addEventListener('pointerenter', () => {
+                window.clearInterval(autoplay);
+            });
+            quote.addEventListener('pointerleave', () => {
+                autoplay = window.setInterval(() => {
+                    const nextIndex = (currentIndex + 1) % quotes.length;
+                    showQuote(nextIndex);
+                }, 4500);
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

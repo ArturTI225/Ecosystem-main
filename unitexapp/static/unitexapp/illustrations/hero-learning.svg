@@ -1,0 +1,61 @@
+<svg width="440" height="360" viewBox="0 0 440 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="44" y1="40" x2="396" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5F7FF"/>
+      <stop offset="1" stop-color="#E1E9FF"/>
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="160" y1="104" x2="320" y2="256" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#1E3A8A"/>
+    </linearGradient>
+    <linearGradient id="screenGradient" x1="156" y1="140" x2="300" y2="232" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#EFF4FF" stop-opacity="0.98"/>
+    </linearGradient>
+    <linearGradient id="badgeGradient" x1="352" y1="70" x2="388" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#16A34A"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="30" y="28" width="380" height="300" rx="36" fill="url(#bgGradient)"/>
+  <circle cx="90" cy="86" r="14" fill="#2563EB" opacity="0.32"/>
+  <circle cx="120" cy="274" r="10" fill="#16A34A" opacity="0.4"/>
+  <circle cx="340" cy="98" r="6" fill="#2563EB" opacity="0.55"/>
+  <circle cx="360" cy="260" r="8" fill="#2563EB" opacity="0.4"/>
+  <rect x="70" y="252" width="300" height="32" rx="16" fill="#CBD9FF" opacity="0.45"/>
+
+  <path d="M210 220c-32 0-58-26-58-58s26-58 58-58 58 26 58 58-26 58-58 58z" fill="#2563EB" opacity="0.08"/>
+
+  <path d="M186 170c0-11 9-20 20-20h28c11 0 20 9 20 20v44h-68v-44z" fill="#1E3A8A"/>
+  <path d="M188 210h64v6a10 10 0 0 1-10 10h-44a10 10 0 0 1-10-10v-6z" fill="#0F1E4B"/>
+
+  <rect x="168" y="148" width="88" height="66" rx="10" fill="url(#screenGradient)"/>
+  <rect x="176" y="156" width="72" height="46" rx="6" fill="#F7FAFF"/>
+  <path d="M192 172h40M192 182h28M192 192h18" stroke="#2563EB" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+
+  <path d="M226 142a18 18 0 1 0-36 0 18 18 0 0 0 36 0z" fill="#1C3FAA"/>
+  <path d="M190 132c2.2 6.4 8.3 11.2 15.5 11.2 7.2 0 13.3-4.7 15.5-11.2h-31z" fill="#163373"/>
+  <circle cx="208" cy="118" r="18" fill="#2563EB"/>
+  <path d="M194 108c3.4-6.4 10.1-10.8 17.8-10.8 7.8 0 14.5 4.4 17.8 10.8-6.8 2.6-14.1 4-21.7 4s-14.9-1.4-21.7-4z" fill="#1E3A8A"/>
+
+  <rect x="206" y="220" width="12" height="56" rx="6" fill="#1E3A8A"/>
+  <rect x="188" y="220" width="12" height="56" rx="6" fill="#2563EB"/>
+  <rect x="220" y="220" width="12" height="56" rx="6" fill="#2563EB" opacity="0.8"/>
+
+  <rect x="152" y="256" width="112" height="12" rx="6" fill="#1E3A8A" opacity="0.8"/>
+
+  <path d="M268 224h50c6.6 0 12-5.4 12-12v-40c0-6.6-5.4-12-12-12h-32" stroke="#2563EB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+  <circle cx="350" cy="112" r="20" fill="url(#badgeGradient)"/>
+  <path d="M350 102l4 8 9 1-7 6 2 9-8-4-8 4 2-9-7-6 9-1 4-8z" fill="#FFFFFF"/>
+
+  <path d="M118 208a10 10 0 0 1 10-10h44" stroke="#2563EB" stroke-width="4" stroke-linecap="round" opacity="0.5"/>
+  <path d="M126 188c6.6 0 12-5.4 12-12v-20" stroke="#16A34A" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+  <path d="M124 142h28" stroke="#2563EB" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+
+  <rect x="308" y="148" width="32" height="52" rx="10" fill="#2563EB" opacity="0.08"/>
+  <path d="M320 156v20l10 6" stroke="#2563EB" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+
+  <path d="M90 120h44c6.6 0 12 5.4 12 12v8" stroke="#1E3A8A" stroke-width="4" stroke-linecap="round" opacity="0.45"/>
+  <circle cx="120" cy="134" r="4" fill="#1E3A8A"/>
+</svg>

@@ -1,9 +1,20 @@
 ﻿{% extends 'base.html' %}
 
-{% block title %}Comunitatea UnITex{% endblock %}
 
-{% block content %}
-<section class="row g-4">
+
+{% block workspace_title %}Comunitatea UNITEX{% endblock %}
+{% block workspace_subtitle %}
+    Povesteste cu colegii, impartaseste proiecte si cere ajutor atunci cand ai nevoie de un boost de inspiratie.
+{% endblock %}
+{% block workspace_actions %}
+<div class="workspace-actions">
+    <a class="btn btn--primary" href="#community-feed"><i class="fa-solid fa-comments"></i> Deschide forumul</a>
+    <a class="btn btn--ghost" href="{% url 'estudy:projects' %}"><i class="fa-solid fa-lightbulb"></i> Inspira-te din proiecte</a>
+</div>
+{% endblock %}
+
+{% block page_content %}
+<section class="row g-4" id="community-feed">
     <div class="col-lg-7">
         <div class="card shadow-sm">
             <div class="card-header bg-white">
@@ -63,3 +74,6 @@
     </div>
 </section>
 {% endblock %}
+
+
+

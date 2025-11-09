@@ -1,14 +1,25 @@
 ﻿{% extends 'base.html' %}
 
-{% block title %}Proiecte practice{% endblock %}
 
-{% block content %}
+
+{% block workspace_title %}Studio de proiecte{% endblock %}
+{% block workspace_subtitle %}
+    Construieste aplicatii, anima grafica si prezinta rezultatele echipei in vitrina UNITEX.
+{% endblock %}
+{% block workspace_actions %}
+<div class="workspace-actions">
+    <a class="btn btn--primary" href="#project-board"><i class="fa-solid fa-wand-magic-sparkles"></i> Creeaza proiect</a>
+    <a class="btn btn--ghost" href="{% url 'estudy:missions' %}"><i class="fa-solid fa-flask"></i> Sari in laborator</a>
+</div>
+{% endblock %}
+
+{% block page_content %}
 <section class="mb-4">
     <h1 class="h4 mb-2">Proiecte practice</h1>
     <p class="text-muted">Alege un proiect pentru a aplica ce ai învățat și pentru a primi feedback de la profesori.</p>
 </section>
 
-<section class="row g-4">
+<section class="row g-4" id="project-board">
     {% for project in projects %}
         <div class="col-md-6 col-xl-4">
             <div class="card shadow-sm h-100">
@@ -37,3 +48,6 @@
     {% endfor %}
 </section>
 {% endblock %}
+
+
+

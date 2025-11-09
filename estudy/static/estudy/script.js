@@ -1,7 +1,8 @@
-/* eslint-env browser */
+﻿/* eslint-env browser */
 
 const STORAGE_KEYS = {
     theme: 'unitex-theme',
+    lessonFilters: 'unitex-lessons-filters',
 };
 
 const safeLocalStorage = {
@@ -57,21 +58,17 @@ const getCsrfToken = () => {
 };
 
 const updateProgressDisplays = ({ percent, completed, total }) => {
-    if (percent === null || percent === undefined) {
-        return;
+    if (percent !== null && percent !== undefined) {
+        const roundedPercent = Math.round(percent);
+        document.querySelectorAll('[data-progress-bar]').forEach((bar) => {
+            bar.dataset.progressInitial = String(roundedPercent);
+            const container = bar.closest('[data-progress-container]');
+            if (container) {
+                container.dataset.progressInitial = String(roundedPercent);
+            }
+        });
+        initializeProgressBars();
     }
-
-    const roundedPercent = Math.round(percent);
-
-    document.querySelectorAll('[data-progress-bar]').forEach((bar) => {
-        bar.style.width = `${roundedPercent}%`;
-        bar.setAttribute('aria-valuenow', String(roundedPercent));
-        bar.dataset.progressInitial = String(roundedPercent);
-        const percentHolder = bar.querySelector('[data-progress-percent]');
-        if (percentHolder) {
-            percentHolder.textContent = roundedPercent;
-        }
-    });
 
     if (Number.isFinite(completed)) {
         document.querySelectorAll('[data-progress-completed]').forEach((node) => {
@@ -84,24 +81,78 @@ const updateProgressDisplays = ({ percent, completed, total }) => {
             node.textContent = total;
         });
     }
+
+    if (Number.isFinite(completed) && Number.isFinite(total)) {
+        document.querySelectorAll('[data-progress-summary]').forEach((node) => {
+            const safeCompleted = Number.parseInt(completed, 10);
+            const safeTotal = Number.parseInt(total, 10);
+            if (!Number.isFinite(safeCompleted) || !Number.isFinite(safeTotal)) {
+                return;
+            }
+
+            if (safeCompleted === 1) {
+                node.textContent = `1 lecție finalizată din ${safeTotal}`;
+            } else {
+                node.textContent = `${safeCompleted} lecții finalizate din ${safeTotal}`;
+            }
+        });
+    }
 };
 
 const initializeProgressBars = () => {
     document.querySelectorAll('[data-progress-bar]').forEach((bar) => {
-        const initialRaw = bar.dataset.progressInitial;
-        if (!initialRaw) {
+        const container = bar.closest('[data-progress-container]');
+        const sourceValue =
+            bar.dataset.progressInitial ||
+            container?.dataset.progressInitial ||
+            bar.getAttribute('aria-valuenow');
+
+        if (sourceValue === null || sourceValue === undefined || sourceValue === '') {
             return;
         }
-        const initialValue = Number.parseFloat(initialRaw);
-        if (!Number.isFinite(initialValue)) {
+
+        const parsed = Number.parseFloat(sourceValue);
+        if (!Number.isFinite(parsed)) {
             return;
         }
-        const clamped = Math.max(0, Math.min(100, Math.round(initialValue)));
-        bar.style.width = `${clamped}%`;
+
+        const clamped = Math.max(0, Math.min(100, Math.round(parsed)));
+        bar.dataset.progressInitial = String(clamped);
+
+        const shouldAnimate = !bar.dataset.progressAnimated;
+        if (shouldAnimate) {
+            bar.dataset.progressAnimated = 'true';
+            bar.style.width = '0%';
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    bar.style.width = `${clamped}%`;
+                });
+            });
+        } else {
+            bar.style.width = `${clamped}%`;
+        }
+
         bar.setAttribute('aria-valuenow', String(clamped));
         const percentHolder = bar.querySelector('[data-progress-percent]');
         if (percentHolder) {
             percentHolder.textContent = clamped;
+        }
+
+        if (container) {
+            container.dataset.progressInitial = String(clamped);
+            const sparkle = container.querySelector('[data-progress-sparkle]');
+            if (clamped >= 100 && sparkle && sparkle.dataset.sparklePlayed !== 'true') {
+                container.classList.remove('is-complete');
+                requestAnimationFrame(() => {
+                    container.classList.add('is-complete');
+                    sparkle.dataset.sparklePlayed = 'true';
+                });
+            } else if (clamped < 100) {
+                container.classList.remove('is-complete');
+                if (sparkle) {
+                    sparkle.dataset.sparklePlayed = 'false';
+                }
+            }
         }
     });
 };
@@ -183,13 +234,13 @@ const setLessonCompletionUI = (completed, sourceButton) => {
             sourceButton.classList.toggle('text-primary', !completed);
             sourceButton.innerHTML = completed
                 ? '<i class=\"fa-solid fa-check me-2\"></i>Bifat deja'
-                : '<i class=\"fa-regular fa-circle-check me-2\"></i>Marchează reușita';
+                : '<i class=\"fa-regular fa-circle-check me-2\"></i>MarcheazДѓ reuИ™ita';
         } else {
             sourceButton.classList.toggle('btn-success', completed);
             sourceButton.classList.toggle('btn-outline-success', !completed);
             sourceButton.innerHTML = completed
-                ? '<i class=\"fa-solid fa-check me-1\"></i>Finalizată'
-                : '<i class=\"fa-regular fa-circle-check me-1\"></i>Marchează finalizarea';
+                ? '<i class=\"fa-solid fa-check me-1\"></i>FinalizatДѓ'
+                : '<i class=\"fa-regular fa-circle-check me-1\"></i>MarcheazДѓ finalizarea';
         }
     } else {
         document.querySelectorAll('.lesson-card').forEach((card) => {
@@ -201,7 +252,7 @@ const setLessonCompletionUI = (completed, sourceButton) => {
     }
 
     if (statusEl) {
-        statusEl.textContent = completed ? 'Finalizată' : 'În curs';
+        statusEl.textContent = completed ? 'FinalizatДѓ' : 'ГЋn curs';
         statusEl.classList.toggle('text-success', completed);
     }
     applyNextButtonState(completed);
@@ -238,7 +289,7 @@ const wireToggleCompletion = () => {
                 });
             } catch (error) {
                 console.error('Failed to toggle lesson completion', error);
-                alert('Nu am putut actualiza starea lecției. Încearcă din nou.');
+                alert('Nu am putut actualiza starea lecИ›iei. ГЋncearcДѓ din nou.');
             } finally {
                 button.disabled = false;
             }
@@ -268,14 +319,14 @@ const wireQuizForms = () => {
             const answer = formData.get('answer');
             if (!answer) {
                 if (feedbackEl) {
-                    feedbackEl.textContent = 'Selectează un răspuns înainte de a trimite.';
+                    feedbackEl.textContent = 'SelecteazДѓ un rДѓspuns Г®nainte de a trimite.';
                     feedbackEl.classList.add('text-danger');
                 }
                 return;
             }
 
             feedbackEl?.classList.remove('text-success', 'text-danger');
-            feedbackEl.textContent = 'Se verifică răspunsul...';
+            feedbackEl.textContent = 'Se verificДѓ rДѓspunsul...';
 
             try {
                 const response = await fetch(submitUrl, {
@@ -294,7 +345,7 @@ const wireQuizForms = () => {
                 const data = await response.json();
                 const correct = Boolean(data.is_correct);
 
-                feedbackEl.textContent = correct ? 'Excelent! Acesta este răspunsul corect.' : 'Răspuns greșit. Încearcă din nou!';
+                feedbackEl.textContent = correct ? 'Excelent! Acesta este rДѓspunsul corect.' : 'RДѓspuns greИ™it. ГЋncearcДѓ din nou!';
                 feedbackEl.classList.toggle('text-success', correct);
                 feedbackEl.classList.toggle('text-danger', !correct);
 
@@ -316,7 +367,7 @@ const wireQuizForms = () => {
                 }
             } catch (error) {
                 console.error('Quiz submission failed', error);
-                feedbackEl.textContent = 'A apărut o eroare. Încearcă din nou.';
+                feedbackEl.textContent = 'A apДѓrut o eroare. ГЋncearcДѓ din nou.';
                 feedbackEl.classList.add('text-danger');
             }
         });
@@ -459,7 +510,7 @@ const wirePracticeDragDrop = () => {
                 }
 
                 if (zone.classList.contains('practice-dropzone--filled')) {
-                    showFeedback('Această zonă este deja completată. Alege altă pereche.');
+                    showFeedback('AceastДѓ zonДѓ este deja completatДѓ. Alege altДѓ pereche.');
                     return;
                 }
 
@@ -468,7 +519,7 @@ const wirePracticeDragDrop = () => {
 
                 if (expected && expected !== actual) {
                     zone.classList.add('practice-dropzone--error');
-                    showFeedback('Ups! Încă nu este potrivirea corectă. Încearcă din nou.');
+                    showFeedback('Ups! ГЋncДѓ nu este potrivirea corectДѓ. ГЋncearcДѓ din nou.');
                     setTimeout(() => zone.classList.remove('practice-dropzone--error'), 700);
                     return;
                 }
@@ -560,7 +611,7 @@ const wireCodeChallenges = () => {
                     }
                 } else {
                     const hints = missing.map((group) => group[0]).join(', ');
-                    showFeedback(`Mai verifică secțiunea de cod. Lipsesc expresii precum: ${hints}`);
+                    showFeedback(`Mai verificДѓ secИ›iunea de cod. Lipsesc expresii precum: ${hints}`);
                     if (successAlert) {
                         successAlert.classList.add('d-none');
                     }
@@ -592,7 +643,7 @@ const wireVoiceButtons = () => {
     if (!supportsSpeech) {
         buttons.forEach((button) => {
             button.addEventListener('click', () => {
-                alert('Redarea audio nu este suportată de acest browser.');
+                alert('Redarea audio nu este suportatДѓ de acest browser.');
             });
         });
         return;
@@ -690,7 +741,7 @@ const wireVoiceButtons = () => {
         const rawText = button.dataset.voiceText || '';
         const textContent = rawText.trim();
         if (!textContent) {
-            alert('Nu există conținut de redat pentru această explicație.');
+            alert('Nu existДѓ conИ›inut de redat pentru aceastДѓ explicaИ›ie.');
             return;
         }
 
@@ -712,7 +763,7 @@ const wireVoiceButtons = () => {
         utterance.onerror = (event) => {
             console.error('Speech synthesis error', event);
             resetState();
-            alert('Nu am putut porni redarea audio. Încearcă din nou sau schimbă browserul.');
+            alert('Nu am putut porni redarea audio. ГЋncearcДѓ din nou sau schimbДѓ browserul.');
         };
 
         activeButton = button;
@@ -746,10 +797,704 @@ const wireVoiceButtons = () => {
     });
 };
 
+
+const wireLessonExperience = () => {
+    document.querySelectorAll('[data-lesson-experience]').forEach((root) => {
+        const startButton = root.querySelector('[data-lesson-start]');
+        const intro = root.querySelector('[data-lesson-intro]');
+        const panel = root.querySelector('[data-lesson-panel]');
+        const panelFront = root.querySelector('[data-panel-front]');
+        const panelSteps = root.querySelector('[data-panel-steps]');
+        const scope = panelSteps || root;
+        const summary = panelSteps?.querySelector('[data-lesson-summary]') || root.querySelector('[data-lesson-summary]');
+        const body = panelSteps?.querySelector('[data-lesson-body]') || root.querySelector('[data-lesson-body]');
+        const flow = scope.querySelector('[data-lesson-flow]');
+        const steps = Array.from(scope.querySelectorAll('[data-lesson-step]'));
+        const nextBtn = root.querySelector('[data-step-next]');
+        const prevBtn = root.querySelector('[data-step-prev]');
+        const indicatorCurrent = root.querySelector('[data-step-current]');
+        const indicatorTotal = root.querySelector('[data-step-total]');
+        const indicatorTitle = root.querySelector('[data-step-title]');
+
+        let currentStep = 0;
+        const totalSteps = steps.length;
+        if (indicatorTotal) {
+            indicatorTotal.textContent = totalSteps;
+        }
+
+        const goToStep = (index) => {
+            if (!steps.length) {
+                return;
+            }
+            currentStep = Math.max(0, Math.min(index, totalSteps - 1));
+            steps.forEach((step, stepIndex) => {
+                if (stepIndex === currentStep) {
+                    step.removeAttribute('hidden');
+                    step.classList.add('lesson-step--active');
+                } else {
+                    step.setAttribute('hidden', '');
+                    step.classList.remove('lesson-step--active');
+                }
+            });
+            if (indicatorCurrent) {
+                indicatorCurrent.textContent = currentStep + 1;
+            }
+            if (indicatorTitle) {
+                const title = steps[currentStep]?.dataset.stepTitle || `Pasul ${currentStep + 1}`;
+                indicatorTitle.textContent = title;
+            }
+            if (prevBtn) {
+                prevBtn.hidden = currentStep === 0;
+                prevBtn.disabled = currentStep === 0;
+            }
+            if (nextBtn) {
+                const isLast = currentStep === totalSteps - 1;
+                const customLabel = steps[currentStep]?.dataset.stepButton;
+                nextBtn.textContent = customLabel || (isLast ? 'FinalizeazДѓ lecИ›ia' : 'ContinuДѓ');
+                nextBtn.classList.toggle('btn-success', isLast);
+                nextBtn.disabled = false;
+            }
+        };
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (currentStep === totalSteps - 1) {
+                    nextBtn.innerHTML = '<i class="fa-solid fa-check me-2"></i>LecИ›ia finalizatДѓ';
+                    nextBtn.disabled = true;
+                    root.classList.add('lesson-experience--completed');
+                    return;
+                }
+                goToStep(currentStep + 1);
+            });
+        }
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                goToStep(currentStep - 1);
+                if (nextBtn && nextBtn.disabled) {
+                    nextBtn.disabled = false;
+                    const isLast = currentStep === totalSteps - 1;
+                    const customLabel = steps[currentStep]?.dataset.stepButton;
+                    nextBtn.textContent = customLabel || (isLast ? 'FinalizeazДѓ lecИ›ia' : 'ContinuДѓ');
+                    nextBtn.classList.toggle('btn-success', isLast);
+                }
+            });
+        }
+
+        const activateLesson = () => {
+            root.classList.add('lesson-experience--started');
+            if (intro) {
+                if (intro.hasAttribute('data-keep-visible')) {
+                    intro.classList.add('lesson-gate__intro--collapsed');
+                    intro.removeAttribute('hidden');
+                    intro.removeAttribute('aria-hidden');
+                } else {
+                    intro.setAttribute('hidden', '');
+                    intro.setAttribute('aria-hidden', 'true');
+                }
+            }
+            if (panel) {
+                panel.classList.add('lesson-gate__panel--expanded');
+            }
+            if (panelFront) {
+                panelFront.setAttribute('hidden', '');
+                panelFront.setAttribute('aria-hidden', 'true');
+            }
+            if (panelSteps) {
+                panelSteps.removeAttribute('hidden');
+                panelSteps.removeAttribute('aria-hidden');
+            }
+            if (summary) {
+                summary.removeAttribute('hidden');
+                summary.removeAttribute('aria-hidden');
+            }
+            if (body) {
+                body.removeAttribute('hidden');
+            }
+            if (flow) {
+                flow.removeAttribute('hidden');
+            }
+            if (startButton) {
+                startButton.setAttribute('hidden', '');
+                startButton.setAttribute('aria-hidden', 'true');
+                startButton.setAttribute('disabled', 'disabled');
+            }
+            goToStep(0);
+            const focusTarget = flow?.querySelector('.lesson-step--active') || panelSteps?.querySelector('.lesson-step--active');
+            if (focusTarget && typeof focusTarget.focus === 'function') {
+                focusTarget.setAttribute('tabindex', '-1');
+                window.requestAnimationFrame(() => {
+                    focusTarget.focus({ preventScroll: true });
+                    focusTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            }
+        };
+
+        if (root.classList.contains('lesson-experience--started')) {
+            activateLesson();
+            return;
+        }
+
+        if (startButton) {
+            startButton.addEventListener('click', activateLesson);
+        }
+    });
+};
+
+const wireHardwareMapGame
+
+const wireHardwareMapGame = () => {
+    document.querySelectorAll('[data-hardware-map]').forEach((root) => {
+        const bank = root.querySelector('[data-bank]');
+        const slots = Array.from(root.querySelectorAll('[data-slot]'));
+        const pieces = Array.from(root.querySelectorAll('[data-piece]'));
+        const feedback = root.querySelector('[data-hardware-feedback]');
+        const checkBtn = root.querySelector('[data-hardware-check]');
+        const resetBtn = root.querySelector('[data-hardware-reset]');
+        const dropzones = Array.from(root.querySelectorAll('[data-dropzone]'));
+
+        const updateSlotState = () => {
+            slots.forEach((slot) => {
+                slot.classList.toggle('hardware-slot--filled', Boolean(slot.querySelector('[data-piece]')));
+            });
+        };
+
+        const clearFeedback = () => {
+            if (!feedback) {
+                return;
+            }
+            feedback.textContent = '';
+            feedback.className = 'hardware-feedback';
+        };
+
+        const placePiece = (piece, target) => {
+            if (target.dataset.bank !== undefined) {
+                bank.appendChild(piece);
+                piece.dataset.placed = '';
+            } else if (target.dataset.slot) {
+                const existing = target.querySelector('[data-piece]');
+                if (existing) {
+                    bank.appendChild(existing);
+                    existing.dataset.placed = '';
+                }
+                target.appendChild(piece);
+                piece.dataset.placed = target.dataset.slot;
+            }
+            updateSlotState();
+            clearFeedback();
+        };
+
+        const removeZoneHighlight = () => {
+            dropzones.forEach((zone) => zone.classList.remove('hardware-zone--active'));
+        };
+
+        pieces.forEach((piece) => {
+            piece.addEventListener('dragstart', (event) => {
+                event.dataTransfer.setData('text/plain', piece.dataset.piece);
+                event.dataTransfer.effectAllowed = 'move';
+                piece.classList.add('is-dragging');
+            });
+            piece.addEventListener('dragend', () => {
+                piece.classList.remove('is-dragging');
+                removeZoneHighlight();
+            });
+        });
+
+        dropzones.forEach((zone) => {
+            zone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                zone.classList.add('hardware-zone--active');
+            });
+            zone.addEventListener('dragleave', () => zone.classList.remove('hardware-zone--active'));
+            zone.addEventListener('drop', (event) => {
+                event.preventDefault();
+                const key = event.dataTransfer.getData('text/plain');
+                const piece = root.querySelector(`[data-piece="${key}"]`);
+                const target = event.target.closest('[data-slot], [data-bank]');
+                if (!piece || !target) {
+                    return;
+                }
+                placePiece(piece, target);
+                removeZoneHighlight();
+            });
+        });
+
+        const resetBoard = () => {
+            pieces.forEach((piece) => {
+                bank.appendChild(piece);
+                piece.dataset.placed = '';
+            });
+            slots.forEach((slot) => {
+                slot.classList.remove('hardware-slot--correct', 'hardware-slot--incorrect');
+            });
+            removeZoneHighlight();
+            clearFeedback();
+            updateSlotState();
+        };
+
+        resetBoard();
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', resetBoard);
+        }
+
+        if (checkBtn) {
+            checkBtn.addEventListener('click', () => {
+                if (!feedback) {
+                    return;
+                }
+                let placedCount = 0;
+                let correctCount = 0;
+
+                slots.forEach((slot) => {
+                    const piece = slot.querySelector('[data-piece]');
+                    slot.classList.remove('hardware-slot--correct', 'hardware-slot--incorrect');
+                    if (!piece) {
+                        return;
+                    }
+                    placedCount += 1;
+                    if (piece.dataset.answer === slot.dataset.slot) {
+                        slot.classList.add('hardware-slot--correct');
+                        correctCount += 1;
+                    } else {
+                        slot.classList.add('hardware-slot--incorrect');
+                    }
+                });
+
+                feedback.className = 'hardware-feedback';
+                if (placedCount !== slots.length) {
+                    feedback.classList.add('hardware-feedback--warning');
+                    feedback.textContent = 'Mai ai componente de plasat. CompleteazДѓ toate zonele И™i verificДѓ din nou.';
+                } else if (correctCount === slots.length) {
+                    feedback.classList.add('hardware-feedback--success');
+                    feedback.textContent = 'Super! Toate componentele sunt pe locul potrivit.';
+                } else {
+                    feedback.classList.add('hardware-feedback--error');
+                    feedback.textContent = 'Unele componente nu se potrivesc zonei. ComparДѓ denumirile И™i Г®ncearcДѓ din nou.';
+                }
+            });
+        }
+    });
+};
+
+const wireHardwareSoftwareMatch = () => {
+    document.querySelectorAll('[data-hardware-software]').forEach((root) => {
+        const feedback = root.querySelector('[data-match-feedback]');
+        const checkBtn = root.querySelector('[data-match-check]');
+        const resetBtn = root.querySelector('[data-match-reset]');
+        const banks = Array.from(root.querySelectorAll('[data-bank]'));
+        const slots = Array.from(root.querySelectorAll('[data-match-slot]'));
+        const tokens = Array.from(root.querySelectorAll('[data-match-token]'));
+        const dropzones = Array.from(root.querySelectorAll('[data-dropzone]'));
+        const tasks = Array.from(root.querySelectorAll('[data-scenario]'));
+
+        const banksByType = {};
+        banks.forEach((bank) => {
+            banksByType[bank.dataset.bank] = bank;
+        });
+
+        tokens.forEach((token) => {
+            token.dataset.home = token.closest('[data-bank]')?.dataset.bank || '';
+        });
+
+        const clearFeedback = () => {
+            if (!feedback) {
+                return;
+            }
+            feedback.textContent = '';
+            feedback.className = 'module-match__feedback';
+        };
+
+        const updateSlotState = () => {
+            slots.forEach((slot) => {
+                slot.classList.toggle('match-slot--filled', Boolean(slot.querySelector('[data-match-token]')));
+            });
+        };
+
+        const moveTokenToBank = (token, preferredBank) => {
+            const bank = banksByType[preferredBank] || banksByType[token.dataset.tokenType] || banksByType[token.dataset.home];
+            if (bank) {
+                bank.appendChild(token);
+            }
+            token.dataset.placed = '';
+        };
+
+        const placeToken = (token, target) => {
+            if (target.dataset.bank !== undefined) {
+                const bankName = target.dataset.bank;
+                const finalBank = bankName === token.dataset.tokenType ? bankName : token.dataset.tokenType;
+                moveTokenToBank(token, finalBank);
+                updateSlotState();
+                clearFeedback();
+                return true;
+            }
+
+            if (!target.dataset.match) {
+                return false;
+            }
+
+            const expectedType = target.dataset.accept;
+            if (expectedType && token.dataset.tokenType !== expectedType) {
+                if (feedback) {
+                    feedback.className = 'module-match__feedback module-match__feedback--warning';
+                    feedback.textContent = 'Acest cartonaИ™ se potriveИ™te Г®n cealaltДѓ coloanДѓ. ГЋncearcДѓ din nou.';
+                }
+                target.classList.add('match-slot--error');
+                setTimeout(() => target.classList.remove('match-slot--error'), 600);
+                return false;
+            }
+
+            const existing = target.querySelector('[data-match-token]');
+            if (existing) {
+                moveTokenToBank(existing, existing.dataset.home);
+            }
+
+            target.appendChild(token);
+            token.dataset.placed = target.dataset.match;
+            updateSlotState();
+            clearFeedback();
+            return true;
+        };
+
+        const removeActiveHighlight = () => {
+            dropzones.forEach((zone) => zone.classList.remove('match-dropzone--active'));
+        };
+
+        tokens.forEach((token) => {
+            token.addEventListener('dragstart', (event) => {
+                event.dataTransfer.setData('text/plain', token.dataset.tokenValue);
+                event.dataTransfer.effectAllowed = 'move';
+                token.classList.add('match-token--dragging');
+            });
+            token.addEventListener('dragend', () => {
+                token.classList.remove('match-token--dragging');
+                removeActiveHighlight();
+            });
+        });
+
+        dropzones.forEach((zone) => {
+            zone.addEventListener('dragover', (event) => {
+                event.preventDefault();
+                zone.classList.add('match-dropzone--active');
+            });
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('match-dropzone--active');
+            });
+            zone.addEventListener('drop', (event) => {
+                event.preventDefault();
+                const tokenValue = event.dataTransfer.getData('text/plain');
+                const token = root.querySelector(`[data-match-token][data-token-value="${tokenValue}"]`);
+                const target = event.target.closest('[data-match-slot], [data-bank]');
+                if (!token || !target) {
+                    return;
+                }
+                placeToken(token, target);
+                removeActiveHighlight();
+            });
+        });
+
+        const resetBoard = () => {
+            tokens.forEach((token) => {
+                moveTokenToBank(token, token.dataset.home);
+            });
+            tasks.forEach((row) => {
+                row.classList.remove('module-match__row--correct', 'module-match__row--incorrect', 'module-match__row--incomplete');
+            });
+            updateSlotState();
+            clearFeedback();
+        };
+
+        if (resetBtn) {
+            resetBtn.addEventListener('click', resetBoard);
+        }
+
+        if (checkBtn) {
+            checkBtn.addEventListener('click', () => {
+                let allFilled = true;
+                let allCorrect = true;
+
+                tasks.forEach((row) => {
+                    row.classList.remove('module-match__row--correct', 'module-match__row--incorrect', 'module-match__row--incomplete');
+
+                    const hardwareSlot = row.querySelector('[data-match-slot][data-accept="hardware"]');
+                    const softwareSlot = row.querySelector('[data-match-slot][data-accept="software"]');
+                    const hardwareToken = hardwareSlot?.querySelector('[data-match-token]');
+                    const softwareToken = softwareSlot?.querySelector('[data-match-token]');
+
+                    if (!hardwareToken || !softwareToken) {
+                        allFilled = false;
+                        row.classList.add('module-match__row--incomplete');
+                        return;
+                    }
+
+                    const hardwareCorrect = hardwareToken.dataset.tokenValue === hardwareSlot.dataset.match;
+                    const softwareCorrect = softwareToken.dataset.tokenValue === softwareSlot.dataset.match;
+
+                    if (hardwareCorrect && softwareCorrect) {
+                        row.classList.add('module-match__row--correct');
+                    } else {
+                        allCorrect = false;
+                        row.classList.add('module-match__row--incorrect');
+                    }
+                });
+
+                if (!feedback) {
+                    return;
+                }
+
+                feedback.className = 'module-match__feedback';
+                if (!allFilled) {
+                    feedback.classList.add('module-match__feedback--warning');
+                    feedback.textContent = 'CompleteazДѓ fiecare sarcinДѓ cu cГўte douДѓ cartonaИ™e Г®nainte de verificare.';
+                } else if (allCorrect) {
+                    feedback.classList.add('module-match__feedback--success');
+                    feedback.textContent = 'Excelent! Ai gДѓsit combinaИ›iile hardware + software potrivite.';
+                } else {
+                    feedback.classList.add('module-match__feedback--error');
+                    feedback.textContent = 'Mai verificДѓ una dintre perechi: unele cartonaИ™e nu se potrivesc Г®ncДѓ.';
+                }
+            });
+        }
+
+        resetBoard();
+    });
+};
+
+const applyModuleProgress = (root = document) => {
+    root.querySelectorAll('[data-module-slug]').forEach((module) => {
+        const completedRaw = module.dataset.moduleCompleted;
+        const totalRaw = module.dataset.moduleTotal;
+        const completed = Number.parseInt(completedRaw || '', 10);
+        const total = Number.parseInt(totalRaw || '', 10);
+        const bar = module.querySelector('[data-module-progress-bar]');
+        const label = module.querySelector('[data-module-progress-label]');
+
+        if (!Number.isFinite(total) || total <= 0) {
+            if (bar) {
+                bar.style.width = '0%';
+            }
+            if (label) {
+                label.textContent = 'Progres indisponibil';
+            }
+            return;
+        }
+
+        const safeCompleted = Number.isFinite(completed) ? Math.max(0, completed) : 0;
+        const clampedTotal = Math.max(1, total);
+        const percent = Math.max(0, Math.min(100, Math.round((safeCompleted / clampedTotal) * 100)));
+
+        if (bar) {
+            requestAnimationFrame(() => {
+                bar.style.width = `${percent}%`;
+            });
+        }
+
+        if (label) {
+            label.textContent =
+                safeCompleted === 1
+                    ? `1 din ${clampedTotal} lecții finalizate`
+                    : `${safeCompleted} din ${clampedTotal} lecții finalizate`;
+        }
+    });
+};
+
+const setupLessonFilters = (dashboard) => {
+    if (!dashboard) {
+        return;
+    }
+
+    const form = dashboard.querySelector('[data-filter-form]');
+    if (!form || form.dataset.enhanced === 'true') {
+        return;
+    }
+
+    const resetButton = form.querySelector('[data-filter-reset]');
+    const storageKey = STORAGE_KEYS.lessonFilters;
+
+    const saveFilters = (formData) => {
+        const snapshot = {};
+        formData.forEach((value, key) => {
+            if (key === 'upcoming') {
+                snapshot[key] = '1';
+            } else {
+                snapshot[key] = value;
+            }
+        });
+        if (!formData.has('upcoming')) {
+            snapshot.upcoming = '';
+        }
+        safeLocalStorage.set(storageKey, JSON.stringify(snapshot));
+    };
+
+    const applyStateToForm = (state) => {
+        if (!state) {
+            return;
+        }
+
+        form.querySelectorAll('[name]').forEach((field) => {
+            if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement)) {
+                return;
+            }
+            if (field.type === 'checkbox') {
+                field.checked = state[field.name] === '1';
+            } else if (state[field.name] !== undefined) {
+                field.value = state[field.name];
+            }
+        });
+    };
+
+    const getFormData = () => {
+        const data = new FormData(form);
+        const params = new URLSearchParams();
+        data.forEach((value, key) => {
+            if (key === 'upcoming') {
+                params.set(key, '1');
+            } else if (typeof value === 'string' && value.trim() === '') {
+                params.delete(key);
+            } else {
+                params.set(key, value);
+            }
+        });
+        return { formData: data, params };
+    };
+
+    const updateHistory = (params) => {
+        const url = new URL(window.location.href);
+        url.search = params.toString();
+        const query = params.toString();
+        const newUrl = `${url.pathname}${query ? `?${query}` : ''}`;
+        window.history.replaceState({}, '', newUrl);
+    };
+
+    const fetchAndUpdateLessons = async (params) => {
+        const dashboardRoot = document.querySelector('[data-lessons-dashboard]');
+        if (!dashboardRoot) {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+        url.search = params.toString();
+        form.classList.add('is-loading');
+        try {
+            const response = await fetch(url.toString(), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+            const text = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(text, 'text/html');
+            const newDashboard = doc.querySelector('[data-lessons-dashboard]');
+            if (!newDashboard) {
+                return;
+            }
+
+            const selectors = ['.learning-spotlight', '.learning-program', '[data-filters]'];
+            selectors.forEach((selector) => {
+                const incoming = newDashboard.querySelector(selector);
+                const current = dashboardRoot.querySelector(selector);
+                if (incoming && current) {
+                    current.replaceWith(incoming);
+                }
+            });
+
+            initializeLessonsDashboard({ rebindFilters: false });
+            setupLessonFilters(document.querySelector('[data-lessons-dashboard]'));
+            updateHistory(params);
+        } catch (error) {
+            console.warn('Lesson filter refresh failed', error);
+        } finally {
+            form.classList.remove('is-loading');
+        }
+    };
+
+    const restoreState = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (Array.from(urlParams.keys()).length) {
+            const state = {};
+            urlParams.forEach((value, key) => {
+                state[key] = value;
+            });
+            applyStateToForm(state);
+            safeLocalStorage.set(storageKey, JSON.stringify(state));
+            return;
+        }
+
+        const stored = safeLocalStorage.get(storageKey);
+        if (!stored) {
+            return;
+        }
+        try {
+            const parsed = JSON.parse(stored);
+            applyStateToForm(parsed);
+        } catch (error) {
+            console.warn('Failed to restore lesson filters', error);
+        }
+    };
+
+    restoreState();
+
+    form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const { formData, params } = getFormData();
+        saveFilters(formData);
+        fetchAndUpdateLessons(params);
+    });
+
+    form.querySelectorAll('input, select').forEach((field) => {
+        field.addEventListener('change', () => {
+            const { formData } = getFormData();
+            saveFilters(formData);
+        });
+    });
+
+    if (resetButton) {
+        resetButton.addEventListener('click', () => {
+            form.reset();
+            const { formData, params } = getFormData();
+            saveFilters(formData);
+            fetchAndUpdateLessons(params);
+        });
+    }
+
+    form.dataset.enhanced = 'true';
+};
+
+const initializeLessonsDashboard = ({ rebindFilters = true } = {}) => {
+    const dashboard = document.querySelector('[data-lessons-dashboard]');
+    if (!dashboard) {
+        document.body.classList.remove('lessons-page');
+        return;
+    }
+    document.body.classList.add('lessons-page');
+    applyModuleProgress(dashboard);
+    initializeProgressBars();
+    if (rebindFilters) {
+        setupLessonFilters(dashboard);
+    }
+};
+
+const initializeWorkspaceMessages = () => {
+    document.querySelectorAll('[data-dismiss-message]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const container = button.closest('[data-message]');
+            if (container) {
+                container.classList.add('is-dismissed');
+                setTimeout(() => container.remove(), 220);
+            }
+        });
+    });
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeThemeControls();
+    initializeLessonsDashboard();
     initializeProgressBars();
     initializeNextButtonState();
+    wireLessonExperience();
     wireToggleCompletion();
     wireQuizForms();
     wireFormsetAddButtons();
@@ -757,4 +1502,7 @@ document.addEventListener('DOMContentLoaded', () => {
     wireConceptCards();
     wireCodeChallenges();
     wireVoiceButtons();
+    wireHardwareMapGame();
+    wireHardwareSoftwareMatch();
+    initializeWorkspaceMessages();
 });

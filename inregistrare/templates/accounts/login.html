@@ -1,9 +1,9 @@
-{% extends 'accounts/base.html' %}
+﻿{% extends 'accounts/base.html' %}
 {% load static %}
 
 {% block title %}Autentificare - UnITex{% endblock %}
 
-{% block content %}
+{% block auth_content %}
 <section class="auth-shell">
     <div class="auth-panel auth-panel--hero">
         <span class="auth-tag">Bine ai revenit!</span>
@@ -14,7 +14,7 @@
             <li><i class="fa-solid fa-sparkles"></i>Deblocheaza insigne rare cu lectii consecutive.</li>
             <li><i class="fa-solid fa-hand-holding-heart"></i>Profesorii pot urmari progresul echipei in timp real.</li>
         </ul>
-        <img class="auth-illustration" src="{% static 'images/auth-hero-login.svg' %}" alt="Erou digital" onerror="this.style.display='none'">
+        <img class="auth-illustration" src="https://illustrations.popsy.co/amethyst/space-girl.svg" alt="Personaj pregatit de explorare digitala" loading="lazy">
     </div>
     <div class="auth-panel auth-panel--form">
         <h2 class="auth-form__title">Autentificare</h2>
@@ -25,6 +25,9 @@
         {% endif %}
         <form method="post" class="auth-form">
             {% csrf_token %}
+            {% if redirect_to %}
+                <input type="hidden" name="next" value="{{ redirect_to }}">
+            {% endif %}
             <div class="input-group">
                 {{ form.username.label_tag }}
                 {{ form.username }}

@@ -13,6 +13,11 @@ urlpatterns = [
     path("dashboard/admin/", views.admin_dashboard, name="admin_dashboard"),
     path("dashboard/parent/", views.parent_dashboard, name="parent_dashboard"),
     path("lessons/", views.lessons_list, name="lessons_list"),
+    path(
+        "lessons/modul-1-alfabetizare-digitala/",
+        views.lesson_module_digital_literacy,
+        name="lesson_module_digital_literacy",
+    ),
     path("lessons/<slug:slug>/", views.lesson_detail, name="lesson_detail"),
     path("lessons/<slug:slug>/toggle/", views.toggle_lesson_completion, name="toggle_lesson_completion"),
     path("lessons/<slug:slug>/ai-hint/", views.ai_hint, name="ai_hint"),
