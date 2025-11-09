@@ -4,8 +4,14 @@ from typing import Dict, List, Tuple
 
 from django.db.models import Count
 
-from ..models import (Lesson, LessonProgress, Mission, UserBadge,
-                      UserMission, check_and_award_rewards)
+from ..models import (
+    Lesson,
+    LessonProgress,
+    Mission,
+    UserBadge,
+    UserMission,
+    check_and_award_rewards,
+)
 
 DEFAULT_MISSIONS: Tuple[dict, ...] = (
     {

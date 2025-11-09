@@ -3,8 +3,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from .models import Lesson, LessonProgress, Subject
-from .services.lesson_detail import (BlockingLessonRequired,
-                                     prepare_lesson_detail)
+from .services.lesson_detail import BlockingLessonRequired, prepare_lesson_detail
 
 
 class LessonDetailServiceTests(TestCase):

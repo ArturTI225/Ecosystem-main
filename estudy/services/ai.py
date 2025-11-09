@@ -88,9 +88,7 @@ def _build_answer(question: str, lesson) -> str:
         else "Testează varianta ta în mini-editorul din Example și observă output-ul."
     )
 
-    next_step = (
-        "Intră în Practice și vezi dacă poți aplica imediat indiciul."
-    )
+    next_step = "Intră în Practice și vezi dacă poți aplica imediat indiciul."
     if lesson and getattr(lesson, "practice", None):
         next_step = (
             "În Practice, pornește de la hint-ul disponibil și potrivește elementele "

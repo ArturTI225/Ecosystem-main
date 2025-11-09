@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from urllib.parse import urlparse
 from functools import wraps
+from urllib.parse import urlparse
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -42,11 +42,15 @@ from .models import (
     UserProfile,
 )
 from .services.ai import generate_hint
-from .services.gamification import (build_overall_progress, get_badge_summary,
-                                    get_leaderboard_snapshot,
-                                    get_mission_context,
-                                    record_lesson_completion)
+from .services.gamification import (
+    build_overall_progress,
+    get_badge_summary,
+    get_leaderboard_snapshot,
+    get_mission_context,
+    record_lesson_completion,
+)
 from .services.notifications import notify_feedback, send_notification
+
 # recommendations are used inside services, not directly in views
 
 ROLE_STUDENT = UserProfile.ROLE_STUDENT
@@ -573,8 +577,10 @@ def lesson_module_digital_literacy(request):
 @login_required
 def lesson_detail(request, slug):
     try:
-        from .services.lesson_detail import (BlockingLessonRequired,
-                                             prepare_lesson_detail)
+        from .services.lesson_detail import (
+            BlockingLessonRequired,
+            prepare_lesson_detail,
+        )
 
         payload = prepare_lesson_detail(request.user, slug)
         return render(

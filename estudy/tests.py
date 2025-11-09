@@ -97,7 +97,10 @@ class ModelsLogicTests(TestCase):
             )
             lessons.append(lesson)
             LessonProgress.objects.create(
-                user=self.user, lesson=lesson, completed=True, completed_at=timezone.now()
+                user=self.user,
+                lesson=lesson,
+                completed=True,
+                completed_at=timezone.now(),
             )
 
         # ensure no badges initially
