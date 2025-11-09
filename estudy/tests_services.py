@@ -122,3 +122,37 @@ class ServicesSmokeTests(TestCase):
         self.assertEqual(ctx["filters"]["subject"], "")
         self.assertEqual(ctx["filters"]["difficulty"], "")
         self.assertFalse(ctx["filters"]["upcoming"])
+
+    def test_prepare_lessons_list_filters(self):
+        # make one of the existing lessons upcoming to test upcoming filter
+        future_date = timezone.localdate() + timezone.timedelta(days=7)
+        self.lessons[0].date = future_date
+        self.lessons[0].save()
+        # a lesson with a distinct difficulty
+        self.lessons[2].difficulty = Lesson.DIFFICULTY_ADVANCED
+        self.lessons[2].save()
+
+        # subject filter: filter by the primary test subject
+        ctx = prepare_lessons_list(self.user, params={"subject": str(self.subject.id)})
+        titles = [lesson.title for lesson in ctx["lessons"]]
+        self.assertIn("Lesson 1", titles)
+
+        # difficulty filter: only advanced lessons
+        ctx = prepare_lessons_list(self.user, params={"difficulty": Lesson.DIFFICULTY_ADVANCED})
+        titles = [lesson.title for lesson in ctx["lessons"]]
+        self.assertTrue(
+            all(
+                getattr(lesson, "difficulty", "") == Lesson.DIFFICULTY_ADVANCED
+                for lesson in ctx["lessons"]
+            )
+        )
+
+        # query filter: search by title
+        ctx = prepare_lessons_list(self.user, params={"query": "Lesson 1"})
+        titles = [lesson.title for lesson in ctx["lessons"]]
+        self.assertIn("Lesson 1", titles)
+
+        # upcoming filter: should include only future lessons
+        ctx = prepare_lessons_list(self.user, params={"upcoming": True})
+        titles = [lesson.title for lesson in ctx["upcoming_lessons"]]
+        self.assertIn("Lesson 1", titles)

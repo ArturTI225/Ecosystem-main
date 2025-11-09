@@ -14,7 +14,6 @@ from django.utils.translation import gettext_lazy as _
 # 'timedelta' import removed; it was unused
 
 
-
 def default_empty_list():
     return []
 

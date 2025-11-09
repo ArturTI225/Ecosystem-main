@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from functools import wraps
 from urllib.parse import urlparse
+from django.conf import settings
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -107,15 +108,26 @@ def is_admin(user: User) -> bool:
         return False
 
 
-# domains considered 'competitors' whose links we filter out from lesson materials
-COMPETITOR_DOMAINS: set[str] = set()
+def _get_competitor_domains() -> set[str]:
+    raw = getattr(settings, "ESTUDY_COMPETITOR_DOMAINS", None)
+    if not raw:
+        return set()
+    try:
+        # accept list/tuple/CSV string
+        if isinstance(raw, (list, tuple, set)):
+            items = raw
+        else:
+            items = [p.strip() for p in str(raw).split(",") if p.strip()]
+        return set(str(d).lower().lstrip(".") for d in items)
+    except Exception:
+        return set()
 
 
 def _is_competitor_link(url: str) -> bool:
     """Return True when the provided URL belongs to a known competitor domain.
 
-    Kept intentionally small and configurable; if parsing fails we return False
-    to avoid blocking valid resources.
+    Domains are read from Django setting `ESTUDY_COMPETITOR_DOMAINS` and
+    compared against the URL hostname suffix.
     """
     if not url:
         return False
@@ -123,7 +135,10 @@ def _is_competitor_link(url: str) -> bool:
         netloc = urlparse(url).netloc.lower()
     except Exception:
         return False
-    return any(netloc.endswith(domain) for domain in COMPETITOR_DOMAINS)
+    domains = _get_competitor_domains()
+    if not domains:
+        return False
+    return any(netloc == domain or netloc.endswith("." + domain) for domain in domains)
 
 
 def _prefetched_subjects():
