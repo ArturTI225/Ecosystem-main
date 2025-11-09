@@ -1,8 +1,38 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple, Any
 
-from ..models import LearningPath, Lesson
+from django.db.models import Prefetch, Q
+from django.utils import timezone
+
+from ..models import LearningPath, LearningPathLesson, Lesson, LessonProgress, Subject
+from .recommendations import refresh_recommendations
+from .gamification import get_badge_summary, build_overall_progress
+
+
+def _compute_accessibility_for_subjects(user, subjects: List[Subject]) -> Tuple[Set[int], Set[int], Dict[int, Any]]:
+    completed_ids = set(
+        LessonProgress.objects.filter(user=user, completed=True).values_list(
+            "lesson_id", flat=True
+        )
+    )
+    accessible_ids = set(completed_ids)
+    locked_reasons: Dict[int, Any] = {}
+
+    for subject in subjects:
+        lessons = list(subject.lessons.all())
+        required_lesson = None
+        for lesson in lessons:
+            if lesson.id in completed_ids:
+                required_lesson = lesson
+                continue
+            if required_lesson is None or required_lesson.id == lesson.id:
+                accessible_ids.add(lesson.id)
+                if required_lesson is None:
+                    required_lesson = lesson
+            else:
+                locked_reasons[lesson.id] = required_lesson
+    return completed_ids, accessible_ids, locked_reasons
 
 
 def build_lesson_blocks(
@@ -153,3 +183,91 @@ def build_lesson_blocks(
     subject_blocks.sort(key=lambda block: block["title"].lower())
     lesson_blocks = path_blocks + subject_blocks
     return lesson_blocks
+
+
+def prepare_lessons_list(user, params: Dict[str, Any] | None = None) -> Dict[str, Any]:
+    """Prepare context for lessons_list view.
+
+    params keys: query, subject, difficulty, upcoming (bool)
+    Returns dictionary of context keys used by the template.
+    """
+    if params is None:
+        params = {}
+
+    query = (params.get("query") or "").strip()
+    subject_filter = (params.get("subject") or "").strip()
+    difficulty_filter = (params.get("difficulty") or "").strip()
+    upcoming_only = params.get("upcoming") in (True, "1", 1)
+
+    subjects = list(
+        Subject.objects.prefetch_related(
+            Prefetch("lessons", queryset=Lesson.objects.order_by("date", "id"))
+        ).order_by("name")
+    )
+
+    lessons_qs = Lesson.objects.select_related("subject").order_by("date")
+    if subject_filter:
+        lessons_qs = lessons_qs.filter(subject_id=subject_filter)
+    if difficulty_filter:
+        lessons_qs = lessons_qs.filter(difficulty=difficulty_filter)
+    if query:
+        lessons_qs = lessons_qs.filter(
+            Q(title__icontains=query)
+            | Q(excerpt__icontains=query)
+            | Q(content__icontains=query)
+            | Q(subject__name__icontains=query)
+        )
+    if upcoming_only:
+        lessons_qs = lessons_qs.filter(date__gte=timezone.localdate())
+
+    completed_ids, accessible_ids, locked_reasons = _compute_accessibility_for_subjects(
+        user, subjects
+    )
+
+    lessons = list(lessons_qs)
+    for lesson in lessons:
+        lesson.is_completed = lesson.id in completed_ids
+        lesson.is_accessible = lesson.id in accessible_ids
+        lesson.locked_reason = locked_reasons.get(lesson.id)
+
+    learning_paths = LearningPath.objects.prefetch_related(
+        Prefetch(
+            "items",
+            queryset=LearningPathLesson.objects.select_related("lesson", "lesson__subject").order_by("order"),
+        )
+    ).order_by("title")
+
+    lesson_blocks = build_lesson_blocks(subjects, lessons, completed_ids, accessible_ids, learning_paths)
+
+    recommendations = refresh_recommendations(user)
+    badge_summary = get_badge_summary(user)
+    progress = build_overall_progress(user)
+
+    filters = {
+        "query": query,
+        "subject": subject_filter,
+        "difficulty": difficulty_filter,
+        "upcoming": upcoming_only,
+    }
+
+    upcoming_lessons = (
+        Lesson.objects.select_related("subject").filter(date__gte=timezone.localdate()).order_by("date")[:5]
+    )
+    latest_lessons = Lesson.objects.select_related("subject").order_by("-updated_at", "-created_at")[:5]
+
+    return {
+        "subjects": subjects,
+        "lessons": lessons,
+        "completed_ids": completed_ids,
+        "accessible_lessons": accessible_ids,
+        "locked_reasons": locked_reasons,
+        "recommendations": recommendations,
+        "badge_summary": badge_summary,
+        "highlighted_badges": badge_summary.get("highlighted", []),
+        "filters": filters,
+        "difficulty_choices": Lesson.DIFFICULTY_CHOICES,
+        "upcoming_lessons": upcoming_lessons,
+        "latest_lessons": latest_lessons,
+        "lesson_blocks": lesson_blocks,
+        "progress": progress,
+    }
