@@ -1,6 +1,5 @@
 import secrets
 from typing import Optional
-# 'timedelta' import removed; it was unused
 
 from django.contrib.auth.models import User
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -11,6 +10,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
+
+# 'timedelta' import removed; it was unused
+
 
 
 def default_empty_list():

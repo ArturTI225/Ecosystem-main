@@ -3,8 +3,11 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from ..models import DailyChallenge, ProjectSubmission
-from ..services.gamification import (build_overall_progress, get_badge_summary,
-                                     get_mission_context)
+from ..services.gamification import (
+    build_overall_progress,
+    get_badge_summary,
+    get_mission_context,
+)
 from ..services.recommendations import calculate_recommendations
 
 

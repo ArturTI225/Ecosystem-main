@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from typing import Dict, List, Set, Tuple, Any
+from typing import Any, Dict, List, Set, Tuple
 
 from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from ..models import LearningPath, LearningPathLesson, Lesson, LessonProgress, Subject
+from .gamification import build_overall_progress, get_badge_summary
 from .recommendations import refresh_recommendations
-from .gamification import get_badge_summary, build_overall_progress
 
 
-def _compute_accessibility_for_subjects(user, subjects: List[Subject]) -> Tuple[Set[int], Set[int], Dict[int, Any]]:
+def _compute_accessibility_for_subjects(
+    user, subjects: List[Subject]
+) -> Tuple[Set[int], Set[int], Dict[int, Any]]:
     completed_ids = set(
         LessonProgress.objects.filter(user=user, completed=True).values_list(
             "lesson_id", flat=True
@@ -233,11 +235,15 @@ def prepare_lessons_list(user, params: Dict[str, Any] | None = None) -> Dict[str
     learning_paths = LearningPath.objects.prefetch_related(
         Prefetch(
             "items",
-            queryset=LearningPathLesson.objects.select_related("lesson", "lesson__subject").order_by("order"),
+            queryset=LearningPathLesson.objects.select_related(
+                "lesson", "lesson__subject"
+            ).order_by("order"),
         )
     ).order_by("title")
 
-    lesson_blocks = build_lesson_blocks(subjects, lessons, completed_ids, accessible_ids, learning_paths)
+    lesson_blocks = build_lesson_blocks(
+        subjects, lessons, completed_ids, accessible_ids, learning_paths
+    )
 
     recommendations = refresh_recommendations(user)
     badge_summary = get_badge_summary(user)
@@ -251,9 +257,13 @@ def prepare_lessons_list(user, params: Dict[str, Any] | None = None) -> Dict[str
     }
 
     upcoming_lessons = (
-        Lesson.objects.select_related("subject").filter(date__gte=timezone.localdate()).order_by("date")[:5]
+        Lesson.objects.select_related("subject")
+        .filter(date__gte=timezone.localdate())
+        .order_by("date")[:5]
     )
-    latest_lessons = Lesson.objects.select_related("subject").order_by("-updated_at", "-created_at")[:5]
+    latest_lessons = Lesson.objects.select_related("subject").order_by(
+        "-updated_at", "-created_at"
+    )[:5]
 
     return {
         "subjects": subjects,

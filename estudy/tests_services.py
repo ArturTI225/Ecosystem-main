@@ -2,15 +2,19 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
-from .models import (LearningPath, LearningPathLesson, LearningRecommendation,
-                     Lesson, LessonProgress, Subject)
+from .models import (
+    LearningPath,
+    LearningPathLesson,
+    LearningRecommendation,
+    Lesson,
+    LessonProgress,
+    Subject,
+)
 from .services.dashboard import build_student_dashboard
 from .services.gamification import build_overall_progress
 from .services.lesson_detail import build_lesson_detail_payload
-from .services.lessons import build_lesson_blocks
-from .services.recommendations import (calculate_recommendations,
-                                       refresh_recommendations)
-from .services.lessons import prepare_lessons_list
+from .services.lessons import build_lesson_blocks, prepare_lessons_list
+from .services.recommendations import calculate_recommendations, refresh_recommendations
 
 
 class ServicesSmokeTests(TestCase):

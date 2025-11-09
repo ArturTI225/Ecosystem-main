@@ -1,13 +1,34 @@
 ﻿from django.contrib import admin
 
-from .models import (AIHintRequest, AssignmentSubmission, Badge,
-                     ClassAssignment, Classroom, ClassroomMembership,
-                     CommunityReply, CommunityThread, DailyChallenge,
-                     LeaderboardSnapshot, LearningPath, LearningPathLesson,
-                     LearningRecommendation, Lesson, LessonProgress, Mission,
-                     Notification, ParentChildLink, Project, ProjectSubmission,
-                     Reward, Subject, Test, TestAttempt, UserBadge,
-                     UserMission, UserReward)
+from .models import (
+    AIHintRequest,
+    AssignmentSubmission,
+    Badge,
+    ClassAssignment,
+    Classroom,
+    ClassroomMembership,
+    CommunityReply,
+    CommunityThread,
+    DailyChallenge,
+    LeaderboardSnapshot,
+    LearningPath,
+    LearningPathLesson,
+    LearningRecommendation,
+    Lesson,
+    LessonProgress,
+    Mission,
+    Notification,
+    ParentChildLink,
+    Project,
+    ProjectSubmission,
+    Reward,
+    Subject,
+    Test,
+    TestAttempt,
+    UserBadge,
+    UserMission,
+    UserReward,
+)
 
 
 @admin.register(Lesson)

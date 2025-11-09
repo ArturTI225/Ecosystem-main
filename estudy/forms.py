@@ -1,11 +1,22 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import (ClassAssignment, Classroom, CommunityReply,
-                     CommunityThread, Lesson, LessonPractice, LessonResource,
-                     Mission, NotificationPreference, Project,
-                     ProjectSubmission, Test, UserProfile,
-                     default_practice_data)
+from .models import (
+    ClassAssignment,
+    Classroom,
+    CommunityReply,
+    CommunityThread,
+    Lesson,
+    LessonPractice,
+    LessonResource,
+    Mission,
+    NotificationPreference,
+    Project,
+    ProjectSubmission,
+    Test,
+    UserProfile,
+    default_practice_data,
+)
 
 
 class LessonForm(forms.ModelForm):
