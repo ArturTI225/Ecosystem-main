@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from functools import wraps
 from urllib.parse import urlparse
+from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -29,8 +29,6 @@ from .models import (
     ClassroomMembership,
     CommunityReply,
     CommunityThread,
-    LearningPath,
-    LearningPathLesson,
     Lesson,
     LessonProgress,
     Notification,
@@ -49,7 +47,7 @@ from .services.gamification import (build_overall_progress, get_badge_summary,
                                     get_mission_context,
                                     record_lesson_completion)
 from .services.notifications import notify_feedback, send_notification
-from .services.recommendations import refresh_recommendations
+# recommendations are used inside services, not directly in views
 
 ROLE_STUDENT = UserProfile.ROLE_STUDENT
 ROLE_TEACHER = UserProfile.ROLE_PROFESSOR
@@ -83,9 +81,10 @@ def role_required(*roles):
         @wraps(view_func)
         @login_required
         def _wrapped(request, *args, **kwargs):
+            # Ensure the user has one of the required roles
             profile = get_profile(request.user)
-            if profile.status not in roles:
-                return HttpResponseForbidden("Nu ai acces la aceasta zona.")
+            if roles and profile.status not in roles:
+                return HttpResponseForbidden()
             return view_func(request, *args, **kwargs)
 
         return _wrapped
@@ -94,161 +93,33 @@ def role_required(*roles):
 
 
 def is_admin(user: User) -> bool:
-    profile = getattr(user, "userprofile", None)
-    return bool(profile and profile.status == ROLE_ADMIN)
+    """Predicate for @user_passes_test to check admin status.
+
+    Returns True when the user has an associated profile with ROLE_ADMIN.
+    """
+    try:
+        return user.userprofile.status == ROLE_ADMIN
+    except UserProfile.DoesNotExist:
+        return False
 
 
-COMPETITOR_DOMAINS = {
-    "khanacademy.org",
-    "code.org",
-    "codecademy.com",
-    "udemy.com",
-    "coursera.org",
-    "skillshare.com",
-    "pluralsight.com",
-    "brilliant.org",
-}
+# domains considered 'competitors' whose links we filter out from lesson materials
+COMPETITOR_DOMAINS: set[str] = set()
 
 
 def _is_competitor_link(url: str) -> bool:
+    """Return True when the provided URL belongs to a known competitor domain.
+
+    Kept intentionally small and configurable; if parsing fails we return False
+    to avoid blocking valid resources.
+    """
     if not url:
         return False
-    host = urlparse(url).netloc.lower()
-    return any(domain in host for domain in COMPETITOR_DOMAINS)
-
-
-LESSON_ENRICHMENTS = {
-    "nivel-1-prieteni-cu-variabilele": {
-        "concept_cards": [
-            {
-                "title": "Cutia magică",
-                "emoji": "💡",
-                "description": "O variabilă este ca o cutie cu etichetă: îi dai un nume și pui înăuntru valori utile.",
-            },
-            {
-                "title": "Echipa de variabile",
-                "emoji": "🤝",
-                "description": "Variabilele pot lucra împreună pentru a spune povești amuzante în consolă.",
-            },
-            {
-                "title": "Scorul fericit",
-                "emoji": "🏆",
-                "description": "În jocuri, variabilele țin minte punctajul și nivelul, ca un jurnal digital.",
-            },
-        ],
-        "story_steps": [
-            {
-                "title": "Dă un nume",
-                "detail": "Alege un nume clar pentru cutia ta digitală, de exemplu `nume_elev`.",
-                "tip": "Folosește snake_case pentru a citi ușor numele.",
-            },
-            {
-                "title": "Păstrează valoarea",
-                "detail": "Stochează un cuvânt, un număr sau chiar o listă cu activitățile tale preferate.",
-                "tip": "Poți reatribui variabila ori de câte ori vrei să schimbi povestea.",
-            },
-            {
-                "title": "Folosește variabila",
-                "detail": "Construiește mesaje personalizate prin `print()` sau combină mai multe variabile între ele.",
-                "tip": "Întreabă-te ce vrei să se întâmple când variabila se schimbă.",
-            },
-        ],
-        "real_example": (
-            "Gândește-te la o aplicație care notează câte pahare cu apă bei într-o zi. "
-            "Variabila ține scorul și îți spune când ai atins obiectivul."
-        ),
-        "real_example_steps": [
-            "Setezi variabila `pahare` la 0 dimineața.",
-            "De fiecare dată când bei apă, actualizezi variabila cu `pahare = pahare + 1`.",
-            "Când `pahare` ajunge la 6, aplicația îți trimite un mesaj de felicitare.",
-        ],
-        "code_challenges": [
-            {
-                "id": "variable-greeting",
-                "title": "Salut personalizat",
-                "description": "Creează o variabilă cu numele tău și afișează un salut vesel.",
-                "starter": "nume = ''\\n# adaugă salutul aici\\n",
-                "expected_keywords": ["nume =", "print"],
-                "hint": "Gândește-te cum ai scrie mesajul într-un caiet digital.",
-            },
-            {
-                "id": "counter-update",
-                "title": "Numără pașii",
-                "description": "Pornește un contor de pași la 0 și mărește-l cu 1 după fiecare tură.",
-                "starter": "pasi = 0\\n# când jucătorul face un pas:\\n",
-                "expected_keywords": ["pasi = 0", "pasi = pasi + 1||pasi += 1"],
-                "hint": "Folosește variabila pe post de scor și actualizeaz-o corect.",
-            },
-        ],
-    },
-    "nivel-2-aventuri-cu-buclele": {
-        "concept_cards": [
-            {
-                "title": "Refrenul FOR",
-                "emoji": "🎵",
-                "description": (
-                    "Buclele `for` repeta pasii un numar clar de ori. "
-                    "Sunt perfecte pentru liste."
-                ),
-            },
-            {
-                "title": "Verificarea WHILE",
-                "emoji": "🔄",
-                "description": (
-                    "`while` verifica mereu o conditie. Atata timp cat raspunsul "
-                    "este adevarat, repetitia continua."
-                ),
-            },
-            {
-                "title": "Butonul BREAK",
-                "emoji": "⏹",
-                "description": (
-                    "Uneori vrem sa iesim imediat din bucla: `break` este "
-                    "butonul de pauza pentru robotul tau."
-                ),
-            },
-        ],
-        "story_steps": [
-            {
-                "title": "Planifica pasii",
-                "detail": "Scrie pe hartie ce vrei sa repeti si de câte ori.",
-                "tip": "Cu cat stii mai bine ritmul, cu atat codul devine mai scurt.",
-            },
-            {
-                "title": "Alege bucla potrivita",
-                "detail": "Foloseste `for` când ai un numar clar de repetari si `while` când verifici o conditie.",
-                "tip": "Când nu stii cati pasi vor fi, `while` te salveaza.",
-            },
-            {
-                "title": "Controleaza iesirea",
-                "detail": "Pregateste o variabila care schimba conditia sau foloseste `break` pentru momente speciale.",
-                "tip": "Adauga si `continue` daca vrei sa sari peste pasi anume fara sa opresti bucla.",
-            },
-        ],
-        "code_challenges": [
-            {
-                "id": "for-collect",
-                "title": "Colectia de monede",
-                "description": "Foloseste o bucla `for` pentru a adauga 5 monede intr-o lista numita `colectie`.",
-                "starter": "colectie = []\\n# adauga aici bucla ta\\n",
-                "expected_keywords": ["for", "range", "append"],
-                "hint": "`range(5)` iti ofera exact cei cinci pasi de care ai nevoie.",
-            },
-            {
-                "id": "while-energy",
-                "title": "Energia robotului",
-                "description": "Seteaza energia la 10 si foloseste o bucla `while` pentru a o scadea pana ajunge la 0.",
-                "starter": "energie = 10\\nwhile energie > 0:\\n    # completeaza aici\\n",
-                "expected_keywords": [
-                    "while energie > 0",
-                    "energie -= 1||energie = energie - 1",
-                    "print",
-                ],
-                "hint": "Nu uita sa actualizezi energia in interiorul buclei.",
-            },
-        ],
-    },
-}
+    try:
+        netloc = urlparse(url).netloc.lower()
+    except Exception:
+        return False
+    return any(netloc.endswith(domain) for domain in COMPETITOR_DOMAINS)
 
 
 def _prefetched_subjects():
@@ -394,7 +265,6 @@ def parent_dashboard(request):
 
 @login_required
 def lessons_list(request):
-    subjects = list(_prefetched_subjects())
     lessons_queryset = Lesson.objects.select_related("subject").order_by("date")
 
     query = request.GET.get("q", "").strip()
@@ -416,68 +286,16 @@ def lessons_list(request):
     if upcoming_only:
         lessons_queryset = lessons_queryset.filter(date__gte=timezone.localdate())
 
-    completed_ids, accessible_ids, locked_reasons = _compute_accessibility(
-        request.user, subjects
-    )
-    recommendations = refresh_recommendations(request.user)
-    badge_summary = get_badge_summary(request.user)
+    # delegate the heavy lifting to the lessons service
+    from .services.lessons import prepare_lessons_list
 
-    filters = {
+    params = {
         "query": query,
         "subject": subject_filter,
         "difficulty": difficulty_filter,
         "upcoming": upcoming_only,
     }
-
-    upcoming_lessons = (
-        Lesson.objects.select_related("subject")
-        .filter(date__gte=timezone.localdate())
-        .order_by("date")[:5]
-    )
-    latest_lessons = Lesson.objects.select_related("subject").order_by(
-        "-updated_at", "-created_at"
-    )[:5]
-
-    # build lesson blocks (extracted to service for clarity)
-    from .services.lessons import build_lesson_blocks
-
-    lessons = list(lessons_queryset)
-    # attach simple flags used by templates
-    for lesson in lessons:
-        lesson.is_completed = lesson.id in completed_ids
-        lesson.is_accessible = lesson.id in accessible_ids
-        lesson.locked_reason = locked_reasons.get(lesson.id)
-
-    learning_paths = LearningPath.objects.prefetch_related(
-        Prefetch(
-            "items",
-            queryset=LearningPathLesson.objects.select_related(
-                "lesson", "lesson__subject"
-            ).order_by("order"),
-        )
-    ).order_by("title")
-
-    lesson_blocks = build_lesson_blocks(
-        subjects, lessons, completed_ids, accessible_ids, learning_paths
-    )
-
-    progress_dată = build_overall_progress(request.user)
-    context = {
-        "subjects": subjects,
-        "lessons": lessons,
-        "completed_ids": completed_ids,
-        "accessible_lessons": accessible_ids,
-        "locked_reasons": locked_reasons,
-        "recommendations": recommendations,
-        "badge_summary": badge_summary,
-        "highlighted_badges": badge_summary.get("highlighted", []),
-        "filters": filters,
-        "difficulty_choices": Lesson.DIFFICULTY_CHOICES,
-        "upcoming_lessons": upcoming_lessons,
-        "latest_lessons": latest_lessons,
-        "lesson_blocks": lesson_blocks,
-        "progress": progress_dată,
-    }
+    context = prepare_lessons_list(request.user, params)
     return render(
         request, "estudy/lessons_list.html", with_progress(context, request.user)
     )
