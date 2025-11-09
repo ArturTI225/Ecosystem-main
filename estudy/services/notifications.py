@@ -1,6 +1,6 @@
 ﻿from __future__ import annotations
 
-from typing import Iterable, Optional
+from typing import Iterable
 
 from django.contrib.auth.models import User
 
@@ -21,7 +21,13 @@ def send_notification(
     link_url: str = "",
 ) -> Notification:
     if not _should_send(recipient):
-        return Notification(recipient=recipient, title=title, message=message, category=category, link_url=link_url)
+        return Notification(
+            recipient=recipient,
+            title=title,
+            message=message,
+            category=category,
+            link_url=link_url,
+        )
     return Notification.objects.create(
         recipient=recipient,
         title=title,

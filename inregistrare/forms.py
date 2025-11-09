@@ -1,9 +1,10 @@
-﻿from django.conf import settings
-from django import forms
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+﻿from django import forms
+from django.conf import settings
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 
 from estudy.models import UserProfile
+
 from .models import Profile
 
 
@@ -27,7 +28,14 @@ class InregistrareFormular(UserCreationForm):
         help_text="Profesorii introduc codul primit de la echipa UnITex pentru a valida contul.",
     )
 
-    field_order = ["username", "email", "role", "teacher_code", "password1", "password2"]
+    field_order = [
+        "username",
+        "email",
+        "role",
+        "teacher_code",
+        "password1",
+        "password2",
+    ]
 
     class Meta:
         model = User
@@ -35,27 +43,33 @@ class InregistrareFormular(UserCreationForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        text_inputs = ['username', 'email', 'password1', 'password2', 'teacher_code']
+        text_inputs = ["username", "email", "password1", "password2", "teacher_code"]
         placeholders = {
-            'username': 'ex: alex_code',
-            'email': 'ex: nume@scoala.ro',
-            'password1': 'Minim 8 caractere',
-            'password2': 'Reintrodu parola',
-            'teacher_code': 'Cod profesor',
+            "username": "ex: alex_code",
+            "email": "ex: nume@scoala.ro",
+            "password1": "Minim 8 caractere",
+            "password2": "Reintrodu parola",
+            "teacher_code": "Cod profesor",
         }
-        labels = {'username': 'Nume de utilizator', 'password1': 'Parolă', 'password2': 'Confirmă parola'}
+        labels = {
+            "username": "Nume de utilizator",
+            "password1": "Parolă",
+            "password2": "Confirmă parola",
+        }
         for field in text_inputs:
             if field in self.fields:
-                self.fields[field].widget.attrs.setdefault('class', 'input-control')
+                self.fields[field].widget.attrs.setdefault("class", "input-control")
                 if field in placeholders:
-                    self.fields[field].widget.attrs.setdefault('placeholder', placeholders[field])
+                    self.fields[field].widget.attrs.setdefault(
+                        "placeholder", placeholders[field]
+                    )
         for name, label in labels.items():
             if name in self.fields:
                 self.fields[name].label = label
-        self.fields['role'].help_text = (
-            'Selectează cum vei folosi platforma. Poți modifica alegerea ulterior din profil.'
+        self.fields["role"].help_text = (
+            "Selectează cum vei folosi platforma. Poți modifica alegerea ulterior din profil."
         )
-        self.fields['role'].widget.attrs.setdefault('class', 'role-radio')
+        self.fields["role"].widget.attrs.setdefault("class", "role-radio")
 
     def clean(self):
         cleaned = super().clean()
@@ -64,10 +78,19 @@ class InregistrareFormular(UserCreationForm):
         if role == UserProfile.ROLE_PROFESSOR:
             expected = getattr(settings, "TEACHER_REGISTRATION_CODE", None)
             if not expected:
-                raise forms.ValidationError("Codul de verificare pentru profesori nu este configurat. Contactează administratorul platformei."
+                raise forms.ValidationError(
+                    (
+                        "Codul de verificare pentru profesori nu este configurat. "
+                        "Contactează administratorul platformei."
+                    )
                 )
             if teacher_code != expected:
-                self.add_error("teacher_code", "Codul introdus nu este valid. Verifică emailul primit de la UnITex sau contactează administratorul."
+                self.add_error(
+                    "teacher_code",
+                    (
+                        "Codul introdus nu este valid. Verifică emailul primit de la UnITex "
+                        "sau contactează administratorul."
+                    ),
                 )
         return cleaned
 
@@ -84,15 +107,23 @@ class InregistrareFormular(UserCreationForm):
                 profile.status = chosen_role
                 profile.save(update_fields=["status"])
         return user
+
+
 class LoginFormular(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['username'].label = 'Nume de utilizator'
-        self.fields['password'].label = 'Parolă'
-        self.fields['username'].widget.attrs.update({'placeholder': 'nume utilizator', 'class': 'input-control'})
-        self.fields['password'].widget.attrs.update({'placeholder': 'Parola', 'class': 'input-control'})
-        self.fields['username'].widget.attrs.setdefault('autocomplete', 'username')
-        self.fields['password'].widget.attrs.setdefault('autocomplete', 'current-password')
+        self.fields["username"].label = "Nume de utilizator"
+        self.fields["password"].label = "Parolă"
+        self.fields["username"].widget.attrs.update(
+            {"placeholder": "nume utilizator", "class": "input-control"}
+        )
+        self.fields["password"].widget.attrs.update(
+            {"placeholder": "Parola", "class": "input-control"}
+        )
+        self.fields["username"].widget.attrs.setdefault("autocomplete", "username")
+        self.fields["password"].widget.attrs.setdefault(
+            "autocomplete", "current-password"
+        )
 
 
 class ProfileForm(forms.ModelForm):

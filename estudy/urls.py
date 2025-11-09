@@ -2,7 +2,6 @@
 
 from . import views
 
-
 app_name = "estudy"
 
 
@@ -19,9 +18,17 @@ urlpatterns = [
         name="lesson_module_digital_literacy",
     ),
     path("lessons/<slug:slug>/", views.lesson_detail, name="lesson_detail"),
-    path("lessons/<slug:slug>/toggle/", views.toggle_lesson_completion, name="toggle_lesson_completion"),
+    path(
+        "lessons/<slug:slug>/toggle/",
+        views.toggle_lesson_completion,
+        name="toggle_lesson_completion",
+    ),
     path("lessons/<slug:slug>/ai-hint/", views.ai_hint, name="ai_hint"),
-    path("tests/<int:test_id>/submit/", views.submit_test_attempt, name="submit_test_attempt"),
+    path(
+        "tests/<int:test_id>/submit/",
+        views.submit_test_attempt,
+        name="submit_test_attempt",
+    ),
     path("missions/", views.missions_view, name="missions"),
     path("leaderboard/", views.leaderboard_view, name="leaderboard"),
     path("notifications/", views.notifications_center, name="notifications"),

@@ -1,6 +1,7 @@
 # views.py
 from django.contrib import messages
-from django.contrib.auth import login as auth_login, logout as auth_logout
+from django.contrib.auth import login as auth_login
+from django.contrib.auth import logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -37,7 +38,9 @@ def register(request):
     else:
         form = InregistrareFormular()
 
-    return render(request, "accounts/signup.html", {"form": form, "redirect_to": redirect_to})
+    return render(
+        request, "accounts/signup.html", {"form": form, "redirect_to": redirect_to}
+    )
 
 
 def login_view(request):
@@ -55,7 +58,9 @@ def login_view(request):
     else:
         form = LoginFormular()
 
-    return render(request, "accounts/login.html", {"form": form, "redirect_to": redirect_to})
+    return render(
+        request, "accounts/login.html", {"form": form, "redirect_to": redirect_to}
+    )
 
 
 @login_required(login_url="login")

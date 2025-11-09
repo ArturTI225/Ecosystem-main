@@ -1,3 +1,3 @@
-from django.test import TestCase
+# No tests yet for unitexapp.
 
-# Create your tests here.
+# Add Django TestCase imports when adding tests.

@@ -1,22 +1,11 @@
 from django import forms
 from django.forms import inlineformset_factory
 
-from .models import (
-    Lesson,
-    LessonPractice,
-    LessonResource,
-    Test,
-    UserProfile,
-    default_practice_data,
-    Classroom,
-    ClassAssignment,
-    Project,
-    ProjectSubmission,
-    Mission,
-    NotificationPreference,
-    CommunityThread,
-    CommunityReply,
-)
+from .models import (ClassAssignment, Classroom, CommunityReply,
+                     CommunityThread, Lesson, LessonPractice, LessonResource,
+                     Mission, NotificationPreference, Project,
+                     ProjectSubmission, Test, UserProfile,
+                     default_practice_data)
 
 
 class LessonForm(forms.ModelForm):
@@ -60,7 +49,11 @@ class LessonForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk and isinstance(self.instance.theory_takeaways, list):
+        if (
+            self.instance
+            and self.instance.pk
+            and isinstance(self.instance.theory_takeaways, list)
+        ):
             self.initial["theory_takeaways"] = "\n".join(self.instance.theory_points())
 
     def clean_theory_takeaways(self):
@@ -117,12 +110,18 @@ class LessonPracticeForm(forms.ModelForm):
         if draggables:
             self.initial.setdefault(
                 "draggables",
-                "\n".join(f"{item.get('label', '')} | {item.get('id', '')}" for item in draggables),
+                "\n".join(
+                    f"{item.get('label', '')} | {item.get('id', '')}"
+                    for item in draggables
+                ),
             )
         if targets:
             self.initial.setdefault(
                 "drop_targets",
-                "\n".join(f"{target.get('prompt', '')} | {target.get('accepts', '')}" for target in targets),
+                "\n".join(
+                    f"{target.get('prompt', '')} | {target.get('accepts', '')}"
+                    for target in targets
+                ),
             )
 
     def clean(self):
@@ -146,7 +145,9 @@ class LessonPracticeForm(forms.ModelForm):
                     f"Linia {idx + 1} din elementele glisabile trebuie să aibă și etichetă și cod."
                 )
             if value in seen_ids:
-                raise forms.ValidationError(f"Codul '{value}' este folosit de două ori.")
+                raise forms.ValidationError(
+                    f"Codul '{value}' este folosit de două ori."
+                )
             seen_ids.add(value)
             draggables.append({"id": value, "label": label})
 
@@ -157,25 +158,34 @@ class LessonPracticeForm(forms.ModelForm):
                 continue
             if "|" not in chunk:
                 raise forms.ValidationError(
-                    f"Linia {idx + 1} din zonele de potrivire trebuie să conțină simbolul '|'."
+                    (
+                        f"Linia {idx + 1} din zonele de potrivire trebuie să"
+                        " conțină simbolul '|' ."
+                    )
                 )
             prompt, accepts = [part.strip() for part in chunk.split("|", 1)]
             if accepts and accepts not in seen_ids:
                 raise forms.ValidationError(
-                    f"Codul '{accepts}' din zona de potrivire (linia {idx + 1}) nu se găsește în lista de elemente glisabile."
+                    (
+                        "Codul '" + accepts + "' din zona de potrivire "
+                        f"(linia {idx + 1}) nu se găsește în lista de elemente glisabile."
+                    )
                 )
-            targets.append({"id": f"target-{idx}", "prompt": prompt, "accepts": accepts})
+            targets.append(
+                {"id": f"target-{idx}", "prompt": prompt, "accepts": accepts}
+            )
 
         has_content = bool(draggables and targets)
         text_content = any(
-            cleaned.get(field)
-            for field in ("intro", "instructions", "success_message")
+            cleaned.get(field) for field in ("intro", "instructions", "success_message")
         )
 
         if has_content:
             cleaned["data"] = {"draggables": draggables, "targets": targets}
             self.should_save = True
-        elif self.instance and self.instance.pk and not has_content and not text_content:
+        elif (
+            self.instance and self.instance.pk and not has_content and not text_content
+        ):
             self.should_delete = True
         else:
             cleaned["data"] = {"draggables": draggables, "targets": targets}
@@ -189,6 +199,8 @@ class LessonPracticeForm(forms.ModelForm):
         if commit:
             practice.save()
         return practice
+
+
 class TestForm(forms.ModelForm):
     wrong_answers = forms.CharField(
         widget=forms.Textarea(attrs={"rows": 3}),
@@ -208,7 +220,11 @@ class TestForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk and isinstance(self.instance.wrong_answers, (list, tuple)):
+        if (
+            self.instance
+            and self.instance.pk
+            and isinstance(self.instance.wrong_answers, (list, tuple))
+        ):
             self.initial["wrong_answers"] = "\n".join(self.instance.wrong_answers)
 
     def clean_wrong_answers(self):
@@ -274,14 +290,24 @@ class ClassroomForm(forms.ModelForm):
 class ClassAssignmentForm(forms.ModelForm):
     class Meta:
         model = ClassAssignment
-        fields = ["title", "description", "assignment_type", "lesson", "project", "due_date", "points"]
+        fields = [
+            "title",
+            "description",
+            "assignment_type",
+            "lesson",
+            "project",
+            "due_date",
+            "points",
+        ]
         widgets = {
             "title": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
             "assignment_type": forms.Select(attrs={"class": "form-select"}),
             "lesson": forms.Select(attrs={"class": "form-select"}),
             "project": forms.Select(attrs={"class": "form-select"}),
-            "due_date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "due_date": forms.DateInput(
+                attrs={"type": "date", "class": "form-control"}
+            ),
             "points": forms.NumberInput(attrs={"class": "form-control"}),
         }
 
@@ -319,7 +345,7 @@ class ProjectForm(forms.ModelForm):
 
     def clean_skills(self):
         raw = self.cleaned_data.get("skills", "")
-        return [item.strip() for item in raw.split(',') if item.strip()]
+        return [item.strip() for item in raw.split(",") if item.strip()]
 
     def clean_resources(self):
         raw = self.cleaned_data.get("resources", "")
@@ -380,7 +406,7 @@ class ThreadForm(forms.ModelForm):
 
     def clean_tags(self):
         raw = self.cleaned_data.get("tags", "")
-        return [tag.strip() for tag in raw.split(',') if tag.strip()]
+        return [tag.strip() for tag in raw.split(",") if tag.strip()]
 
 
 class ReplyForm(forms.ModelForm):

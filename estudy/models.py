@@ -1,5 +1,6 @@
 import secrets
-from datetime import timedelta
+from typing import Optional
+# 'timedelta' import removed; it was unused
 
 from django.contrib.auth.models import User
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -10,10 +11,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from typing import Optional
-
-
-
 
 
 def default_empty_list():
@@ -59,21 +56,29 @@ class Lesson(models.Model):
         (AGE_16_PLUS, _("16+ ani")),
     ]
 
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name="lessons")
+    subject = models.ForeignKey(
+        Subject, on_delete=models.CASCADE, related_name="lessons"
+    )
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, blank=True, null=True)
     excerpt = models.CharField(max_length=300, blank=True)
     content = models.TextField()
     date = models.DateField()
     duration_minutes = models.PositiveIntegerField(default=45)
-    difficulty = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default=DIFFICULTY_BEGINNER)
+    difficulty = models.CharField(
+        max_length=20, choices=DIFFICULTY_CHOICES, default=DIFFICULTY_BEGINNER
+    )
     cover_image = models.ImageField(upload_to="lessons/covers/", blank=True, null=True)
-    age_bracket = models.CharField(max_length=20, choices=AGE_BRACKET_CHOICES, default=AGE_11_13)
+    age_bracket = models.CharField(
+        max_length=20, choices=AGE_BRACKET_CHOICES, default=AGE_11_13
+    )
     theory_intro = models.TextField(blank=True)
     theory_takeaways = models.JSONField(default=default_theory_takeaways, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
-    xp_reward = models.PositiveIntegerField(default=50, validators=[MinValueValidator(0), MaxValueValidator(500)])
+    xp_reward = models.PositiveIntegerField(
+        default=50, validators=[MinValueValidator(0), MaxValueValidator(500)]
+    )
     fun_fact = models.TextField(blank=True)
     featured = models.BooleanField(default=False)
     hero_theme = models.CharField(max_length=60, default="sky-fizz")
@@ -113,7 +118,11 @@ class Lesson(models.Model):
         return dict(self.AGE_BRACKET_CHOICES).get(self.age_bracket, self.age_bracket)
 
     def theory_points(self) -> list[str]:
-        return [item for item in self.theory_takeaways if isinstance(item, str) and item.strip()]
+        return [
+            item
+            for item in self.theory_takeaways
+            if isinstance(item, str) and item.strip()
+        ]
 
     def difficulty_palette(self) -> dict[str, str]:
         return {
@@ -132,11 +141,14 @@ class Lesson(models.Model):
                 "accent": "#b45309",
                 "emoji": "🧠",
             },
-        }.get(self.difficulty, {
-            "bg": "linear-gradient(135deg, #818cf8, #4f46e5)",
-            "accent": "#312e81",
-            "emoji": "✨",
-        })
+        }.get(
+            self.difficulty,
+            {
+                "bg": "linear-gradient(135deg, #818cf8, #4f46e5)",
+                "accent": "#312e81",
+                "emoji": "✨",
+            },
+        )
 
     def __str__(self) -> str:
         return self.title
@@ -155,10 +167,14 @@ class LessonResource(models.Model):
         (TYPE_INTERACTIVE, "Interactive"),
     ]
 
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="materials")
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="materials"
+    )
     title = models.CharField(max_length=150)
     url = models.URLField()
-    resource_type = models.CharField(max_length=20, choices=RESOURCE_TYPE_CHOICES, default=TYPE_ARTICLE)
+    resource_type = models.CharField(
+        max_length=20, choices=RESOURCE_TYPE_CHOICES, default=TYPE_ARTICLE
+    )
     order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:
@@ -182,13 +198,18 @@ class UserProfile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=ROLE_STUDENT)
+    # index to speed up role-based queries (dashboards, permission checks)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=ROLE_STUDENT, db_index=True
+    )
 
     display_name = models.CharField(max_length=120, blank=True)
     bio = models.TextField(blank=True)
     mascot_slug = models.CharField(max_length=40, default="robo-fox")
     theme_slug = models.CharField(max_length=40, default="sunny")
-    favorite_subject = models.ForeignKey('Subject', on_delete=models.SET_NULL, blank=True, null=True, related_name='fans')
+    favorite_subject = models.ForeignKey(
+        "Subject", on_delete=models.SET_NULL, blank=True, null=True, related_name="fans"
+    )
     xp = models.PositiveIntegerField(default=0)
     level = models.PositiveIntegerField(default=1)
     streak = models.PositiveIntegerField(default=0)
@@ -200,7 +221,6 @@ class UserProfile(models.Model):
 
     def __str__(self) -> str:
         return self.user.username
-
 
     def role_label(self) -> str:
         return dict(self.STATUS_CHOICES).get(self.status, self.status)
@@ -220,9 +240,8 @@ class UserProfile(models.Model):
     def display_or_username(self) -> str:
         return self.display_name or self.user.get_short_name() or self.user.username
 
-
     def next_level_xp(self) -> int:
-        return 100 + (self.level ** 2) * 25
+        return 100 + (self.level**2) * 25
 
     def add_xp(self, amount: int, reason: str = "") -> None:
         if amount <= 0:
@@ -234,7 +253,9 @@ class UserProfile(models.Model):
             leveled_up = True
         self.last_activity_at = timezone.now()
         self.save(update_fields=["xp", "level", "last_activity_at"])
-        ExperienceLog.objects.create(user=self.user, amount=amount, reason=reason or "XP update")
+        ExperienceLog.objects.create(
+            user=self.user, amount=amount, reason=reason or "XP update"
+        )
         if leveled_up:
             Notification.objects.create(
                 recipient=self.user,
@@ -248,7 +269,13 @@ class UserProfile(models.Model):
         target = self.next_level_xp()
         if target <= previous_threshold:
             return 0.0
-        return max(0.0, min(100.0, ((self.xp - previous_threshold) / (target - previous_threshold)) * 100))
+        return max(
+            0.0,
+            min(
+                100.0,
+                ((self.xp - previous_threshold) / (target - previous_threshold)) * 100,
+            ),
+        )
 
 
 @receiver(post_save, sender=User)
@@ -279,8 +306,12 @@ class ExperienceLog(models.Model):
 
 
 class LessonProgress(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="lesson_progress")
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="progress_records")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="lesson_progress"
+    )
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="progress_records"
+    )
     completed = models.BooleanField(default=False)
     updated_at = models.DateTimeField(auto_now=True)
     completed_at = models.DateTimeField(blank=True, null=True)
@@ -290,12 +321,17 @@ class LessonProgress(models.Model):
 
     class Meta:
         unique_together = ("user", "lesson")
+        indexes = [
+            models.Index(fields=["user", "completed"], name="est_lp_user_comp_idx"),
+        ]
 
     def __str__(self) -> str:
         status = "Completed" if self.completed else "In progress"
         return f"{self.user.username} · {self.lesson.title} · {status}"
 
-    def mark_completed(self, *, seconds_spent: Optional[int] = None, award_xp: bool = True) -> None:
+    def mark_completed(
+        self, *, seconds_spent: Optional[int] = None, award_xp: bool = True
+    ) -> None:
         already_completed = self.completed
         if not already_completed:
             self.completed = True
@@ -303,13 +339,18 @@ class LessonProgress(models.Model):
             self.completed_at = timezone.now()
         update_fields = ["completed", "completed_at", "updated_at"]
         if seconds_spent is not None:
-            if self.fastest_completion_seconds == 0 or seconds_spent < self.fastest_completion_seconds:
+            if (
+                self.fastest_completion_seconds == 0
+                or seconds_spent < self.fastest_completion_seconds
+            ):
                 self.fastest_completion_seconds = seconds_spent
                 update_fields.append("fastest_completion_seconds")
         xp_awarded = 0
         if award_xp and not already_completed and hasattr(self.user, "userprofile"):
             xp_awarded = self.lesson.xp_reward
-            self.user.userprofile.add_xp(xp_awarded, reason=f"Lesson {self.lesson.title} completed")
+            self.user.userprofile.add_xp(
+                xp_awarded, reason=f"Lesson {self.lesson.title} completed"
+            )
         if xp_awarded and xp_awarded > self.points_earned:
             self.points_earned = xp_awarded
             if "points_earned" not in update_fields:
@@ -379,8 +420,10 @@ class Badge(models.Model):
 
 
 class UserBadge(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="badge_awards")
-    badge = models.ForeignKey('Badge', on_delete=models.CASCADE, related_name="awards")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="badge_awards"
+    )
+    badge = models.ForeignKey("Badge", on_delete=models.CASCADE, related_name="awards")
     awarded_at = models.DateTimeField(auto_now_add=True)
     reason = models.CharField(max_length=255, blank=True)
     source = models.CharField(max_length=60, blank=True)
@@ -407,10 +450,14 @@ class Mission(models.Model):
     code = models.SlugField(unique=True)
     title = models.CharField(max_length=150)
     description = models.TextField()
-    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default=FREQ_DAILY)
+    frequency = models.CharField(
+        max_length=20, choices=FREQUENCY_CHOICES, default=FREQ_DAILY
+    )
     target_value = models.PositiveIntegerField(default=1)
     reward_points = models.PositiveIntegerField(default=50)
-    reward_badge = models.ForeignKey('Badge', on_delete=models.SET_NULL, blank=True, null=True)
+    reward_badge = models.ForeignKey(
+        "Badge", on_delete=models.SET_NULL, blank=True, null=True
+    )
     icon = models.CharField(max_length=40, default="fa-rocket")
     color = models.CharField(max_length=20, default="#6366f1")
     is_active = models.BooleanField(default=True)
@@ -421,7 +468,9 @@ class Mission(models.Model):
 
 class UserMission(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="missions")
-    mission = models.ForeignKey('Mission', on_delete=models.CASCADE, related_name="states")
+    mission = models.ForeignKey(
+        "Mission", on_delete=models.CASCADE, related_name="states"
+    )
     progress = models.PositiveIntegerField(default=0)
     completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(blank=True, null=True)
@@ -437,7 +486,11 @@ class UserMission(models.Model):
         today = timezone.localdate()
         if self.mission.frequency == Mission.FREQ_DAILY and self.last_reset != today:
             self.progress = 0
-        elif self.mission.frequency == Mission.FREQ_WEEKLY and self.last_reset and self.last_reset.isocalendar() != today.isocalendar():
+        elif (
+            self.mission.frequency == Mission.FREQ_WEEKLY
+            and self.last_reset
+            and self.last_reset.isocalendar() != today.isocalendar()
+        ):
             self.progress = 0
         self.progress += value
         self.last_reset = today
@@ -445,7 +498,9 @@ class UserMission(models.Model):
             self.completed = True
             self.completed_at = timezone.now()
             if hasattr(self.user, "userprofile"):
-                self.user.userprofile.add_xp(self.mission.reward_points, reason=f"Mission {self.mission.title}")
+                self.user.userprofile.add_xp(
+                    self.mission.reward_points, reason=f"Mission {self.mission.title}"
+                )
             if self.mission.reward_badge_id:
                 UserBadge.objects.get_or_create(
                     user=self.user,
@@ -460,10 +515,20 @@ class NotificationPreference(models.Model):
     DIGEST_WEEKLY = "weekly"
     DIGEST_NEVER = "never"
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="notification_preferences")
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="notification_preferences"
+    )
     email_enabled = models.BooleanField(default=False)
     in_app_enabled = models.BooleanField(default=True)
-    digest_frequency = models.CharField(max_length=20, choices=[(DIGEST_DAILY, "Daily"), (DIGEST_WEEKLY, "Weekly"), (DIGEST_NEVER, "Never")], default=DIGEST_WEEKLY)
+    digest_frequency = models.CharField(
+        max_length=20,
+        choices=[
+            (DIGEST_DAILY, "Daily"),
+            (DIGEST_WEEKLY, "Weekly"),
+            (DIGEST_NEVER, "Never"),
+        ],
+        default=DIGEST_WEEKLY,
+    )
 
     def __str__(self) -> str:
         return f"Preferences for {self.user.username}"
@@ -482,16 +547,23 @@ class Notification(models.Model):
         (CATEGORY_COMMUNITY, "Community"),
     ]
 
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    recipient = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="notifications"
+    )
     title = models.CharField(max_length=120)
     message = models.TextField()
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default=CATEGORY_SYSTEM)
+    category = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES, default=CATEGORY_SYSTEM
+    )
     link_url = models.CharField(max_length=255, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["recipient", "read_at"], name="est_not_rec_read_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"Notification for {self.recipient.username}: {self.title}"
@@ -503,7 +575,9 @@ class Notification(models.Model):
 
 
 class Classroom(models.Model):
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_classrooms")
+    owner = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="owned_classrooms"
+    )
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True)
     invite_code = models.CharField(max_length=12, unique=True, blank=True)
@@ -534,8 +608,12 @@ class ClassroomMembership(models.Model):
         (ROLE_ASSISTANT, "Assistant"),
     ]
 
-    classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, related_name="memberships")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="classroom_memberships")
+    classroom = models.ForeignKey(
+        Classroom, on_delete=models.CASCADE, related_name="memberships"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="classroom_memberships"
+    )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_STUDENT)
     joined_at = models.DateTimeField(auto_now_add=True)
     points = models.PositiveIntegerField(default=0)
@@ -559,13 +637,23 @@ class ClassAssignment(models.Model):
         (TYPE_CUSTOM, "Custom"),
     ]
 
-    classroom = models.ForeignKey(Classroom, on_delete=models.CASCADE, related_name="assignments")
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_assignments")
+    classroom = models.ForeignKey(
+        Classroom, on_delete=models.CASCADE, related_name="assignments"
+    )
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="created_assignments"
+    )
     title = models.CharField(max_length=150)
     description = models.TextField(blank=True)
-    assignment_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_LESSON)
-    lesson = models.ForeignKey('Lesson', on_delete=models.SET_NULL, blank=True, null=True)
-    project = models.ForeignKey('Project', on_delete=models.SET_NULL, blank=True, null=True)
+    assignment_type = models.CharField(
+        max_length=20, choices=TYPE_CHOICES, default=TYPE_LESSON
+    )
+    lesson = models.ForeignKey(
+        "Lesson", on_delete=models.SET_NULL, blank=True, null=True
+    )
+    project = models.ForeignKey(
+        "Project", on_delete=models.SET_NULL, blank=True, null=True
+    )
     due_date = models.DateField(blank=True, null=True)
     points = models.PositiveIntegerField(default=100)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -590,15 +678,27 @@ class AssignmentSubmission(models.Model):
         (STATUS_RETURNED, "Returned"),
     ]
 
-    assignment = models.ForeignKey('ClassAssignment', on_delete=models.CASCADE, related_name="submissions")
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="assignment_submissions")
+    assignment = models.ForeignKey(
+        "ClassAssignment", on_delete=models.CASCADE, related_name="submissions"
+    )
+    student = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="assignment_submissions"
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
     content = models.TextField(blank=True)
     attachment = models.FileField(upload_to="assignments/", blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_SUBMITTED)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_SUBMITTED
+    )
     feedback = models.TextField(blank=True)
     score = models.PositiveIntegerField(blank=True, null=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="assignment_reviews")
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="assignment_reviews",
+    )
 
     class Meta:
         unique_together = ("assignment", "student")
@@ -623,10 +723,18 @@ class Project(models.Model):
     slug = models.SlugField(unique=True)
     summary = models.CharField(max_length=250)
     brief = models.TextField()
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=LEVEL_BEGINNER)
+    level = models.CharField(
+        max_length=20, choices=LEVEL_CHOICES, default=LEVEL_BEGINNER
+    )
     estimated_minutes = models.PositiveIntegerField(default=90)
     points_reward = models.PositiveIntegerField(default=150)
-    lesson = models.ForeignKey('Lesson', on_delete=models.SET_NULL, blank=True, null=True, related_name="projects")
+    lesson = models.ForeignKey(
+        "Lesson",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="projects",
+    )
     skills = models.JSONField(default=default_empty_list, blank=True)
     resources = models.JSONField(default=default_empty_list, blank=True)
     rubric = models.JSONField(default=default_empty_dict, blank=True)
@@ -652,15 +760,27 @@ class ProjectSubmission(models.Model):
         (STATUS_NEEDS_WORK, "Needs updates"),
     ]
 
-    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name="submissions")
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="project_submissions")
+    project = models.ForeignKey(
+        "Project", on_delete=models.CASCADE, related_name="submissions"
+    )
+    student = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="project_submissions"
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     description = models.TextField(blank=True)
     solution_url = models.URLField(blank=True)
     attachment = models.FileField(upload_to="projects/", blank=True, null=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
     feedback = models.TextField(blank=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name="project_reviews")
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="project_reviews",
+    )
     score = models.PositiveIntegerField(blank=True, null=True)
 
     class Meta:
@@ -675,7 +795,11 @@ class LearningPath(models.Model):
     slug = models.SlugField(unique=True)
     description = models.TextField()
     theme = models.CharField(max_length=40, default="rainbow")
-    difficulty = models.CharField(max_length=20, choices=Lesson.DIFFICULTY_CHOICES, default=Lesson.DIFFICULTY_BEGINNER)
+    difficulty = models.CharField(
+        max_length=20,
+        choices=Lesson.DIFFICULTY_CHOICES,
+        default=Lesson.DIFFICULTY_BEGINNER,
+    )
     audience = models.CharField(max_length=60, default="general")
     is_featured = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -693,8 +817,12 @@ class LearningPath(models.Model):
 
 
 class LearningPathLesson(models.Model):
-    path = models.ForeignKey('LearningPath', on_delete=models.CASCADE, related_name="items")
-    lesson = models.ForeignKey('Lesson', on_delete=models.CASCADE, related_name="path_items")
+    path = models.ForeignKey(
+        "LearningPath", on_delete=models.CASCADE, related_name="items"
+    )
+    lesson = models.ForeignKey(
+        "Lesson", on_delete=models.CASCADE, related_name="path_items"
+    )
     order = models.PositiveIntegerField(default=1)
 
     class Meta:
@@ -706,8 +834,10 @@ class LearningPathLesson(models.Model):
 
 
 class LearningRecommendation(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recommendations")
-    lesson = models.ForeignKey('Lesson', on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="recommendations"
+    )
+    lesson = models.ForeignKey("Lesson", on_delete=models.CASCADE)
     reason = models.CharField(max_length=255)
     score = models.FloatField(default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -722,8 +852,12 @@ class LearningRecommendation(models.Model):
 
 
 class ParentChildLink(models.Model):
-    parent = models.ForeignKey(User, on_delete=models.CASCADE, related_name="children_links")
-    child = models.ForeignKey(User, on_delete=models.CASCADE, related_name="parent_links")
+    parent = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="children_links"
+    )
+    child = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="parent_links"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     time_taken_ms = models.PositiveIntegerField(default=0)
@@ -740,7 +874,9 @@ class ParentChildLink(models.Model):
 
 class CommunityThread(models.Model):
     title = models.CharField(max_length=200)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="threads")
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="threads"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     body = models.TextField()
     tags = models.JSONField(default=default_empty_list, blank=True)
@@ -755,8 +891,12 @@ class CommunityThread(models.Model):
 
 
 class CommunityReply(models.Model):
-    thread = models.ForeignKey('CommunityThread', on_delete=models.CASCADE, related_name="replies")
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="replies")
+    thread = models.ForeignKey(
+        "CommunityThread", on_delete=models.CASCADE, related_name="replies"
+    )
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="replies"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     body = models.TextField()
     is_flagged = models.BooleanField(default=False)
@@ -784,8 +924,12 @@ class DailyChallenge(models.Model):
 
 
 class ChallengeAttempt(models.Model):
-    challenge = models.ForeignKey('DailyChallenge', on_delete=models.CASCADE, related_name="attempts")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="challenge_attempts")
+    challenge = models.ForeignKey(
+        "DailyChallenge", on_delete=models.CASCADE, related_name="attempts"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="challenge_attempts"
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
     is_successful = models.BooleanField(default=False)
 
@@ -798,7 +942,9 @@ class ChallengeAttempt(models.Model):
 
 class AIHintRequest(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="ai_requests")
-    lesson = models.ForeignKey('Lesson', on_delete=models.SET_NULL, blank=True, null=True)
+    lesson = models.ForeignKey(
+        "Lesson", on_delete=models.SET_NULL, blank=True, null=True
+    )
     question = models.TextField()
     response = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -812,7 +958,9 @@ class AIHintRequest(models.Model):
 
 
 class AvatarUnlock(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="avatar_unlocks")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="avatar_unlocks"
+    )
     slug = models.CharField(max_length=60)
     unlocked_at = models.DateTimeField(auto_now_add=True)
 
@@ -827,8 +975,14 @@ class LeaderboardSnapshot(models.Model):
     PERIOD_WEEK = "week"
     PERIOD_MONTH = "month"
 
-    period = models.CharField(max_length=10, choices=[(PERIOD_WEEK, "Week"), (PERIOD_MONTH, "Month")], default=PERIOD_WEEK)
-    classroom = models.ForeignKey('Classroom', on_delete=models.CASCADE, blank=True, null=True)
+    period = models.CharField(
+        max_length=10,
+        choices=[(PERIOD_WEEK, "Week"), (PERIOD_MONTH, "Month")],
+        default=PERIOD_WEEK,
+    )
+    classroom = models.ForeignKey(
+        "Classroom", on_delete=models.CASCADE, blank=True, null=True
+    )
     generated_at = models.DateTimeField(auto_now_add=True)
     data = models.JSONField(default=default_empty_list, blank=True)
 
@@ -838,8 +992,6 @@ class LeaderboardSnapshot(models.Model):
     def __str__(self) -> str:
         scope = self.classroom.name if self.classroom else "global"
         return f"Leaderboard {scope} {self.period}"
-
-
 
 
 def check_and_award_rewards(user: User) -> None:
@@ -896,7 +1048,6 @@ def check_and_award_rewards(user: User) -> None:
         profile.save(update_fields=["streak", "last_activity_at"])
 
 
-
 class Test(models.Model):
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="tests")
     question = models.CharField(max_length=255)
@@ -906,7 +1057,11 @@ class Test(models.Model):
     practice_prompt = models.TextField(blank=True)
     explanation = models.TextField(blank=True)
 
-    difficulty = models.CharField(max_length=20, choices=Lesson.DIFFICULTY_CHOICES, default=Lesson.DIFFICULTY_BEGINNER)
+    difficulty = models.CharField(
+        max_length=20,
+        choices=Lesson.DIFFICULTY_CHOICES,
+        default=Lesson.DIFFICULTY_BEGINNER,
+    )
     time_limit_seconds = models.PositiveIntegerField(default=60)
     points = models.PositiveIntegerField(default=100)
     bonus_time_threshold = models.PositiveIntegerField(default=20)
@@ -920,7 +1075,9 @@ class Test(models.Model):
 
 class TestAttempt(models.Model):
     test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name="attempts")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="test_attempts")
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="test_attempts"
+    )
     selected_answer = models.CharField(max_length=255)
     is_correct = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -942,10 +1099,14 @@ def default_practice_data() -> dict[str, list]:
 
 
 class LessonPractice(models.Model):
-    lesson = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="practice")
+    lesson = models.OneToOneField(
+        Lesson, on_delete=models.CASCADE, related_name="practice"
+    )
     intro = models.TextField(blank=True)
     instructions = models.CharField(max_length=200, blank=True)
-    success_message = models.CharField(max_length=150, default="Super! Ai reușit să potrivești corect.")
+    success_message = models.CharField(
+        max_length=150, default="Super! Ai reușit să potrivești corect."
+    )
     data = models.JSONField(default=default_practice_data, blank=True)
 
     def __str__(self) -> str:
@@ -953,6 +1114,8 @@ class LessonPractice(models.Model):
 
     @property
     def has_pairs(self) -> bool:
-        draggables = self.data.get("draggables", []) if isinstance(self.data, dict) else []
+        draggables = (
+            self.data.get("draggables", []) if isinstance(self.data, dict) else []
+        )
         targets = self.data.get("targets", []) if isinstance(self.data, dict) else []
         return bool(draggables and targets)

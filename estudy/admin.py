@@ -1,39 +1,25 @@
 ﻿from django.contrib import admin
 
-from .models import (
-    AIHintRequest,
-    AssignmentSubmission,
-    Badge,
-    ClassAssignment,
-    Classroom,
-    ClassroomMembership,
-    CommunityReply,
-    CommunityThread,
-    DailyChallenge,
-    LeaderboardSnapshot,
-    Lesson,
-    LessonProgress,
-    LearningPath,
-    LearningPathLesson,
-    LearningRecommendation,
-    Mission,
-    Notification,
-    ParentChildLink,
-    Project,
-    ProjectSubmission,
-    Reward,
-    Subject,
-    Test,
-    TestAttempt,
-    UserBadge,
-    UserMission,
-    UserReward,
-)
+from .models import (AIHintRequest, AssignmentSubmission, Badge,
+                     ClassAssignment, Classroom, ClassroomMembership,
+                     CommunityReply, CommunityThread, DailyChallenge,
+                     LeaderboardSnapshot, LearningPath, LearningPathLesson,
+                     LearningRecommendation, Lesson, LessonProgress, Mission,
+                     Notification, ParentChildLink, Project, ProjectSubmission,
+                     Reward, Subject, Test, TestAttempt, UserBadge,
+                     UserMission, UserReward)
 
 
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ("title", "subject", "date", "difficulty", "age_bracket", "duration_minutes")
+    list_display = (
+        "title",
+        "subject",
+        "date",
+        "difficulty",
+        "age_bracket",
+        "duration_minutes",
+    )
     list_filter = ("subject", "difficulty", "age_bracket", "date")
     search_fields = ("title", "subject__name", "content")
     prepopulated_fields = {"slug": ("title",)}
@@ -210,4 +196,3 @@ class AIHintRequestAdmin(admin.ModelAdmin):
 class LeaderboardSnapshotAdmin(admin.ModelAdmin):
     list_display = ("period", "classroom", "generated_at")
     list_filter = ("period",)
-
