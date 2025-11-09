@@ -24,41 +24,12 @@
 
 {% block content %}
 <div class="workspace-shell" data-workspace-shell>
+    <a class="skip-link" href="#workspace-main">Skip to main content</a>
     {% block workspace_banner %}
-    <section class="workspace-banner" aria-labelledby="workspace-banner-title" data-animate>
-        <div class="container workspace-banner__inner">
-            <div class="workspace-banner__copy">
-                <span class="workspace-banner__tag">
-                    <span aria-hidden="true">🚀</span>
-                    Univers UNITEX
-                </span>
-                <h1 id="workspace-banner-title">
-                    {% block workspace_title %}Invatare personalizata pentru fiecare explorator{% endblock %}
-                </h1>
-                <p class="workspace-banner__subtitle">
-                    {% block workspace_subtitle %}
-                        Bine ai venit in hub-ul tau digital. Continua lectiile, revendica insigne stralucitoare si urca in clasament cu fiecare misiune finalizata.
-                    {% endblock %}
-                </p>
-                {% block workspace_actions %}{% endblock %}
-            </div>
-            <div class="workspace-banner__visual" aria-hidden="true">
-                <div class="workspace-illustration">
-                    <figure class="workspace-illustration__main">
-                        <img src="https://illustrations.popsy.co/emerald/online-learning.svg" alt="" loading="lazy">
-                    </figure>
-                    <figure class="workspace-illustration__card">
-                        <img src="https://illustrations.popsy.co/emerald/creative-teamwork.svg" alt="" loading="lazy">
-                    </figure>
-                </div>
-                <div class="workspace-spot workspace-spot--one"></div>
-                <div class="workspace-spot workspace-spot--two"></div>
-            </div>
-        </div>
-    </section>
+        {% include 'estudy/includes/_banner.html' %}
     {% endblock %}
 
-    <div class="container workspace-main" id="workspace-main">
+    <div class="container workspace-main" id="workspace-main" role="main">
         {% if messages %}
         <div class="workspace-messages" role="status">
             {% for message in messages %}

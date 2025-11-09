@@ -14,10 +14,35 @@ def _clean_snippets(items: Iterable[str]) -> list[str]:
 def _keyword_hint(question: str) -> str | None:
     q = question.lower()
     keyword_tips = [
-        (("variabil", "variabile"), "Imaginează-ți variabilele ca pe niște cutii cu etichete. Pune o valoare clară în cutie și folosește exact același nume când ai nevoie de ea."),
-        (("loop", "bucl", "repet"), "Stabilește ce se schimbă la fiecare iterație și ce condiție oprește bucla. Scrie acea condiție înainte de cod."),
-        (("condit", "if", "else"), "Formulează propoziția „Dacă ... atunci ... altfel ...” în română și abia apoi trad-o în if/else."),
-        (("lista", "array"), "Gândește-te la liste ca la rafturi numerotate. Indicii pornesc de la 0, deci elementul al treilea are index 2."),
+        (
+            ("variabil", "variabile"),
+            (
+                "Imaginează-ți variabilele ca pe niște cutii cu etichete. "
+                "Pune o valoare clară în cutie și folosește exact același nume "
+                "când ai nevoie de ea."
+            ),
+        ),
+        (
+            ("loop", "bucl", "repet"),
+            (
+                "Stabilește ce se schimbă la fiecare iterație și ce condiție oprește bucla. "
+                "Scrie acea condiție înainte de cod."
+            ),
+        ),
+        (
+            ("condit", "if", "else"),
+            (
+                "Formulează propoziția „Dacă ... atunci ... altfel ...” în română "
+                "și abia apoi trad-o în if/else."
+            ),
+        ),
+        (
+            ("lista", "array"),
+            (
+                "Gândește-te la liste ca la rafturi numerotate. Indicii pornesc de la 0, "
+                "deci elementul al treilea are index 2."
+            ),
+        ),
     ]
     for keywords, tip in keyword_tips:
         if any(word in q for word in keywords):
@@ -52,14 +77,25 @@ def _build_answer(question: str, lesson) -> str:
     lesson_clues = _lesson_clues(lesson)
 
     main_tip = keyword_tip or (
-        lesson_clues[0] if lesson_clues else "Reia exemplul din secțiunea Concept și notează pașii pe scurt."
+        lesson_clues[0]
+        if lesson_clues
+        else "Reia exemplul din secțiunea Concept și notează pașii pe scurt."
     )
 
-    extra_tip = lesson_clues[1] if len(lesson_clues) > 1 else "Testează varianta ta în mini-editorul din Example și observă output-ul."
+    extra_tip = (
+        lesson_clues[1]
+        if len(lesson_clues) > 1
+        else "Testează varianta ta în mini-editorul din Example și observă output-ul."
+    )
 
-    next_step = "Intră în Practice și vezi dacă poți aplica imediat indiciul."
+    next_step = (
+        "Intră în Practice și vezi dacă poți aplica imediat indiciul."
+    )
     if lesson and getattr(lesson, "practice", None):
-        next_step = "În Practice, pornește de la hint-ul disponibil și potrivește elementele ținând cont de cuvintele cheie."
+        next_step = (
+            "În Practice, pornește de la hint-ul disponibil și potrivește elementele "
+            "ținând cont de cuvintele cheie."
+        )
     if lesson and lesson.tests.exists():
         next_step += " Apoi revino la Test pentru a fixa ideea."
 

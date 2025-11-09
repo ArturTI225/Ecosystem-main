@@ -3,17 +3,9 @@
 from typing import Dict, List, Tuple
 
 from django.db.models import Count
-from django.utils import timezone
 
-from ..models import (
-    Badge,
-    Lesson,
-    LessonProgress,
-    Mission,
-    UserBadge,
-    UserMission,
-    check_and_award_rewards,
-)
+from ..models import (Lesson, LessonProgress, Mission, UserBadge,
+                      UserMission, check_and_award_rewards)
 
 DEFAULT_MISSIONS: Tuple[dict, ...] = (
     {
@@ -64,7 +56,9 @@ def ensure_user_missions(user) -> List[UserMission]:
     return user_missions
 
 
-def record_lesson_completion(user, lesson: Lesson, seconds_spent: int | None = None) -> Dict:
+def record_lesson_completion(
+    user, lesson: Lesson, seconds_spent: int | None = None
+) -> Dict:
     progress, _ = LessonProgress.objects.get_or_create(user=user, lesson=lesson)
     progress.mark_completed(seconds_spent=seconds_spent)
     check_and_award_rewards(user)
@@ -78,18 +72,31 @@ def record_lesson_completion(user, lesson: Lesson, seconds_spent: int | None = N
 
 
 def build_overall_progress(user) -> Dict[str, float | int]:
+    """Compute overall progress for a user and cache it briefly to reduce DB load."""
+    from django.core.cache import cache
+
+    cache_key = f"estudy:progress:{user.id}"
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
     total_lessons = Lesson.objects.count()
     completed = LessonProgress.objects.filter(user=user, completed=True).count()
     percent = round((completed / total_lessons) * 100, 2) if total_lessons else 0
-    return {
+    result = {
         "total": total_lessons,
         "completed": completed,
         "percent": percent,
     }
+    cache.set(cache_key, result, 60)
+    return result
 
 
 def get_badge_summary(user) -> Dict[str, List[UserBadge]]:
-    badges = UserBadge.objects.filter(user=user).select_related("badge").order_by("-awarded_at")
+    badges = (
+        UserBadge.objects.filter(user=user)
+        .select_related("badge")
+        .order_by("-awarded_at")
+    )
     highlighted = badges[:3]
     return {
         "all": list(badges),
