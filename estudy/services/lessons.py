@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Set, Tuple
+import json
+import hashlib
+
+from django.core.cache import cache
 
 from django.db.models import Prefetch, Q
 from django.utils import timezone
@@ -196,6 +200,22 @@ def prepare_lessons_list(user, params: Dict[str, Any] | None = None) -> Dict[str
     if params is None:
         params = {}
 
+    # optional cache support: pass `_cache_timeout` in params to set TTL (seconds).
+    # set to 0 or False to disable caching for this call.
+    cache_timeout = params.get("_cache_timeout", 300)
+    use_cache = bool(cache_timeout)
+    cache_key = None
+    if use_cache:
+        # build a deterministic key from user id and params (excluding the cache control key)
+        params_for_key = {k: v for k, v in params.items() if k != "_cache_timeout"}
+        key_payload = json.dumps(
+            [user.id, params_for_key], sort_keys=True, default=str
+        ).encode("utf-8")
+        cache_key = "estudy:lessons_list:" + hashlib.md5(key_payload).hexdigest()
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+
     query = (params.get("query") or "").strip()
     subject_filter = (params.get("subject") or "").strip()
     difficulty_filter = (params.get("difficulty") or "").strip()
@@ -265,7 +285,7 @@ def prepare_lessons_list(user, params: Dict[str, Any] | None = None) -> Dict[str
         "-updated_at", "-created_at"
     )[:5]
 
-    return {
+    result = {
         "subjects": subjects,
         "lessons": lessons,
         "completed_ids": completed_ids,
@@ -281,3 +301,13 @@ def prepare_lessons_list(user, params: Dict[str, Any] | None = None) -> Dict[str
         "lesson_blocks": lesson_blocks,
         "progress": progress,
     }
+
+    # cache the result if requested (store Python objects in local memory cache)
+    if use_cache and cache_key:
+        try:
+            cache.set(cache_key, result, timeout=cache_timeout)
+        except Exception:
+            # cache failures should not break functionality
+            pass
+
+    return result
