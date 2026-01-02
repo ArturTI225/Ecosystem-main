@@ -138,7 +138,9 @@ class ServicesSmokeTests(TestCase):
         self.assertIn("Lesson 1", titles)
 
         # difficulty filter: only advanced lessons
-        ctx = prepare_lessons_list(self.user, params={"difficulty": Lesson.DIFFICULTY_ADVANCED})
+        ctx = prepare_lessons_list(
+            self.user, params={"difficulty": Lesson.DIFFICULTY_ADVANCED}
+        )
         titles = [lesson.title for lesson in ctx["lessons"]]
         self.assertTrue(
             all(

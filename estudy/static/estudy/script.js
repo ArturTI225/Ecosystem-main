@@ -175,31 +175,31 @@ const getNextButtonMeta = (button) => ({
     url: button.dataset.nextUrl || button.getAttribute('href') || '#',
     enabledClass: button.dataset.nextEnabledClass || 'btn-primary',
     disabledClass: button.dataset.nextDisabledClass || 'btn-outline-secondary',
-    labelLocked: button.dataset.nextLabelLocked || '<i class=\"fa-solid fa-lock me-2\"></i>Lectia urmatoare',
-    labelUnlocked: button.dataset.nextLabelUnlocked || '<i class=\"fa-solid fa-arrow-right me-2\"></i>Lectia urmatoare',
+    labelLocked: button.dataset.nextLabelLocked || '<i class="fa-solid fa-lock me-2"></i>Lecția următoare',
+    labelUnlocked: button.dataset.nextLabelUnlocked || '<i class="fa-solid fa-arrow-right me-2"></i>Lecția următoare',
 });
 
-const applyNextButtonState = (isUnlocked) => {
+const setNextButtonState = (isUnlocked) => {
     const button = getNextButton();
     if (!button) {
         return;
     }
+
     const meta = getNextButtonMeta(button);
     if (isUnlocked) {
         removeClasses(button, meta.disabledClass);
-        button.classList.remove('disabled');
         addClasses(button, meta.enabledClass);
-        button.href = meta.url;
-        button.dataset.locked = 'false';
+        button.classList.remove('disabled');
         button.removeAttribute('aria-disabled');
+        button.dataset.locked = 'false';
+        button.href = meta.url;
         button.innerHTML = meta.labelUnlocked;
     } else {
         removeClasses(button, meta.enabledClass);
         addClasses(button, meta.disabledClass);
         button.classList.add('disabled');
-        button.href = '#';
-        button.dataset.locked = 'true';
         button.setAttribute('aria-disabled', 'true');
+        button.dataset.locked = 'true';
         button.innerHTML = meta.labelLocked;
     }
 };
@@ -209,13 +209,20 @@ const initializeNextButtonState = () => {
     if (!button) {
         return;
     }
+
     const meta = getNextButtonMeta(button);
-    button.dataset.nextLabelLocked = button.dataset.nextLabelLocked || meta.labelLocked;
-    button.dataset.nextLabelUnlocked = button.dataset.nextLabelUnlocked || meta.labelUnlocked;
+    if (!button.dataset.nextLabelLocked) {
+        button.dataset.nextLabelLocked = meta.labelLocked;
+    }
+    if (!button.dataset.nextLabelUnlocked) {
+        button.dataset.nextLabelUnlocked = meta.labelUnlocked;
+    }
+
     const isLocked = button.dataset.locked === 'true'
         || button.classList.contains('disabled')
         || button.getAttribute('aria-disabled') === 'true';
-    applyNextButtonState(!isLocked);
+
+    setNextButtonState(!isLocked);
 };
 
 const setLessonCompletionUI = (completed, sourceButton) => {
@@ -233,14 +240,14 @@ const setLessonCompletionUI = (completed, sourceButton) => {
             sourceButton.classList.toggle('btn-light', !completed);
             sourceButton.classList.toggle('text-primary', !completed);
             sourceButton.innerHTML = completed
-                ? '<i class=\"fa-solid fa-check me-2\"></i>Bifat deja'
-                : '<i class=\"fa-regular fa-circle-check me-2\"></i>MarcheazДѓ reuИ™ita';
+                ? '<i class="fa-solid fa-check me-2"></i>Bifat deja'
+                : '<i class="fa-regular fa-circle-check me-2"></i>Marchează reușita';
         } else {
             sourceButton.classList.toggle('btn-success', completed);
             sourceButton.classList.toggle('btn-outline-success', !completed);
             sourceButton.innerHTML = completed
-                ? '<i class=\"fa-solid fa-check me-1\"></i>FinalizatДѓ'
-                : '<i class=\"fa-regular fa-circle-check me-1\"></i>MarcheazДѓ finalizarea';
+                ? '<i class="fa-solid fa-check me-1"></i>Finalizată'
+                : '<i class="fa-regular fa-circle-check me-1"></i>Marchează finalizarea';
         }
     } else {
         document.querySelectorAll('.lesson-card').forEach((card) => {
@@ -252,10 +259,10 @@ const setLessonCompletionUI = (completed, sourceButton) => {
     }
 
     if (statusEl) {
-        statusEl.textContent = completed ? 'FinalizatДѓ' : 'ГЋn curs';
+        statusEl.textContent = completed ? 'Finalizată' : 'În curs';
         statusEl.classList.toggle('text-success', completed);
     }
-    applyNextButtonState(completed);
+    setNextButtonState(completed);
 };
 
 const wireToggleCompletion = () => {
@@ -289,7 +296,7 @@ const wireToggleCompletion = () => {
                 });
             } catch (error) {
                 console.error('Failed to toggle lesson completion', error);
-                alert('Nu am putut actualiza starea lecИ›iei. ГЋncearcДѓ din nou.');
+                alert('Nu am putut actualiza starea lecției. Încearcă din nou.');
             } finally {
                 button.disabled = false;
             }
@@ -319,14 +326,16 @@ const wireQuizForms = () => {
             const answer = formData.get('answer');
             if (!answer) {
                 if (feedbackEl) {
-                    feedbackEl.textContent = 'SelecteazДѓ un rДѓspuns Г®nainte de a trimite.';
+                    feedbackEl.textContent = 'Selectează un răspuns înainte de a trimite.';
+                        feedbackEl.textContent = 'Selectează un răspuns înainte de a trimite.';
                     feedbackEl.classList.add('text-danger');
                 }
                 return;
             }
 
             feedbackEl?.classList.remove('text-success', 'text-danger');
-            feedbackEl.textContent = 'Se verificДѓ rДѓspunsul...';
+            feedbackEl.textContent = 'Se verifică răspunsul...';
+                feedbackEl.textContent = 'Se verifică răspunsul...';
 
             try {
                 const response = await fetch(submitUrl, {
@@ -345,7 +354,8 @@ const wireQuizForms = () => {
                 const data = await response.json();
                 const correct = Boolean(data.is_correct);
 
-                feedbackEl.textContent = correct ? 'Excelent! Acesta este rДѓspunsul corect.' : 'RДѓspuns greИ™it. ГЋncearcДѓ din nou!';
+                feedbackEl.textContent = correct ? 'Excelent! Acesta este răspunsul corect.' : 'Răspuns greșit. Încearcă din nou!';
+                    feedbackEl.textContent = correct ? 'Excelent! Acesta este răspunsul corect.' : 'Răspuns greșit. Încearcă din nou!';
                 feedbackEl.classList.toggle('text-success', correct);
                 feedbackEl.classList.toggle('text-danger', !correct);
 
@@ -367,7 +377,8 @@ const wireQuizForms = () => {
                 }
             } catch (error) {
                 console.error('Quiz submission failed', error);
-                feedbackEl.textContent = 'A apДѓrut o eroare. ГЋncearcДѓ din nou.';
+                feedbackEl.textContent = 'A apărut o eroare. Încearcă din nou.';
+                    feedbackEl.textContent = 'A apărut o eroare. Încearcă din nou.';
                 feedbackEl.classList.add('text-danger');
             }
         });
@@ -510,7 +521,7 @@ const wirePracticeDragDrop = () => {
                 }
 
                 if (zone.classList.contains('practice-dropzone--filled')) {
-                    showFeedback('AceastДѓ zonДѓ este deja completatДѓ. Alege altДѓ pereche.');
+                    showFeedback('Această zonă este deja completată. Alege altă pereche.');
                     return;
                 }
 
@@ -519,7 +530,7 @@ const wirePracticeDragDrop = () => {
 
                 if (expected && expected !== actual) {
                     zone.classList.add('practice-dropzone--error');
-                    showFeedback('Ups! ГЋncДѓ nu este potrivirea corectДѓ. ГЋncearcДѓ din nou.');
+                    showFeedback('Ups! Încă nu este potrivirea corectă. Încearcă din nou.');
                     setTimeout(() => zone.classList.remove('practice-dropzone--error'), 700);
                     return;
                 }
@@ -611,7 +622,7 @@ const wireCodeChallenges = () => {
                     }
                 } else {
                     const hints = missing.map((group) => group[0]).join(', ');
-                    showFeedback(`Mai verificДѓ secИ›iunea de cod. Lipsesc expresii precum: ${hints}`);
+                    showFeedback(`Mai verifică secțiunea de cod. Lipsesc expresii precum: ${hints}`);
                     if (successAlert) {
                         successAlert.classList.add('d-none');
                     }
@@ -643,7 +654,7 @@ const wireVoiceButtons = () => {
     if (!supportsSpeech) {
         buttons.forEach((button) => {
             button.addEventListener('click', () => {
-                alert('Redarea audio nu este suportatДѓ de acest browser.');
+                alert('Redarea audio nu este suportată de acest browser.');
             });
         });
         return;
@@ -741,7 +752,7 @@ const wireVoiceButtons = () => {
         const rawText = button.dataset.voiceText || '';
         const textContent = rawText.trim();
         if (!textContent) {
-            alert('Nu existДѓ conИ›inut de redat pentru aceastДѓ explicaИ›ie.');
+            alert('Nu există conținut de redat pentru această explicație.');
             return;
         }
 
@@ -763,7 +774,7 @@ const wireVoiceButtons = () => {
         utterance.onerror = (event) => {
             console.error('Speech synthesis error', event);
             resetState();
-            alert('Nu am putut porni redarea audio. ГЋncearcДѓ din nou sau schimbДѓ browserul.');
+            alert('Nu am putut porni redarea audio. Încearcă din nou sau schimbă browserul.');
         };
 
         activeButton = button;
@@ -850,7 +861,7 @@ const wireLessonExperience = () => {
             if (nextBtn) {
                 const isLast = currentStep === totalSteps - 1;
                 const customLabel = steps[currentStep]?.dataset.stepButton;
-                nextBtn.textContent = customLabel || (isLast ? 'FinalizeazДѓ lecИ›ia' : 'ContinuДѓ');
+                nextBtn.textContent = customLabel || (isLast ? 'Finalizează lecția' : 'Continuă');
                 nextBtn.classList.toggle('btn-success', isLast);
                 nextBtn.disabled = false;
             }
@@ -859,7 +870,7 @@ const wireLessonExperience = () => {
         if (nextBtn) {
             nextBtn.addEventListener('click', () => {
                 if (currentStep === totalSteps - 1) {
-                    nextBtn.innerHTML = '<i class="fa-solid fa-check me-2"></i>LecИ›ia finalizatДѓ';
+                    nextBtn.innerHTML = '<i class="fa-solid fa-check me-2"></i>Lecția finalizată';
                     nextBtn.disabled = true;
                     root.classList.add('lesson-experience--completed');
                     return;
@@ -875,7 +886,7 @@ const wireLessonExperience = () => {
                     nextBtn.disabled = false;
                     const isLast = currentStep === totalSteps - 1;
                     const customLabel = steps[currentStep]?.dataset.stepButton;
-                    nextBtn.textContent = customLabel || (isLast ? 'FinalizeazДѓ lecИ›ia' : 'ContinuДѓ');
+                    nextBtn.textContent = customLabel || (isLast ? 'Finalizează lecția' : 'Continuă');
                     nextBtn.classList.toggle('btn-success', isLast);
                 }
             });
@@ -940,8 +951,6 @@ const wireLessonExperience = () => {
         }
     });
 };
-
-const wireHardwareMapGame
 
 const wireHardwareMapGame = () => {
     document.querySelectorAll('[data-hardware-map]').forEach((root) => {
@@ -1064,13 +1073,13 @@ const wireHardwareMapGame = () => {
                 feedback.className = 'hardware-feedback';
                 if (placedCount !== slots.length) {
                     feedback.classList.add('hardware-feedback--warning');
-                    feedback.textContent = 'Mai ai componente de plasat. CompleteazДѓ toate zonele И™i verificДѓ din nou.';
+                    feedback.textContent = 'Mai ai componente de plasat. Completează toate zonele și verifică din nou.';
                 } else if (correctCount === slots.length) {
                     feedback.classList.add('hardware-feedback--success');
                     feedback.textContent = 'Super! Toate componentele sunt pe locul potrivit.';
                 } else {
                     feedback.classList.add('hardware-feedback--error');
-                    feedback.textContent = 'Unele componente nu se potrivesc zonei. ComparДѓ denumirile И™i Г®ncearcДѓ din nou.';
+                    feedback.textContent = 'Unele componente nu se potrivesc zonei. Compară denumirile și încearcă din nou.';
                 }
             });
         }
@@ -1137,7 +1146,7 @@ const wireHardwareSoftwareMatch = () => {
             if (expectedType && token.dataset.tokenType !== expectedType) {
                 if (feedback) {
                     feedback.className = 'module-match__feedback module-match__feedback--warning';
-                    feedback.textContent = 'Acest cartonaИ™ se potriveИ™te Г®n cealaltДѓ coloanДѓ. ГЋncearcДѓ din nou.';
+                    feedback.textContent = 'Acest cartonaș se potrivește în cealaltă coloană. Încearcă din nou.';
                 }
                 target.classList.add('match-slot--error');
                 setTimeout(() => target.classList.remove('match-slot--error'), 600);
@@ -1245,13 +1254,13 @@ const wireHardwareSoftwareMatch = () => {
                 feedback.className = 'module-match__feedback';
                 if (!allFilled) {
                     feedback.classList.add('module-match__feedback--warning');
-                    feedback.textContent = 'CompleteazДѓ fiecare sarcinДѓ cu cГўte douДѓ cartonaИ™e Г®nainte de verificare.';
+                    feedback.textContent = 'Completează fiecare sarcină cu câte două cartonașe înainte de verificare.';
                 } else if (allCorrect) {
                     feedback.classList.add('module-match__feedback--success');
-                    feedback.textContent = 'Excelent! Ai gДѓsit combinaИ›iile hardware + software potrivite.';
+                    feedback.textContent = 'Excelent! Ai găsit combinațiile hardware + software potrivite.';
                 } else {
                     feedback.classList.add('module-match__feedback--error');
-                    feedback.textContent = 'Mai verificДѓ una dintre perechi: unele cartonaИ™e nu se potrivesc Г®ncДѓ.';
+                    feedback.textContent = 'Mai verifică una dintre perechi: unele cartonașe nu se potrivesc încă.';
                 }
             });
         }

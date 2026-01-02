@@ -15,6 +15,9 @@
             <span class="lesson-pill">Nivel {{ lesson.level|default:1 }}</span>
             <h1>{{ lesson.title|default:"Nivel 1 · Prieteni cu variabilele" }}</h1>
             <p>{{ lesson.theory_intro|default:lesson.excerpt|default:"Descoperă cum poți folosi variabilele pentru a face programele mai inteligente." }}</p>
+            {% if lesson.story_anchor %}
+            <p class="lesson-hero__story">{{ lesson.story_anchor }}</p>
+            {% endif %}
 
             <div class="lesson-hero__metrics">
                 <div class="lesson-metric">
@@ -33,11 +36,45 @@
                     <strong>+{{ lesson.xp_reward|default:40 }}</strong>
                 </div>
                 <div class="lesson-metric">
+                    <span aria-hidden="true">🤝</span>
+                    <small>Mod de lucru</small>
+                    <strong>{{ lesson.get_collaboration_mode_display|default:"Individual" }}</strong>
+                </div>
+                <div class="lesson-metric">
                     <span aria-hidden="true">📅</span>
                     <small>Data</small>
                     <strong>{{ lesson.date|date:"d MMM yyyy" }}</strong>
                 </div>
             </div>
+
+            {% if lesson.skills.all or lesson.content_tracks %}
+            <div class="lesson-hero__meta">
+                {% if lesson.skills.all %}
+                <div class="lesson-hero__skills" aria-label="Deprinderi vizate">
+                    <small>🔖 Dezvoltăm</small>
+                    <div class="lesson-skill-list">
+                        {% for skill in lesson.skills.all %}
+                            <span class="lesson-skill">{{ skill.title }}</span>
+                        {% empty %}
+                            <span class="lesson-skill">Explorare</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% if lesson.content_tracks %}
+                <div class="lesson-hero__tracks" aria-label="Parcursuri de conținut">
+                    <small>🗺️ Trasee sugerate</small>
+                    <ol class="lesson-track-list">
+                        {% for track in lesson.content_tracks %}
+                            <li>{{ track }}</li>
+                        {% empty %}
+                            <li>Urmează fluxul de bază și revino pentru provocări bonus.</li>
+                        {% endfor %}
+                    </ol>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
 
             <div class="lesson-progress-tracker" data-progress-container>
                 <div class="lesson-progress lesson-progress--hero">
@@ -67,7 +104,7 @@
 
             <div class="lesson-hero__actions">
                 <a class="btn btn--primary" href="#practice" data-smooth-scroll>Începe practica</a>
-                {% if next_lesson %}
+                {% if next_lesson and next_lesson.slug %}
                     <a class="btn btn--ghost" href="{% url 'estudy:lesson_detail' slug=next_lesson.slug %}" data-next-lesson>Următoarea lecție</a>
                 {% else %}
                     <a class="btn btn--ghost" href="#summary" data-smooth-scroll>Vezi concluziile</a>
@@ -103,19 +140,78 @@
         </div>
     </section>
 
+    <section class="lesson-section lesson-card lesson-card--warmup" id="warmup" data-animate>
+        <header class="lesson-card__header">
+            <span class="lesson-card__icon" aria-hidden="true">🔥</span>
+            <div>
+                <h2>Încălzirea echipei</h2>
+                <p>Un moment scurt pentru a pregăti mintea și conversația.</p>
+            </div>
+        </header>
+        <div class="lesson-warmup">
+            {% if lesson.warmup_prompt %}
+            <article class="lesson-warmup__card">
+                <h3>Încălzire rapidă</h3>
+                <p>{{ lesson.warmup_prompt }}</p>
+            </article>
+            {% endif %}
+            {% if lesson.discussion_prompts %}
+            <article class="lesson-warmup__card">
+                <h3>Întrebări pentru discuție</h3>
+                <ul class="lesson-list">
+                    {% for prompt in lesson.discussion_prompts %}
+                        <li>{{ prompt }}</li>
+                    {% empty %}
+                        <li>Împărtășește o idee sau o curiozitate despre temă.</li>
+                    {% endfor %}
+                </ul>
+            </article>
+            {% endif %}
+            {% if lesson.objectives.all %}
+            <article class="lesson-warmup__card">
+                <h3>Ce ne propunem azi</h3>
+                <ol class="lesson-objectives">
+                    {% for obj in lesson.objectives.all %}
+                        <li>
+                            <strong>{{ obj.description }}</strong>
+                            {% if obj.success_criteria %}<span> · {{ obj.success_criteria }}</span>{% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            </article>
+            {% endif %}
+        </div>
+    </section>
+
     <div class="lesson-layout">
         <aside class="lesson-sidebar" aria-label="Navigare lecție">
             <div class="lesson-sidebar__nav" data-lesson-nav>
                 <span class="lesson-sidebar__title">🧭 Etape</span>
                 <nav class="lesson-nav">
+                    <a class="lesson-nav__link" href="#warmup" data-lesson-toc-link data-lesson-nav-link>
+                        <span>🔥 Încălzire</span>
+                        <small>Încălzire & obiective</small>
+                    </a>
                     <a class="lesson-nav__link is-active" href="#concept" data-lesson-toc-link data-lesson-nav-link>
                         <span>📘 Concept</span>
                         <small>Teorie + exemple</small>
                     </a>
+                    {% if media_segments %}
+                    <a class="lesson-nav__link" href="#media-guide" data-lesson-toc-link data-lesson-nav-link>
+                        <span>🎬 Media</span>
+                        <small>Momente cheie</small>
+                    </a>
+                    {% endif %}
                     <a class="lesson-nav__link" href="#example" data-lesson-toc-link data-lesson-nav-link>
                         <span>🧩 Example</span>
                         <small>Rulează codul</small>
                     </a>
+                    {% if code_exercises %}
+                    <a class="lesson-nav__link" href="#code-exercises" data-lesson-toc-link data-lesson-nav-link>
+                        <span>💡 Exercises</span>
+                        <small>Interactive</small>
+                    </a>
+                    {% endif %}
                     <a class="lesson-nav__link" href="#practice" data-lesson-toc-link data-lesson-nav-link>
                         <span>💻 Practice</span>
                         <small>Exerciții interactive</small>
@@ -128,6 +224,12 @@
                         <span>🤖 Asistent</span>
                         <small>Întrebări rapide</small>
                     </a>
+                    {% if lesson.reflection_prompts.all or lesson.home_extension %}
+                    <a class="lesson-nav__link" href="#reflection" data-lesson-toc-link data-lesson-nav-link>
+                        <span>🪞 Reflecție</span>
+                        <small>Gânduri finale</small>
+                    </a>
+                    {% endif %}
                     {% if lesson_materials %}
                     <a class="lesson-nav__link" href="#resources" data-lesson-toc-link data-lesson-nav-link>
                         <span>📚 Resurse</span>
@@ -143,10 +245,20 @@
             <label class="lesson-sidebar__select" for="lesson-mobile-toc">
                 <span>Salt rapid</span>
                 <select id="lesson-mobile-toc">
+                    <option value="#warmup">Încălzire</option>
                     <option value="#concept">Concept</option>
                     <option value="#example">Example</option>
+                    {% if code_exercises %}
+                        <option value="#code-exercises">Exercises</option>
+                    {% endif %}
                     <option value="#practice">Practice</option>
                     <option value="#test">Test</option>
+                    {% if media_segments %}
+                        <option value="#media-guide">Media</option>
+                    {% endif %}
+                    {% if lesson.reflection_prompts.all or lesson.home_extension %}
+                        <option value="#reflection">Reflecție</option>
+                    {% endif %}
                     <option value="#assistant">Assistant</option>
                     {% if lesson_materials %}
                         <option value="#resources">Resources</option>
@@ -213,6 +325,94 @@ print(mesaj){% endif %}</code></pre>
                 </div>
             </section>
 
+            {% if media_segments %}
+            <section class="lesson-section lesson-card lesson-card--media" id="media-guide" data-lesson-section="Media" data-animate>
+                <header class="lesson-card__header">
+                    <span class="lesson-card__icon" aria-hidden="true">🎬</span>
+                    <div>
+                        <h2>Momente multimedia</h2>
+                        <p>Parcurge videoclipul sau prezentarea pe capitole clare.</p>
+                    </div>
+                </header>
+                <div class="lesson-media-guide">
+                    {% if lesson_media and lesson_media.video_url %}
+                        <div class="lesson-media-guide__player">
+                            <iframe src="{{ lesson_media.video_url }}" title="Video lecție" loading="lazy" allowfullscreen></iframe>
+                        </div>
+                    {% elif lesson_media and lesson_media.slides_url %}
+                        <div class="lesson-media-guide__player">
+                            <a class="btn btn--ghost" href="{{ lesson_media.slides_url }}" target="_blank" rel="noopener">Deschide prezentarea</a>
+                        </div>
+                    {% endif %}
+                    <ol class="lesson-media-guide__segments">
+                        {% for segment in media_segments %}
+                            <li>
+                                <strong>{{ segment.title }}</strong>
+                                <span>
+                                    {{ segment.start_seconds|default:0 }}s – {{ segment.end_seconds|default:0 }}s
+                                </span>
+                                {% if segment.description %}
+                                    <p>{{ segment.description }}</p>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ol>
+                </div>
+            </section>
+            {% endif %}
+
+            {% if code_exercises %}
+            <section class="lesson-section lesson-card lesson-card--code-exercises" id="code-exercises" data-lesson-section="CodeExercises" data-animate>
+                <header class="lesson-card__header">
+                    <span class="lesson-card__icon" aria-hidden="true">💡</span>
+                    <div>
+                        <h2>Exerciții interactive</h2>
+                        <p>Scrie cod, rulează testele și vezi rezultatul instant.</p>
+                    </div>
+                </header>
+                <div class="exercise-list">
+                    {% for ex in code_exercises %}
+                    <article class="exercise-card" data-exercise data-exercise-id="{{ ex.id }}">
+                        <div class="exercise-card__head">
+                            <h3 class="exercise-card__title">{{ ex.title }}</h3>
+                            <span class="exercise-chip">{{ ex.get_language_display }}</span>
+                            <span class="exercise-chip">⭐ {{ ex.difficulty_level }}</span>
+                            <span class="exercise-chip">+{{ ex.points }} XP</span>
+                        </div>
+                        <p class="exercise-card__desc">{{ ex.description }}</p>
+                        <div class="exercise-grid">
+                            <div class="exercise-tests">
+                                <h4>Teste</h4>
+                                <ul class="list">
+                                    {% for t in ex.test_cases %}
+                                        <li>
+                                            <strong>{{ t.description }}</strong><br/>
+                                            <small>Input:</small> <code>{{ t.input }}</code><br/>
+                                            <small>Expected:</small> <code>{{ t.expected_output }}</code>
+                                        </li>
+                                    {% empty %}
+                                        <li>Nu sunt teste configurate.</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="exercise-editor">
+                                <label class="lesson-prose">
+                                    <span>Codul tău ({{ ex.language }})</span>
+                                    <textarea rows="10" class="form-control" data-code>{{ ex.starter_code }}</textarea>
+                                </label>
+                                <div class="exercise-actions">
+                                    <button type="button" class="btn btn--primary" data-run>Run</button>
+                                    <button type="button" class="btn btn--ghost" data-reset>Reset</button>
+                                </div>
+                                <pre class="exercise-output" data-output aria-live="polite"></pre>
+                            </div>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endif %}
+
             <section class="lesson-section lesson-card lesson-card--assistant" id="assistant" data-lesson-section="Assistant" data-animate>
                 <header class="lesson-card__header">
                     <span class="lesson-card__icon" aria-hidden="true">🤖</span>
@@ -263,6 +463,7 @@ print(mesaj){% endif %}</code></pre>
             </section>
             {% endif %}
 
+            {% if not code_exercises %}
             <section class="lesson-section lesson-card lesson-card--code-lab" id="example" data-lesson-section="Example" data-animate>
                 <header class="lesson-card__header">
                     <span class="lesson-card__icon" aria-hidden="true">🧩</span>
@@ -311,6 +512,7 @@ print(mesaj){% endif %}</code></pre>
                 {% endwith %}
                 <p class="lesson-code-caption">Nu uita: dacă vezi o eroare, citește mesajul și corectează. E parte din proces.</p>
             </section>
+            {% endif %}
 
             <section class="lesson-section lesson-card" id="practice" data-lesson-section="Practice" data-animate>
                 <header class="lesson-card__header">
@@ -409,7 +611,6 @@ print(mesaj){% endif %}</code></pre>
                     </article>
                 </div>
             </section>
-
             <section class="lesson-section lesson-card lesson-card--quiz" id="test" data-lesson-section="Test" data-animate>
                 <header class="lesson-card__header">
                     <span class="lesson-card__icon" aria-hidden="true">🧠</span>
@@ -457,6 +658,41 @@ print(mesaj){% endif %}</code></pre>
                 </div>
             </section>
 
+            {% if lesson.reflection_prompts.all or lesson.home_extension %}
+            <section class="lesson-section lesson-card lesson-card--reflection" id="reflection" data-lesson-section="Reflecție" data-animate>
+                <header class="lesson-card__header">
+                    <span class="lesson-card__icon" aria-hidden="true">🪞</span>
+                    <div>
+                        <h2>Reflecție și misiune pentru acasă</h2>
+                        <p>O pauză scurtă pentru a încărca ideile și a le duce mai departe.</p>
+                    </div>
+                </header>
+                <div class="lesson-reflection">
+                    {% if lesson.reflection_prompts.all %}
+                    <div class="lesson-reflection__prompts">
+                        <h3>Gânduri de împărtășit</h3>
+                        <ul>
+                            {% for prompt in lesson.reflection_prompts.all %}
+                                <li>
+                                    <strong>{{ prompt.prompt }}</strong>
+                                    {% if prompt.format == prompt.FORMAT_SCALE and prompt.scale_labels %}
+                                        <span> · {{ prompt.scale_labels|join:', ' }}</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% if lesson.home_extension %}
+                    <aside class="lesson-reflection__home">
+                        <h3>Provocare pentru acasă</h3>
+                        <p>{{ lesson.home_extension }}</p>
+                    </aside>
+                    {% endif %}
+                </div>
+            </section>
+            {% endif %}
+
             <section class="lesson-section lesson-card lesson-summary" id="summary" data-lesson-section="Summary" data-animate>
                 <header class="lesson-card__header">
                     <span class="lesson-card__icon" aria-hidden="true">🚀</span>
@@ -489,7 +725,7 @@ print(mesaj){% endif %}</code></pre>
                                 Marchează lecția
                             {% endif %}
                         </button>
-                        {% if next_lesson %}
+                        {% if next_lesson and next_lesson.slug %}
                             <a class="btn btn--primary btn--large" href="{% url 'estudy:lesson_detail' slug=next_lesson.slug %}" data-next-lesson>
                                 Continuă aventura
                             </a>
@@ -509,4 +745,69 @@ print(mesaj){% endif %}</code></pre>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 <script src="{% static 'estudy/lesson.js' %}" defer></script>
+<script>
+// Minimal JS to run code exercises inline using the API
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('click', async (e) => {
+    const runBtn = e.target.closest('[data-run]');
+    if (!runBtn) return;
+    const card = runBtn.closest('[data-exercise]');
+    if (!card) return;
+    const codeEl = card.querySelector('[data-code]');
+    const outEl = card.querySelector('[data-output]');
+    const resetBtn = card.querySelector('[data-reset]');
+    const exerciseId = parseInt(card.dataset.exerciseId, 10);
+    const original = codeEl.defaultValue;
+    if (resetBtn) {
+        resetBtn.onclick = () => {
+            codeEl.value = original;
+            outEl.textContent = '';
+        }
+    }
+    outEl.textContent = 'Running...';
+    try {
+        const resp = await fetch("{% url 'estudy:run_code_api' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ exercise_id: exerciseId, code: codeEl.value })
+        });
+        const data = await resp.json();
+        let lines = [];
+        if (!resp.ok) {
+            lines.push('Error: ' + (data.error || 'Unknown'));
+        } else {
+            if (data.error) lines.push('Error: ' + data.error);
+            lines.push(`Passed: ${data.passed}/${data.total}`);
+            lines.push(`Time: ${data.execution_time_ms} ms`);
+            (data.test_results || []).forEach((tr, i) => {
+                lines.push(`\n#${i+1} ${tr.description}`);
+                lines.push(` input: ${tr.input}`);
+                lines.push(` expected: ${tr.expected}`);
+                lines.push(` actual: ${tr.actual}`);
+                lines.push(` passed: ${tr.passed}`);
+            });
+        }
+        outEl.textContent = lines.join('\n');
+    } catch (err) {
+        outEl.textContent = 'Request failed: ' + err;
+    }
+});
+</script>
 {% endblock %}
