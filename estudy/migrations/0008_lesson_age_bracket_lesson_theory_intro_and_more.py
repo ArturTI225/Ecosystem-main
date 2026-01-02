@@ -7,7 +7,6 @@ import estudy.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("estudy", "0007_test_practice_prompt_test_theory_summary"),
     ]

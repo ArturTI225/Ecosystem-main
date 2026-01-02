@@ -6,7 +6,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("inregistrare", "0009_remove_profile_user_avatar"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),

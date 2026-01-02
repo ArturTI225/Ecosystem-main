@@ -325,7 +325,6 @@ def seed_showcase_lessons(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("estudy", "0008_lesson_age_bracket_lesson_theory_intro_and_more"),
     ]

@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Set, Tuple
-import json
 import hashlib
+import json
+from typing import Any, Dict, List, Set, Tuple
 
 from django.core.cache import cache
-
 from django.db.models import Prefetch, Q
 from django.utils import timezone
 

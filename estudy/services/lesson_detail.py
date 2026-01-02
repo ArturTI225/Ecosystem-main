@@ -3,7 +3,7 @@ from __future__ import annotations
 import random
 from typing import Dict, List
 
-from ..models import Lesson, LessonProgress
+from ..models import Lesson, LessonMedia, LessonProgress
 from ..views import _is_competitor_link
 from .gamification import get_badge_summary
 from .recommendations import refresh_recommendations
@@ -24,7 +24,7 @@ def prepare_lesson_detail(user, slug: str) -> dict:
     """
     lesson = (
         Lesson.objects.select_related("subject")
-        .prefetch_related("materials", "tests")
+        .prefetch_related("materials", "tests", "code_exercises")
         .filter(slug=slug)
         .first()
     )
@@ -170,6 +170,14 @@ def build_lesson_detail_payload(
         m for m in lesson.materials.all() if not _is_competitor_link(m.url)
     ]
 
+    try:
+        lesson_media = lesson.media
+    except LessonMedia.DoesNotExist:
+        lesson_media = None
+    media_segments = []
+    if lesson_media:
+        media_segments = list(lesson_media.segments.order_by("order", "id"))
+
     return {
         "progress": progress,
         "tests": tests,
@@ -187,4 +195,7 @@ def build_lesson_detail_payload(
         "subject_total": len(subject_lessons),
         "lesson_voice_text": lesson_voice_text,
         "lesson_materials": lesson_materials,
+        "code_exercises": list(lesson.code_exercises.order_by("order", "id")),
+        "lesson_media": lesson_media,
+        "media_segments": media_segments,
     }
