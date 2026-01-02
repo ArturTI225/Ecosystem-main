@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Lesson, LessonProgress, Subject
+from .models import CodeExercise, Lesson, LessonProgress, Subject
 
 
 class LessonViewsTests(TestCase):
@@ -47,6 +47,37 @@ class LessonViewsTests(TestCase):
         progress = LessonProgress.objects.filter(user=self.user, lesson=lesson).first()
         self.assertIsNotNone(progress)
         self.assertTrue(progress.completed)
+
+    def test_run_code_api_executes_and_returns_results(self):
+        lesson = self._create_lesson("Exec", days_offset=0)
+        exercise = CodeExercise.objects.create(
+            lesson=lesson,
+            title="Square",
+            description="Return square of input",
+            language="python",
+            starter_code="import sys\nprint(int(sys.stdin.read())**2)",
+            test_cases=[
+                {"input": "2", "expected_output": "4", "description": "2^2"},
+                {"input": "5", "expected_output": "25", "description": "5^2"},
+            ],
+        )
+        api_url = reverse("estudy:run_code_api")
+        resp = self.client.post(
+            api_url,
+            data={"exercise_id": exercise.id, "code": exercise.starter_code},
+            content_type="application/json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        payload = resp.json()
+        self.assertIn("passed", payload)
+        self.assertEqual(payload["passed"], 2)
+        self.assertTrue(payload.get("is_correct"))
+        # Ensure a submission object created
+        from .models import CodeSubmission
+
+        self.assertTrue(
+            CodeSubmission.objects.filter(exercise=exercise, user=self.user).exists()
+        )
 
 
 class ModelsLogicTests(TestCase):

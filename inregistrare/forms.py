@@ -66,9 +66,9 @@ class InregistrareFormular(UserCreationForm):
         for name, label in labels.items():
             if name in self.fields:
                 self.fields[name].label = label
-        self.fields["role"].help_text = (
-            "Selectează cum vei folosi platforma. Poți modifica alegerea ulterior din profil."
-        )
+        self.fields[
+            "role"
+        ].help_text = "Selectează cum vei folosi platforma. Poți modifica alegerea ulterior din profil."
         self.fields["role"].widget.attrs.setdefault("class", "role-radio")
 
     def clean(self):

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import json
 from functools import wraps
 from urllib.parse import urlparse
-from django.conf import settings
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
@@ -14,35 +15,22 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from .forms import (
-    ClassAssignmentForm,
-    ClassroomForm,
-    NotificationPreferenceForm,
-    ProfileForm,
-    ProjectSubmissionForm,
-    ReplyForm,
-    ThreadForm,
-)
+from .forms import NotificationPreferenceForm, ProfileForm
 from .models import (
-    AssignmentSubmission,
-    ClassAssignment,
-    Classroom,
-    ClassroomMembership,
-    CommunityReply,
-    CommunityThread,
     Lesson,
+    LessonComment,
     LessonProgress,
+    LessonRating,
     Notification,
     NotificationPreference,
-    ParentChildLink,
-    Project,
-    ProjectSubmission,
     Subject,
     Test,
     TestAttempt,
     UserProfile,
 )
 from .services.ai import generate_hint
+from .services.analytics import LessonAnalyticsService
+from .services.code_runner import CodeRunner
 from .services.gamification import (
     build_overall_progress,
     get_badge_summary,
@@ -51,6 +39,39 @@ from .services.gamification import (
     record_lesson_completion,
 )
 from .services.notifications import notify_feedback, send_notification
+
+try:
+    from .forms import (
+        ClassAssignmentForm,
+        ClassroomForm,
+        ProjectSubmissionForm,
+        ReplyForm,
+        ThreadForm,
+    )
+except ImportError:
+    ClassAssignmentForm = (
+        ClassroomForm
+    ) = ProjectSubmissionForm = ReplyForm = ThreadForm = None
+
+try:
+    from .models import (
+        ClassAssignment,
+        Classroom,
+        ClassroomMembership,
+        CommunityReply,
+        CommunityThread,
+        ParentChildLink,
+        Project,
+        ProjectSubmission,
+    )
+except ImportError:
+    ClassAssignment = (
+        Classroom
+    ) = (
+        ClassroomMembership
+    ) = (
+        CommunityReply
+    ) = CommunityThread = ParentChildLink = Project = ProjectSubmission = None
 
 # recommendations are used inside services, not directly in views
 
@@ -206,35 +227,89 @@ def student_dashboard(request):
 @role_required(ROLE_TEACHER)
 def teacher_dashboard(request):
     profile = get_profile(request.user)
-    classrooms = Classroom.objects.filter(owner=request.user).annotate(
-        member_count=Count("memberships")
+
+    # Get lesson analytics overview
+    analytics_overview = LessonAnalyticsService.get_lesson_overview_stats(request.user)
+    top_lessons = LessonAnalyticsService.get_top_performing_lessons(
+        request.user, limit=5
     )
-    assignments = ClassAssignment.objects.filter(
-        classroom__owner=request.user
-    ).select_related("classroom")[:5]
-    pending_reviews = AssignmentSubmission.objects.filter(
-        assignment__classroom__owner=request.user,
-        status=AssignmentSubmission.STATUS_SUBMITTED,
-    ).select_related("assignment", "student")
-    project_reviews = ProjectSubmission.objects.select_related(
-        "project", "student"
-    ).order_by("-uploaded_at")[:3]
+
+    # Get recent comments and ratings for moderation
+    recent_comments = (
+        LessonComment.objects.filter(is_approved=False, is_hidden=False)
+        .select_related("lesson", "user")
+        .order_by("-created_at")[:10]
+    )
+
+    recent_ratings = LessonRating.objects.select_related("lesson", "user").order_by(
+        "-created_at"
+    )[:10]
 
     context = {
         "profile": profile,
-        "classrooms": classrooms,
-        "assignments": assignments,
-        "pending_reviews": pending_reviews[:5],
-        "project_reviews": project_reviews,
+        "analytics_overview": analytics_overview,
+        "top_lessons": top_lessons,
+        "recent_comments": recent_comments,
+        "recent_ratings": recent_ratings,
     }
     return render(
         request, "estudy/dashboard_teacher.html", with_progress(context, request.user)
     )
 
 
+@role_required(ROLE_TEACHER)
+def moderate_comments(request):
+    """View for moderating lesson comments"""
+    if request.method == "POST":
+        comment_id = request.POST.get("comment_id")
+        action = request.POST.get("action")
+
+        try:
+            comment = LessonComment.objects.get(id=comment_id)
+            if action == "approve":
+                comment.is_approved = True
+                comment.is_hidden = False
+                comment.save()
+                messages.success(request, "Comentariul a fost aprobat.")
+            elif action == "hide":
+                comment.is_hidden = True
+                comment.save()
+                messages.success(request, "Comentariul a fost ascuns.")
+            elif action == "delete":
+                comment.delete()
+                messages.success(request, "Comentariul a fost șters.")
+        except LessonComment.DoesNotExist:
+            messages.error(request, "Comentariul nu a fost găsit.")
+
+        return redirect("estudy:moderate_comments")
+
+    # Get comments pending moderation
+    pending_comments = (
+        LessonComment.objects.filter(is_approved=False)
+        .select_related("lesson", "user")
+        .order_by("-created_at")
+    )
+
+    # Get recent approved comments
+    recent_comments = (
+        LessonComment.objects.filter(is_approved=True, is_hidden=False)
+        .select_related("lesson", "user")
+        .order_by("-created_at")[:20]
+    )
+
+    context = {
+        "pending_comments": pending_comments,
+        "recent_comments": recent_comments,
+    }
+
+    return render(request, "estudy/moderate_comments.html", context)
+
+
 @login_required
 @user_passes_test(is_admin)
 def admin_dashboard(request):
+    if Classroom is None:
+        raise Http404("Classroom management is not available.")
     lessons = Lesson.objects.select_related("subject").annotate(
         student_count=Count("progress_records")
     )
@@ -261,6 +336,8 @@ def admin_dashboard(request):
 
 @role_required(ROLE_PARENT)
 def parent_dashboard(request):
+    if ParentChildLink is None:
+        raise Http404("Parent-child linking is not available.")
     links = ParentChildLink.objects.filter(parent=request.user).select_related("child")
     children = [link.child for link in links]
     child_progress = []
@@ -330,6 +407,8 @@ def missions_view(request):
 
 @login_required
 def leaderboard_view(request):
+    if Classroom is None or ClassroomMembership is None:
+        raise Http404("Classroom leaderboard is not available.")
     classroom_id = request.GET.get("classroom")
     leaderboard = get_leaderboard_snapshot(limit=20)
     classroom = None
@@ -361,6 +440,87 @@ def leaderboard_view(request):
 
 
 @login_required
+def code_exercise_view(request, pk: int):
+    from .models import CodeExercise
+
+    exercise = get_object_or_404(CodeExercise, pk=pk)
+    context = {"exercise": exercise}
+    return render(
+        request, "estudy/code_playground.html", with_progress(context, request.user)
+    )
+
+
+@login_required
+@require_POST
+def run_code_api(request):
+    """Run code against exercise test cases and return JSON with results.
+
+    Expects JSON body with keys:
+    - exercise_id: int
+    - code: str
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    exercise_id = payload.get("exercise_id")
+    code = payload.get("code", "")
+    if not exercise_id or not isinstance(exercise_id, int):
+        return JsonResponse({"error": "exercise_id is required"}, status=400)
+    if not code.strip():
+        return JsonResponse({"error": "code is required"}, status=400)
+
+    from .models import CodeExercise  # local import to avoid circulars in module load
+
+    exercise = get_object_or_404(CodeExercise, pk=exercise_id)
+
+    # For now only Python supported
+    if exercise.language != "python":
+        return JsonResponse(
+            {"error": "Only Python is supported in this beta"}, status=400
+        )
+
+    result = CodeRunner.run_python_code(code, exercise.test_cases or [])
+
+    # Save submission
+    from .models import CodeSubmission
+
+    submission = CodeSubmission.objects.create(
+        exercise=exercise,
+        user=request.user,
+        code=code,
+        passed_tests=result.passed,
+        total_tests=result.total,
+        is_correct=result.is_correct,
+        execution_time_ms=result.execution_time_ms,
+        output="\n".join(
+            [
+                f"[{i + 1}] {tr.get('actual', '')}"
+                for i, tr in enumerate(result.test_results)
+            ]
+        )[:4000],
+        error_message=(result.error or "")[:1000],
+    )
+
+    # XP reward on first full pass
+    if result.is_correct:
+        try:
+            # award lesson xp if not completed yet
+            lp, _ = LessonProgress.objects.get_or_create(
+                user=request.user, lesson=exercise.lesson
+            )
+            if not lp.completed:
+                lp.mark_completed()
+        except Exception:
+            pass
+
+    resp = result.to_dict()
+    resp.update({"submission_id": submission.id})
+    return JsonResponse(resp)
+
+
+@login_required
 def notifications_center(request):
     notifications = Notification.objects.filter(recipient=request.user).order_by(
         "-created_at"
@@ -386,6 +546,8 @@ def notifications_center(request):
 
 @login_required
 def classroom_hub(request):
+    if Classroom is None or ClassroomMembership is None or ClassroomForm is None:
+        raise Http404("Classroom feature is not available.")
     profile = get_profile(request.user)
     memberships = ClassroomMembership.objects.filter(user=request.user).select_related(
         "classroom"
@@ -437,6 +599,13 @@ def classroom_hub(request):
 
 @role_required(ROLE_TEACHER)
 def classroom_detail(request, pk):
+    if (
+        Classroom is None
+        or ClassroomMembership is None
+        or ClassAssignment is None
+        or ClassAssignmentForm is None
+    ):
+        raise Http404("Classroom feature is not available.")
     classroom = get_object_or_404(Classroom, pk=pk, owner=request.user)
     memberships = ClassroomMembership.objects.filter(
         classroom=classroom
@@ -472,6 +641,8 @@ def classroom_detail(request, pk):
 
 @login_required
 def projects_view(request):
+    if Project is None or ProjectSubmission is None:
+        raise Http404("Projects feature is not available.")
     projects = Project.objects.select_related("lesson").order_by("level")
     submissions = ProjectSubmission.objects.filter(student=request.user)
     submitted_ids = list(submissions.values_list("project_id", flat=True))
@@ -491,6 +662,8 @@ def projects_view(request):
 
 @login_required
 def submit_project(request, slug):
+    if Project is None or ProjectSubmission is None or ProjectSubmissionForm is None:
+        raise Http404("Projects feature is not available.")
     project = get_object_or_404(Project, slug=slug)
     submission = ProjectSubmission.objects.filter(
         project=project, student=request.user
@@ -520,6 +693,8 @@ def submit_project(request, slug):
 
 @login_required
 def community_forum(request):
+    if CommunityThread is None or ThreadForm is None:
+        raise Http404("Community forum is not available.")
     threads = CommunityThread.objects.select_related("created_by").order_by(
         "-is_pinned", "-created_at"
     )
@@ -542,6 +717,8 @@ def community_forum(request):
 
 @login_required
 def community_thread(request, pk):
+    if CommunityThread is None or CommunityReply is None or ReplyForm is None:
+        raise Http404("Community forum is not available.")
     thread = get_object_or_404(
         CommunityThread.objects.select_related("created_by"), pk=pk
     )
