@@ -4,11 +4,15 @@ repos:
     hooks:
       - id: black
         language_version: python3
-  - repo: https://gitlab.com/pycqa/flake8
+        exclude: ^myenv/
+  - repo: https://github.com/PyCQA/flake8
     rev: 6.1.0
     hooks:
       - id: flake8
-  - repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.12.0
+        exclude: ^(myenv/|.*migrations/|USAGE_EXAMPLES\\.py|estudy/admin_old\\.py|estudy/forms_old\\.py)
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
     hooks:
       - id: isort
+        exclude: ^myenv/
+        args: ["--profile", "black"]

@@ -266,7 +266,6 @@ def enrich_lessons(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("estudy", "0009_seed_showcase_lessons"),
     ]

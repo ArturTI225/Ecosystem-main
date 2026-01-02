@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("estudy", "0004_reward_lesson_resources_test_userreward_and_more"),
     ]

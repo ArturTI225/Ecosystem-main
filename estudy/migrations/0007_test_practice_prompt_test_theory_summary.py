@@ -4,7 +4,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("estudy", "0006_alter_lesson_options_remove_lesson_resources_and_more"),
     ]

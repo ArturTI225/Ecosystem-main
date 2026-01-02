@@ -66,7 +66,6 @@ def seed_lessons(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
         ("estudy", "0005_alter_lesson_resources"),

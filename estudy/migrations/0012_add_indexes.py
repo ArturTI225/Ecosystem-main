@@ -2,7 +2,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("estudy", "0011_badge_classroom_dailychallenge_learningpath_mission_and_more"),
     ]
