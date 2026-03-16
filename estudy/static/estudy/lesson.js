@@ -7,7 +7,9 @@
     const lessonSlug = lessonRoot.dataset.lessonSlug || 'lesson';
     const PROGRESS_STEPS = ['concept', 'example', 'practice', 'test', 'summary'];
     const sectionToStage = {
+        'adventure-mode': 'concept',
         concept: 'concept',
+        'code-exercises': 'example',
         example: 'example',
         practice: 'practice',
         test: 'test',
@@ -84,6 +86,96 @@ const loadState = (key, fallback = null) => {
 
     initTabs();
 
+    const initAdventureMode = () => {
+        const adventureRoot = document.querySelector('#adventure-mode');
+        if (!adventureRoot) {
+            return;
+        }
+
+        const characterCards = Array.from(adventureRoot.querySelectorAll('[data-character-card]'));
+        if (characterCards.length > 1) {
+            let activeIndex = characterCards.findIndex((card) => card.classList.contains('is-active'));
+            if (activeIndex < 0) {
+                activeIndex = 0;
+                characterCards[0].classList.add('is-active');
+            }
+
+            const activateCard = (index) => {
+                activeIndex = index;
+                characterCards.forEach((card, cardIndex) => {
+                    card.classList.toggle('is-active', cardIndex === activeIndex);
+                });
+            };
+
+            characterCards.forEach((card, index) => {
+                card.addEventListener('click', () => activateCard(index));
+            });
+
+            let castIntervalId = null;
+            const startRotation = () => {
+                if (castIntervalId) {
+                    return;
+                }
+                castIntervalId = window.setInterval(() => {
+                    const next = (activeIndex + 1) % characterCards.length;
+                    activateCard(next);
+                }, 3800);
+            };
+            const stopRotation = () => {
+                if (!castIntervalId) {
+                    return;
+                }
+                window.clearInterval(castIntervalId);
+                castIntervalId = null;
+            };
+
+            adventureRoot.addEventListener('pointerenter', stopRotation);
+            adventureRoot.addEventListener('pointerleave', startRotation);
+            startRotation();
+        }
+
+        const missions = Array.from(adventureRoot.querySelectorAll('[data-arena-mission]'));
+        if (!missions.length) {
+            return;
+        }
+
+        const statusTitle = adventureRoot.querySelector('[data-arena-status-title]');
+        const statusGoal = adventureRoot.querySelector('[data-arena-status-goal]');
+        const statusXp = adventureRoot.querySelector('[data-arena-status-xp]');
+        const statusLink = adventureRoot.querySelector('[data-arena-status-link]');
+
+        const activateMission = (button) => {
+            missions.forEach((missionButton) => {
+                missionButton.classList.toggle('is-active', missionButton === button);
+            });
+            const missionTitle = button.dataset.missionTitle || button.textContent.trim();
+            const missionGoal = button.dataset.missionGoal || 'Misiune activă.';
+            const missionXp = button.dataset.missionXp || '10';
+            const missionTarget = button.dataset.missionTarget || '#example';
+
+            if (statusTitle) {
+                statusTitle.textContent = missionTitle;
+            }
+            if (statusGoal) {
+                statusGoal.textContent = missionGoal;
+            }
+            if (statusXp) {
+                statusXp.textContent = `+${missionXp} XP`;
+            }
+            if (statusLink) {
+                statusLink.setAttribute('href', missionTarget);
+            }
+        };
+
+        missions.forEach((button) => {
+            button.addEventListener('click', () => activateMission(button));
+        });
+
+        activateMission(missions[0]);
+    };
+
+    initAdventureMode();
+
     const sections = Array.from(document.querySelectorAll('[data-lesson-section]'));
     const tocLinks = Array.from(document.querySelectorAll('[data-lesson-toc-link]'));
     const mobileSelect = document.querySelector('#lesson-mobile-toc');
@@ -92,6 +184,13 @@ const loadState = (key, fallback = null) => {
     );
     let activeSectionId = null;
     let activeStage = 'concept';
+    const immersiveMode = document.body.classList.contains('lesson-page--immersive');
+    const coreImmersivePanels = new Set(['concept', 'example', 'practice', 'test', 'summary']);
+    const immersiveSections = immersiveMode
+        ? Array.from(document.querySelectorAll('.lesson-body > .lesson-section[id]'))
+        : [];
+    let activateImmersivePanel = null;
+    let initialImmersivePanel = 'concept';
 
     const setActiveSection = (id) => {
         if (!id || activeSectionId === id) {
@@ -127,37 +226,6 @@ const loadState = (key, fallback = null) => {
         setActiveSection(candidate);
     };
 
-    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-        anchor.addEventListener('click', (event) => {
-            const targetId = anchor.getAttribute('href');
-            if (!targetId || targetId === '#' || targetId === '#0') {
-                return;
-            }
-            const target = document.querySelector(targetId);
-            if (!target) {
-                return;
-            }
-            event.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-    });
-
-    tocLinks.forEach((link) => {
-        link.addEventListener('click', (event) => {
-            const href = link.getAttribute('href');
-            if (href && href.startsWith('#')) {
-                event.preventDefault();
-                const target = document.querySelector(href);
-                target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        });
-    });
-
-    mobileSelect?.addEventListener('change', (event) => {
-        const target = document.querySelector(event.target.value);
-        target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-
     let sectionUpdateScheduled = false;
     const scheduleSectionUpdate = () => {
         if (sectionUpdateScheduled) {
@@ -170,8 +238,110 @@ const loadState = (key, fallback = null) => {
         });
     };
 
-    window.addEventListener('scroll', scheduleSectionUpdate, { passive: true });
-    window.addEventListener('resize', scheduleSectionUpdate);
+    if (immersiveMode && immersiveSections.length) {
+        const applyPanelVisibility = (targetId) => {
+            immersiveSections.forEach((section) => {
+                if (!coreImmersivePanels.has(section.id)) {
+                    section.classList.remove('is-panel-active');
+                    section.setAttribute('hidden', '');
+                    return;
+                }
+                const isActive = section.id === targetId;
+                section.classList.toggle('is-panel-active', isActive);
+                section.toggleAttribute('hidden', !isActive);
+            });
+        };
+
+        activateImmersivePanel = (targetId, { updateHash = true } = {}) => {
+            if (!targetId || !coreImmersivePanels.has(targetId)) {
+                return;
+            }
+            applyPanelVisibility(targetId);
+            setActiveSection(targetId);
+            if (updateHash) {
+                window.history.replaceState(null, '', `#${targetId}`);
+            }
+        };
+
+        const requestedHash = window.location.hash?.slice(1);
+        if (requestedHash && coreImmersivePanels.has(requestedHash)) {
+            initialImmersivePanel = requestedHash;
+        } else if (coreImmersivePanels.has('example')) {
+            initialImmersivePanel = 'example';
+        }
+
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+            anchor.addEventListener('click', (event) => {
+                const href = anchor.getAttribute('href');
+                if (!href || href === '#' || href === '#0') {
+                    return;
+                }
+                const targetId = href.slice(1);
+                if (!coreImmersivePanels.has(targetId)) {
+                    return;
+                }
+                event.preventDefault();
+                activateImmersivePanel?.(targetId);
+            });
+        });
+
+        tocLinks.forEach((link) => {
+            link.addEventListener('click', (event) => {
+                const href = link.getAttribute('href');
+                if (!href || !href.startsWith('#')) {
+                    return;
+                }
+                const targetId = href.slice(1);
+                if (!coreImmersivePanels.has(targetId)) {
+                    return;
+                }
+                event.preventDefault();
+                activateImmersivePanel?.(targetId);
+            });
+        });
+
+        mobileSelect?.addEventListener('change', (event) => {
+            const targetId = String(event.target.value || '').replace('#', '');
+            if (!coreImmersivePanels.has(targetId)) {
+                return;
+            }
+            activateImmersivePanel?.(targetId);
+        });
+    } else {
+        document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+            anchor.addEventListener('click', (event) => {
+                const targetId = anchor.getAttribute('href');
+                if (!targetId || targetId === '#' || targetId === '#0') {
+                    return;
+                }
+                const target = document.querySelector(targetId);
+                if (!target) {
+                    return;
+                }
+                event.preventDefault();
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        tocLinks.forEach((link) => {
+            link.addEventListener('click', (event) => {
+                const href = link.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    event.preventDefault();
+                    const target = document.querySelector(href);
+                    target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+
+        mobileSelect?.addEventListener('change', (event) => {
+            const target = document.querySelector(event.target.value);
+            target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+
+        window.addEventListener('scroll', scheduleSectionUpdate, { passive: true });
+        window.addEventListener('resize', scheduleSectionUpdate);
+    }
 
     const progressKey = `lesson-progress-state-${lessonSlug}`;
     const defaultProgressState = PROGRESS_STEPS.reduce((acc, step) => {
@@ -216,12 +386,12 @@ const loadState = (key, fallback = null) => {
     const computeLevel = (xp) => Math.max(1, Math.floor(xp / 120) + 1);
     const computeBadge = (level) => {
         if (level >= 5) {
-            return 'Legend';
+            return 'Legendă';
         }
         if (level >= 3) {
-            return 'Explorer';
+            return 'Explorator';
         }
-        return 'Beginner';
+        return 'Începător';
     };
 
     const persistXpState = () => {
@@ -360,8 +530,13 @@ const loadState = (key, fallback = null) => {
 
     updateProgressUI();
 
+    if (immersiveMode) {
+        setProgressStep('concept', true, { skipAuto: true });
+        activateImmersivePanel?.(initialImmersivePanel, { updateHash: false });
+    }
+
     const conceptSection = document.querySelector('#concept');
-    if (conceptSection && !progressState.concept && 'IntersectionObserver' in window) {
+    if (!immersiveMode && conceptSection && !progressState.concept && 'IntersectionObserver' in window) {
         const conceptObserver = new IntersectionObserver((entries) => {
             if (entries.some((entry) => entry.isIntersecting)) {
                 setProgressStep('concept', true);
@@ -383,7 +558,7 @@ const loadState = (key, fallback = null) => {
                 const original = button.textContent;
                 button.textContent = 'Copiat!';
                 setTimeout(() => {
-                button.textContent = original || 'Copiaza';
+                button.textContent = original || 'Copiază';
                 }, 1600);
             } catch (error) {
                 console.error('Copy failed', error);
@@ -402,8 +577,23 @@ const loadState = (key, fallback = null) => {
         const runButton = codeLab.querySelector('[data-code-run]');
         const resetButton = codeLab.querySelector('[data-code-reset]');
         const rewardBadge = codeLab.querySelector('[data-code-reward]');
+        const missionStatus = codeLab.querySelector('[data-code-mission-status]');
+        const checkAssignNode = codeLab.querySelector('[data-code-check="assign"]');
+        const checkPrintNode = codeLab.querySelector('[data-code-check="print"]');
         const initialCode = codeInput?.value || '';
-        const defaultConsoleText = codeOutput?.textContent || 'Consola asteapta sa rulezi codul...';
+        const defaultConsoleText = codeOutput?.textContent || 'Consola așteaptă să rulezi codul...';
+        const evaluateMissionState = () => {
+            const source = codeInput?.value || '';
+            const hasAssignment = /[A-Za-z_]\w*\s*=\s*.+/m.test(source);
+            const hasPrint = /\bprint\s*\(/m.test(source);
+            checkAssignNode?.classList.toggle('is-done', hasAssignment);
+            checkPrintNode?.classList.toggle('is-done', hasPrint);
+            return {
+                hasAssignment,
+                hasPrint,
+                completed: hasAssignment && hasPrint,
+            };
+        };
 
         const syncPreview = () => {
             if (!codeInput || !codePreview) {
@@ -417,9 +607,11 @@ const loadState = (key, fallback = null) => {
 
         codeInput?.addEventListener('input', () => {
             syncPreview();
+            evaluateMissionState();
             setProgressStep('example', false, { skipAuto: true });
         });
         syncPreview();
+        evaluateMissionState();
 
         if (codeOutput) {
             codeOutput.textContent = defaultConsoleText;
@@ -470,7 +662,7 @@ import builtins
 builtins.input = _unitex_original_input
 `);
             }
-            return resultText || 'Nu exista output. Foloseste print() pentru a afisa valori.';
+            return resultText || 'Nu există output. Folosește print() pentru a afișa valori.';
         };
 
         const showCodeReward = () => {
@@ -489,7 +681,7 @@ builtins.input = _unitex_original_input
             }
             runButton.disabled = true;
             if (codeStatus) {
-                codeStatus.textContent = 'Se incarca runtime-ul...';
+                codeStatus.textContent = 'Se încarcă runtime-ul...';
             }
             try {
                 await ensurePyodide();
@@ -499,19 +691,33 @@ builtins.input = _unitex_original_input
                 const textResult = await runPythonCode(codeInput.value);
                 codeOutput.textContent = `Rezultat:\\n${textResult}`;
                 codeOutput.style.color = 'var(--lesson-success)';
-                if (codeStatus) {
-                    codeStatus.textContent = 'Executarea a reusit.';
-                }
-                const changed = setProgressStep('example', true);
-                if (changed) {
-                    showCodeReward();
+                const missionState = evaluateMissionState();
+                if (missionState.completed) {
+                    if (codeStatus) {
+                        codeStatus.textContent = 'Executarea a reușit. Misiunea e completă.';
+                    }
+                    if (missionStatus) {
+                        missionStatus.textContent = 'Perfect! Ai bifat ambele obiective.';
+                    }
+                    const changed = setProgressStep('example', true);
+                    if (changed) {
+                        showCodeReward();
+                    }
+                } else {
+                    if (codeStatus) {
+                        codeStatus.textContent = 'Codul rulează, dar misiunea nu e completă.';
+                    }
+                    if (missionStatus) {
+                        missionStatus.textContent = 'Mai ai un pas: adaugă variabilă și/sau print().';
+                    }
+                    setProgressStep('example', false, { skipAuto: true });
                 }
             } catch (error) {
                 console.error(error);
                 codeOutput.textContent = `Rezultat:\\nUps! Codul s-a oprit.\\nMesaj: ${error.message}`;
                 codeOutput.style.color = 'var(--lesson-danger)';
                 if (codeStatus) {
-                    codeStatus.textContent = 'Incearca sa corectezi codul si ruleaza din nou.';
+                    codeStatus.textContent = 'Încearcă să corectezi codul și rulează din nou.';
                 }
                 setProgressStep('example', false);
             } finally {
@@ -531,22 +737,67 @@ builtins.input = _unitex_original_input
             codeOutput.textContent = defaultConsoleText;
             codeOutput.style.color = '';
             if (codeStatus) {
-                codeStatus.textContent = 'Pregatit ⚡';
+                codeStatus.textContent = 'Pregătit ⚡';
             }
-            setProgressStep('example', false);
+            if (missionStatus) {
+                missionStatus.textContent = 'Completează checklist-ul, apoi apasă Run.';
+            }
+            evaluateMissionState();
+            setProgressStep('example', false, { skipAuto: true });
         });
     }
+
+    const hintModal = document.querySelector('[data-lesson-hint-modal]');
+    const hintModalTitle = hintModal?.querySelector('[data-lesson-hint-modal-title]');
+    const hintModalContent = hintModal?.querySelector('[data-lesson-hint-modal-content]');
+
+    const closeHintModal = () => {
+        if (!hintModal || hintModal.hasAttribute('hidden')) {
+            return;
+        }
+        hintModal.setAttribute('hidden', '');
+        document.body.classList.remove('lesson-hint-modal-open');
+    };
+
+    const openHintModal = ({ title, content }) => {
+        if (!hintModal || !hintModalTitle || !hintModalContent) {
+            return;
+        }
+        hintModalTitle.textContent = title || 'Hint';
+        hintModalContent.textContent = content || 'Ruleaza activitatea pentru a primi un indiciu.';
+        hintModal.removeAttribute('hidden');
+        document.body.classList.add('lesson-hint-modal-open');
+    };
+
+    document.querySelectorAll('[data-hint-modal-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const title = button.dataset.hintModalTitle || 'Hint';
+            const content = button.dataset.hintModalContent || '';
+            openHintModal({ title, content });
+        });
+    });
 
     document.querySelectorAll('[data-hint-toggle]').forEach((button) => {
         const panel = button.closest('.practice-subcard')?.querySelector('[data-hint-panel]');
         button.addEventListener('click', () => {
-            if (!panel) {
-                return;
-            }
-            const isHidden = panel.hasAttribute('hidden');
-            panel.toggleAttribute('hidden', !isHidden);
-            button.setAttribute('aria-expanded', String(isHidden));
+            const panelContent = panel?.textContent?.trim() || '';
+            openHintModal({
+                title: 'Hint practica',
+                content: panelContent || 'Ruleaza activitatea pentru a primi un indiciu.',
+            });
         });
+    });
+
+    hintModal?.querySelectorAll('[data-lesson-hint-modal-close]').forEach((closeButton) => {
+        closeButton.addEventListener('click', () => {
+            closeHintModal();
+        });
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeHintModal();
+        }
     });
 
     const practiceContainer = document.querySelector('[data-drag-container]');
@@ -554,7 +805,7 @@ builtins.input = _unitex_original_input
     const orderCelebration = document.querySelector('[data-order-celebration]');
     const practiceExplanation = document.querySelector('[data-practice-explanation]');
     const practiceDefaultExplanation = practiceExplanation?.dataset.practiceDefault || practiceExplanation?.textContent || '';
-    const successMessage = document.querySelector('[data-draggable-target]')?.dataset.successMessage || 'Super! Ordinea este corecta.';
+    const successMessage = document.querySelector('[data-draggable-target]')?.dataset.successMessage || 'Super! Ordinea este corectă.';
 
     if (practiceContainer && window.Sortable) {
         const sourceList = practiceContainer.querySelector('[data-draggable-source]');
@@ -671,14 +922,14 @@ builtins.input = _unitex_original_input
             } else {
                 if (orderFeedback) {
                     orderFeedback.textContent = firstWrongLabel
-                        ? `Mai verifica potrivirea pentru \"${firstWrongLabel}\".`
-                        : 'Mai incearca – unele potriviri sunt gresite.';
+                        ? `Mai verifică potrivirea pentru \"${firstWrongLabel}\".`
+                        : 'Mai încearcă - unele potriviri sunt greșite.';
                     orderFeedback.classList.add('error');
                     orderFeedback.classList.remove('success');
                 }
                 if (practiceExplanation) {
                     practiceExplanation.textContent = firstWrongLabel
-                        ? `Indiciu: reciteste descrierea pentru \"${firstWrongLabel}\" si cauta cuvintele cheie din token.`
+                        ? `Indiciu: recitește descrierea pentru \"${firstWrongLabel}\" și caută cuvintele cheie din token.`
                         : practiceDefaultExplanation;
                 }
                 orderCelebration?.classList.remove('is-visible');
@@ -707,7 +958,7 @@ builtins.input = _unitex_original_input
     const quizFeedback = quizCard?.querySelector('[data-quiz-feedback]');
     const quizExplanationBlock = quizCard?.querySelector('[data-quiz-explanation-block]');
     const quizExplanationText = quizCard?.querySelector('[data-quiz-explanation-text]');
-    const quizExplanation = quizCard?.dataset.quizExplanation || 'Gandeste-te la definitia conceptului si cum il folosesti ulterior.';
+    const quizExplanation = quizCard?.dataset.quizExplanation || 'Gândește-te la definiția conceptului și cum îl folosești ulterior.';
     const quizStorageKey = `lesson-quiz-${lessonSlug}`;
     const quizSubmitButton = quizForm?.querySelector('button[type="submit"]');
 
@@ -962,5 +1213,7 @@ builtins.input = _unitex_original_input
         });
     });
 
-    scheduleSectionUpdate();
+    if (!immersiveMode) {
+        scheduleSectionUpdate();
+    }
 })();

@@ -3,6 +3,7 @@
 """
 from __future__ import annotations
 
+import random
 from datetime import timedelta
 from typing import Dict, List
 
@@ -266,3 +267,24 @@ def get_learning_velocity(user, days: int = 30) -> Dict:
         "trend": trend,
         "previous_period": prev_completed,
     }
+
+
+def get_question_bank(difficulty: str | None = None, limit: int = 10) -> List[Test]:
+    """
+    Return a randomized question bank filtered by difficulty when provided.
+    """
+    queryset = Test.objects.all()
+    if difficulty:
+        queryset = queryset.filter(difficulty=difficulty)
+    ids = list(queryset.values_list("id", flat=True))
+    random.shuffle(ids)
+    selected = ids[:limit]
+    return list(Test.objects.filter(id__in=selected))
+
+
+def sample_questions_for_lesson(lesson: Lesson, limit: int = 5) -> List[Test]:
+    """
+    Grab a small randomized subset of questions for a lesson.
+    """
+    qs = Test.objects.filter(lesson=lesson).order_by("?")[:limit]
+    return list(qs)

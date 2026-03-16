@@ -1,0 +1,183 @@
+﻿{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Robot Lab - {{ level.title }}{% endblock %}
+{% block body_class %}workspace-body robotlab-play-page{% endblock %}
+{% block workspace_title %}Robot Lab - {{ level.title }}{% endblock %}
+{% block workspace_subtitle %}{{ level.description|default:"Scrie cod Python si ghideaza robotul pas cu pas." }}{% endblock %}
+{% block workspace_banner %}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'estudy/robot_lab.css' %}">
+{% endblock %}
+
+{% block page_content %}
+<section
+    class="robotlab-page robotlab-play"
+    data-robotlab-play
+    data-level-id="{{ level_id }}"
+    data-run-url="{% url 'estudy:robot_lab_run_api' %}"
+>
+    <header class="card robotlab-level-header">
+        <div>
+            <span class="robotlab-level-code">{{ level.id }}</span>
+            <h2>{{ level.title }}</h2>
+            <p>{{ level.goal_text }}</p>
+            <div class="robotlab-level-chips">
+                {% for concept in level.concepts %}
+                <span class="chip">{{ concept }}</span>
+                {% endfor %}
+                <span class="chip">Max steps: {{ level.max_steps }}</span>
+                <span class="chip">XP +{{ level.xp_reward }}</span>
+            </div>
+        </div>
+        <div class="robotlab-level-nav">
+            <a class="btn btn--ghost btn--small" href="{% url 'estudy:robot_lab_hub' %}">Hub</a>
+            {% if prev_level_id %}
+            <a class="btn btn--ghost btn--small" href="{% url 'estudy:robot_lab_play' level_id=prev_level_id %}">Inapoi</a>
+            {% endif %}
+            {% if next_level_id and next_level_unlocked %}
+            <a class="btn btn--ghost btn--small" href="{% url 'estudy:robot_lab_play' level_id=next_level_id %}">Urmator</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="robotlab-split">
+        <aside class="card robotlab-theory-panel" aria-label="Teorie">
+            <div class="robotlab-theory-head">
+                <span class="robotlab-eyebrow">Teorie</span>
+                <h3>Briefing rapid</h3>
+                <p>{{ level.description|default:"Citeste teoria, apoi aplica direct in joc." }}</p>
+            </div>
+
+            <article class="robotlab-theory-block">
+                <h4>Obiectivul misiunii</h4>
+                <p>{{ level.goal_text }}</p>
+            </article>
+
+            <article class="robotlab-theory-block">
+                <h4>Concepte vizate</h4>
+                <ul class="robotlab-list">
+                    {% for concept in level.concepts %}
+                    <li>{{ concept }}</li>
+                    {% empty %}
+                    <li>Secventiere</li>
+                    {% endfor %}
+                </ul>
+            </article>
+
+            <article class="robotlab-theory-block">
+                <h4>Comenzi utile</h4>
+                <ul class="robotlab-command-list">
+                    <li><code>move()</code></li>
+                    <li><code>turn_left()</code></li>
+                    <li><code>turn_right()</code></li>
+                    <li><code>pick()</code></li>
+                    <li><code>activate()</code></li>
+                </ul>
+            </article>
+
+            <article class="robotlab-hint-panel">
+                <h4>Hint-uri RoboMentor</h4>
+                <p>Deschide hint-urile in ferestre modale dupa fiecare rulare.</p>
+                <div class="robotlab-hint-actions">
+                    <button type="button" class="btn btn--ghost btn--small robotlab-hint-btn" data-hint-open data-hint-type="what">
+                        Ce s-a intamplat?
+                    </button>
+                    <button type="button" class="btn btn--ghost btn--small robotlab-hint-btn" data-hint-open data-hint-type="mistake">
+                        Explicatie
+                    </button>
+                    <button type="button" class="btn btn--ghost btn--small robotlab-hint-btn" data-hint-open data-hint-type="hint1">
+                        Hint 1
+                    </button>
+                    <button type="button" class="btn btn--ghost btn--small robotlab-hint-btn" data-hint-open data-hint-type="hint2">
+                        Hint 2
+                    </button>
+                    <button type="button" class="btn btn--ghost btn--small robotlab-hint-btn" data-hint-open data-hint-type="focus">
+                        Concept focus
+                    </button>
+                    <button type="button" class="btn btn--ghost btn--small robotlab-hint-btn" data-hint-open data-hint-type="encourage">
+                        Incurajare
+                    </button>
+                    <button type="button" class="btn btn--ghost btn--small robotlab-hint-btn" data-hint-open data-hint-type="solution">
+                        Solutie exemplu
+                    </button>
+                </div>
+            </article>
+        </aside>
+
+        <section class="robotlab-game-panel" aria-label="Joc">
+            <div class="robotlab-runtime">
+                <section class="card robotlab-grid-card">
+                    <h3>Harta</h3>
+                    <div class="robotlab-grid" data-robot-grid></div>
+                    <div class="robotlab-playback">
+                        <button type="button" class="btn btn--ghost btn--small" data-playback-step>Step</button>
+                        <button type="button" class="btn btn--ghost btn--small" data-playback-play>Play</button>
+                        <button type="button" class="btn btn--ghost btn--small" data-playback-pause>Pause</button>
+                        <button type="button" class="btn btn--ghost btn--small" data-playback-reset>Reset</button>
+                    </div>
+                </section>
+
+                <section class="card robotlab-editor-card">
+                    <h3>Editor Python</h3>
+                    <label class="robotlab-field">
+                        <span>Codul tau</span>
+                        <textarea data-code-input rows="14">{{ level.starter_code }}</textarea>
+                    </label>
+                    <label class="robotlab-checkbox">
+                        <input type="checkbox" data-request-solution>
+                        <span>Vreau si un exemplu de solutie</span>
+                    </label>
+                    <div class="robotlab-actions">
+                        <button type="button" class="btn btn--primary" data-run-btn>Run</button>
+                        <button type="button" class="btn btn--ghost" data-reset-code>Reset code</button>
+                    </div>
+                    <p class="robotlab-status" data-run-status>Pregatit.</p>
+                </section>
+            </div>
+
+            <section class="card robotlab-trace-card">
+                <h3>Execution trace</h3>
+                <ol class="robotlab-trace" data-trace-list>
+                    <li>Ruleaza codul ca sa vezi actiunile robotului.</li>
+                </ol>
+            </section>
+        </section>
+    </div>
+
+    <div class="robotlab-mentor-store" hidden>
+        <p data-mentor-what>-</p>
+        <p data-mentor-mistake>-</p>
+        <p data-mentor-h1>-</p>
+        <p data-mentor-h2>-</p>
+        <p data-mentor-focus>-</p>
+        <p data-mentor-encourage>-</p>
+        <article data-mentor-solution-wrap hidden>
+            <pre data-mentor-solution></pre>
+        </article>
+    </div>
+
+    <div class="robotlab-modal" data-hint-modal hidden>
+        <button type="button" class="robotlab-modal__backdrop" data-hint-modal-close aria-label="Inchide"></button>
+        <article class="robotlab-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="robotlab-hint-title">
+            <button type="button" class="robotlab-modal__close" data-hint-modal-close aria-label="Inchide">
+                ×
+            </button>
+            <p class="robotlab-modal__eyebrow">RoboMentor</p>
+            <h3 id="robotlab-hint-title" data-hint-modal-title>Hint</h3>
+            <pre class="robotlab-modal__content" data-hint-modal-content>
+Ruleaza codul pentru a primi feedback personalizat.
+            </pre>
+        </article>
+    </div>
+</section>
+
+<script type="application/json" id="robot-lab-level-data">{{ level_json|safe }}</script>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="{% static 'estudy/robot_lab.js' %}" defer></script>
+{% endblock %}

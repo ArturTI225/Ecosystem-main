@@ -1,0 +1,36 @@
+{
+  "id": "W1-L02",
+  "title": "Ocoleste zidul",
+  "description": "Robotul trebuie sa evite zidul si sa gaseasca drumul.",
+  "goal_text": "Ajungi la G fara sa lovesti peretele.",
+  "goal": {
+    "type": "reach_goal"
+  },
+  "concepts": ["condition"],
+  "difficulty": "easy",
+  "max_steps": 90,
+  "time_limit_ms": 700,
+  "xp_reward": 25,
+  "start_dir": "E",
+  "allowed_api": [
+    "move",
+    "turn_left",
+    "turn_right",
+    "front_is_clear",
+    "at_goal"
+  ],
+  "legend": {
+    "#": "wall",
+    ".": "empty",
+    "S": "start",
+    "G": "goal"
+  },
+  "grid": [
+    "########",
+    "#S#...G#",
+    "#...#..#",
+    "#......#",
+    "########"
+  ],
+  "starter_code": "while not at_goal():\n    if front_is_clear():\n        move()\n    else:\n        turn_right()"
+}

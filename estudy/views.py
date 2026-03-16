@@ -1,15 +1,14 @@
 from __future__ import annotations
 
 import json
-from functools import wraps
 from urllib.parse import urlparse
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.db.models import Count, Prefetch, Q
-from django.http import Http404, HttpResponseForbidden, JsonResponse
+from django.db.models import Count
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -17,6 +16,7 @@ from django.views.decorators.http import require_POST
 
 from .forms import NotificationPreferenceForm, ProfileForm
 from .models import (
+    EventLog,
     Lesson,
     LessonComment,
     LessonProgress,
@@ -30,6 +30,7 @@ from .models import (
 )
 from .services.ai import generate_hint
 from .services.analytics import LessonAnalyticsService
+from .services.audit_logger import log_event
 from .services.code_runner import CodeRunner
 from .services.gamification import (
     build_overall_progress,
@@ -39,6 +40,15 @@ from .services.gamification import (
     record_lesson_completion,
 )
 from .services.notifications import notify_feedback, send_notification
+from .services.permissions import (
+    ACTION_ANALYTICS_VIEW,
+    ACTION_CLASSROOM_MANAGE,
+    ACTION_DASHBOARD_ADMIN,
+    ACTION_DASHBOARD_PARENT,
+    ACTION_DASHBOARD_TEACHER,
+    ACTION_MODERATE_COMMENTS,
+    action_required,
+)
 
 try:
     from .forms import (
@@ -83,6 +93,14 @@ ROLE_PARENT = UserProfile.ROLE_PARENT
 MODULE_LESSON_ALIASES = {
     "modul-1-alfabetizare-digitala": "nivel-1-prieteni-cu-variabilele",
 }
+DIGITAL_LITERACY_MODULE_SLUG = "modul-1-alfabetizare-digitala"
+LEADERBOARD_LIMIT = 20
+
+
+def _robot_lab_enabled(user) -> bool:
+    from .services.feature_flags import is_enabled as feature_enabled
+
+    return feature_enabled("robot_lab_enabled", user=user, default=False)
 
 
 def with_progress(context: dict, user) -> dict:
@@ -100,33 +118,6 @@ def get_profile(user: User) -> UserProfile:
         return user.userprofile
     except UserProfile.DoesNotExist as exc:
         raise Http404("Profil lipsa") from exc
-
-
-def role_required(*roles):
-    def decorator(view_func):
-        @wraps(view_func)
-        @login_required
-        def _wrapped(request, *args, **kwargs):
-            # Ensure the user has one of the required roles
-            profile = get_profile(request.user)
-            if roles and profile.status not in roles:
-                return HttpResponseForbidden()
-            return view_func(request, *args, **kwargs)
-
-        return _wrapped
-
-    return decorator
-
-
-def is_admin(user: User) -> bool:
-    """Predicate for @user_passes_test to check admin status.
-
-    Returns True when the user has an associated profile with ROLE_ADMIN.
-    """
-    try:
-        return user.userprofile.status == ROLE_ADMIN
-    except UserProfile.DoesNotExist:
-        return False
 
 
 def _get_competitor_domains() -> set[str]:
@@ -163,36 +154,22 @@ def _is_competitor_link(url: str) -> bool:
 
 
 def _prefetched_subjects():
-    return Subject.objects.prefetch_related(
-        Prefetch("lessons", queryset=Lesson.objects.order_by("date", "id"))
-    ).order_by("name")
+    from .services.lesson_access import prefetched_subjects
+
+    return prefetched_subjects()
 
 
 def _compute_accessibility(user, subjects=None):
-    if subjects is None:
-        subjects = _prefetched_subjects()
-    completed_ids = set(
-        LessonProgress.objects.filter(user=user, completed=True).values_list(
-            "lesson_id", flat=True
-        )
-    )
-    accessible_ids = set(completed_ids)
-    locked_reasons = {}
+    from .services.lesson_access import compute_accessibility
 
-    for subject in subjects:
-        lessons = list(subject.lessons.all())
-        required_lesson = None
-        for lesson in lessons:
-            if lesson.id in completed_ids:
-                required_lesson = lesson
-                continue
-            if required_lesson is None or required_lesson.id == lesson.id:
-                accessible_ids.add(lesson.id)
-                if required_lesson is None:
-                    required_lesson = lesson
-            else:
-                locked_reasons[lesson.id] = required_lesson
-    return completed_ids, accessible_ids, locked_reasons
+    return compute_accessibility(user, subjects=subjects)
+
+
+def _resolve_module_entry_slug(module_slug: str) -> str | None:
+    alias_slug = MODULE_LESSON_ALIASES.get(module_slug)
+    if alias_slug and Lesson.objects.filter(slug=alias_slug).exists():
+        return alias_slug
+    return Lesson.objects.order_by("date", "id").values_list("slug", flat=True).first()
 
 
 @login_required
@@ -224,7 +201,7 @@ def student_dashboard(request):
     )
 
 
-@role_required(ROLE_TEACHER)
+@action_required(ACTION_DASHBOARD_TEACHER)
 def teacher_dashboard(request):
     profile = get_profile(request.user)
 
@@ -257,7 +234,7 @@ def teacher_dashboard(request):
     )
 
 
-@role_required(ROLE_TEACHER)
+@action_required(ACTION_MODERATE_COMMENTS)
 def moderate_comments(request):
     """View for moderating lesson comments"""
     if request.method == "POST":
@@ -305,8 +282,7 @@ def moderate_comments(request):
     return render(request, "estudy/moderate_comments.html", context)
 
 
-@login_required
-@user_passes_test(is_admin)
+@action_required(ACTION_DASHBOARD_ADMIN)
 def admin_dashboard(request):
     if Classroom is None:
         raise Http404("Classroom management is not available.")
@@ -334,7 +310,7 @@ def admin_dashboard(request):
     )
 
 
-@role_required(ROLE_PARENT)
+@action_required(ACTION_DASHBOARD_PARENT)
 def parent_dashboard(request):
     if ParentChildLink is None:
         raise Http404("Parent-child linking is not available.")
@@ -361,26 +337,10 @@ def parent_dashboard(request):
 
 @login_required
 def lessons_list(request):
-    lessons_queryset = Lesson.objects.select_related("subject").order_by("date")
-
     query = request.GET.get("q", "").strip()
     subject_filter = request.GET.get("subject", "").strip()
     difficulty_filter = request.GET.get("difficulty", "").strip()
     upcoming_only = request.GET.get("upcoming") == "1"
-
-    if subject_filter:
-        lessons_queryset = lessons_queryset.filter(subject_id=subject_filter)
-    if difficulty_filter:
-        lessons_queryset = lessons_queryset.filter(difficulty=difficulty_filter)
-    if query:
-        lessons_queryset = lessons_queryset.filter(
-            Q(title__icontains=query)
-            | Q(excerpt__icontains=query)
-            | Q(content__icontains=query)
-            | Q(subject__name__icontains=query)
-        )
-    if upcoming_only:
-        lessons_queryset = lessons_queryset.filter(date__gte=timezone.localdate())
 
     # delegate the heavy lifting to the lessons service
     from .services.lessons import prepare_lessons_list
@@ -392,6 +352,9 @@ def lessons_list(request):
         "upcoming": upcoming_only,
     }
     context = prepare_lessons_list(request.user, params)
+    context["digital_literacy_entry_slug"] = _resolve_module_entry_slug(
+        DIGITAL_LITERACY_MODULE_SLUG
+    )
     return render(
         request, "estudy/lessons_list.html", with_progress(context, request.user)
     )
@@ -410,7 +373,21 @@ def leaderboard_view(request):
     if Classroom is None or ClassroomMembership is None:
         raise Http404("Classroom leaderboard is not available.")
     classroom_id = request.GET.get("classroom")
-    leaderboard = get_leaderboard_snapshot(limit=20)
+    skill_slug = request.GET.get("skill", "").strip()
+    leaderboard = get_leaderboard_snapshot(limit=LEADERBOARD_LIMIT)
+    skill_summary = None
+    if skill_slug:
+        from .services.skill_leaderboard import build_skill_leaderboard
+
+        skill_result = build_skill_leaderboard(
+            skill_slug=skill_slug,
+            limit=LEADERBOARD_LIMIT,
+        )
+        if skill_result.success:
+            leaderboard = skill_result.data["entries"]
+            skill_summary = skill_result.data["skill"]
+        else:
+            messages.error(request, "Skill leaderboard unavailable.")
     classroom = None
     if classroom_id:
         classroom = get_object_or_404(Classroom, pk=classroom_id)
@@ -433,6 +410,8 @@ def leaderboard_view(request):
                 "leaderboard": leaderboard,
                 "classrooms": classrooms,
                 "selected_classroom": classroom,
+                "skill_summary": skill_summary,
+                "skill_slug": skill_slug,
             },
             request.user,
         ),
@@ -482,6 +461,27 @@ def run_code_api(request):
         )
 
     result = CodeRunner.run_python_code(code, exercise.test_cases or [])
+    from .services.mistake_explanations import build_code_mistake_explanation
+    from .services.socratic_followups import build_code_socratic_followups
+
+    explanation_result = build_code_mistake_explanation(result, lesson=exercise.lesson)
+    followup_result = build_code_socratic_followups(result, lesson=exercise.lesson)
+
+    similarity_score = None
+    suspicious_similarity = False
+    similarity_signals = []
+    similarity_metadata = {}
+    from .services.anti_cheat import CODE_FLAG_SIMILARITY, analyze_code_submission
+
+    similarity_result = analyze_code_submission(
+        code=code,
+        solution=exercise.solution,
+    )
+    if similarity_result.success:
+        similarity_score = similarity_result.data.get("similarity_score")
+        suspicious_similarity = bool(similarity_result.data.get("suspicious"))
+        similarity_signals = similarity_result.data.get("signals", [])
+        similarity_metadata = similarity_result.data.get("metadata", {})
 
     # Save submission
     from .models import CodeSubmission
@@ -503,6 +503,20 @@ def run_code_api(request):
         error_message=(result.error or "")[:1000],
     )
 
+    if suspicious_similarity:
+        metadata = {
+            "exercise_id": exercise.id,
+            "submission_id": submission.id,
+            "signals": similarity_signals,
+            "flag": CODE_FLAG_SIMILARITY,
+        }
+        metadata.update(similarity_metadata)
+        log_event(
+            EventLog.EVENT_TEST_SUBMIT,
+            user=request.user,
+            metadata=metadata,
+        )
+
     # XP reward on first full pass
     if result.is_correct:
         try:
@@ -516,7 +530,11 @@ def run_code_api(request):
             pass
 
     resp = result.to_dict()
-    resp.update({"submission_id": submission.id})
+    if explanation_result.success:
+        resp["mistake_explanation"] = explanation_result.data.get("explanation")
+    if followup_result.success:
+        resp["socratic_questions"] = followup_result.data.get("questions", [])
+    resp.update({"submission_id": submission.id, "similarity_score": similarity_score})
     return JsonResponse(resp)
 
 
@@ -597,7 +615,7 @@ def classroom_hub(request):
     )
 
 
-@role_required(ROLE_TEACHER)
+@action_required(ACTION_CLASSROOM_MANAGE)
 def classroom_detail(request, pk):
     if (
         Classroom is None
@@ -643,7 +661,7 @@ def classroom_detail(request, pk):
 def projects_view(request):
     if Project is None or ProjectSubmission is None:
         raise Http404("Projects feature is not available.")
-    projects = Project.objects.select_related("lesson").order_by("level")
+    projects = Project.objects.select_related("rubric").order_by("level")
     submissions = ProjectSubmission.objects.filter(student=request.user)
     submitted_ids = list(submissions.values_list("project_id", flat=True))
     return render(
@@ -695,14 +713,12 @@ def submit_project(request, slug):
 def community_forum(request):
     if CommunityThread is None or ThreadForm is None:
         raise Http404("Community forum is not available.")
-    threads = CommunityThread.objects.select_related("created_by").order_by(
-        "-is_pinned", "-created_at"
-    )
+    threads = CommunityThread.objects.select_related("author").order_by("-created_at")
     if request.method == "POST":
         form = ThreadForm(request.POST)
         if form.is_valid():
             thread = form.save(commit=False)
-            thread.created_by = request.user
+            thread.author = request.user
             thread.save()
             messages.success(request, "Ai creat un nou subiect de discutie.")
             return redirect("estudy:community")
@@ -719,19 +735,17 @@ def community_forum(request):
 def community_thread(request, pk):
     if CommunityThread is None or CommunityReply is None or ReplyForm is None:
         raise Http404("Community forum is not available.")
-    thread = get_object_or_404(
-        CommunityThread.objects.select_related("created_by"), pk=pk
-    )
-    replies = CommunityReply.objects.filter(thread=thread).select_related("created_by")
+    thread = get_object_or_404(CommunityThread.objects.select_related("author"), pk=pk)
+    replies = CommunityReply.objects.filter(thread=thread).select_related("author")
     if request.method == "POST":
         form = ReplyForm(request.POST)
         if form.is_valid():
             reply = form.save(commit=False)
             reply.thread = thread
-            reply.created_by = request.user
+            reply.author = request.user
             reply.save()
             send_notification(
-                recipient=thread.created_by,
+                recipient=thread.author,
                 title="Cineva a raspuns in comunitate",
                 message=f"{request.user.username} a raspuns la {thread.title}",
                 category=Notification.CATEGORY_COMMUNITY,
@@ -750,20 +764,19 @@ def community_thread(request, pk):
 
 @login_required
 def lesson_module_digital_literacy(request):
-    alias_slug = MODULE_LESSON_ALIASES.get(
-        "modul-1-alfabetizare-digitala", "modul-1-alfabetizare-digitala"
+    # Keep this route bound to the dedicated interactive template.
+    # A generic alias lesson may exist in DB, but this endpoint is the curated module experience.
+    context = {
+        "module_name": "Modul 1 - Alfabetizare digitala",
+        "digital_literacy_entry_slug": _resolve_module_entry_slug(
+            DIGITAL_LITERACY_MODULE_SLUG
+        ),
+    }
+    return render(
+        request,
+        "estudy/lesson_module_digital_literacy.html",
+        with_progress(context, request.user),
     )
-    try:
-        return lesson_detail(request, slug=alias_slug)
-    except Http404:
-        context = {
-            "module_name": "Modul 1 - Alfabetizare digitala",
-        }
-        return render(
-            request,
-            "estudy/lesson_module_digital_literacy.html",
-            with_progress(context, request.user),
-        )
 
 
 @login_required
@@ -811,6 +824,8 @@ def toggle_lesson_completion(request, slug):
         )
     except Exception:
         # fallback to legacy inline behavior if service fails for any reason
+        from .services.gamification import invalidate_overall_progress_cache
+
         progress, _ = LessonProgress.objects.get_or_create(
             user=request.user, lesson=lesson
         )
@@ -819,6 +834,7 @@ def toggle_lesson_completion(request, slug):
             progress.completed = False
             progress.completed_at = None
             progress.save(update_fields=["completed", "completed_at", "updated_at"])
+            invalidate_overall_progress_cache(request.user)
             progress_snapshot = build_overall_progress(request.user)
             return JsonResponse(
                 {
@@ -856,6 +872,8 @@ def submit_test_attempt(request, test_id):
         time_taken = int(request.POST.get("time_taken_ms", "0") or 0)
         response = process_test_attempt(request.user, test, answer, time_taken)
         return JsonResponse(response)
+    except ValueError as exc:
+        return JsonResponse({"error": str(exc)}, status=400)
     except Exception:
         # fallback to inline behavior to avoid breaking the endpoint
         is_correct = answer == test.correct_answer
@@ -904,6 +922,23 @@ def submit_test_attempt(request, test_id):
             )
         else:
             response["lesson_completed"] = False
+            from .services.mistake_explanations import build_test_mistake_explanation
+            from .services.socratic_followups import build_test_socratic_followups
+
+            explanation_result = build_test_mistake_explanation(
+                test, selected_answer=answer
+            )
+            if explanation_result.success:
+                response["mistake_explanation"] = explanation_result.data.get(
+                    "explanation"
+                )
+            followup_result = build_test_socratic_followups(
+                test, selected_answer=answer
+            )
+            if followup_result.success:
+                response["socratic_questions"] = followup_result.data.get(
+                    "questions", []
+                )
 
         return JsonResponse(response)
 
@@ -961,4 +996,126 @@ def study_overview(request):
             },
             request.user,
         ),
+    )
+
+
+@login_required
+def robot_lab_hub(request):
+    if not _robot_lab_enabled(request.user):
+        raise Http404("Robot Lab is not available.")
+    from .services.robot_lab_progress import build_robot_lab_progress_summary
+
+    summary = build_robot_lab_progress_summary(request.user)
+    first_unlocked = next(
+        (
+            item
+            for item in summary.get("levels", [])
+            if item.get("unlocked") and not item.get("completed")
+        ),
+        None,
+    )
+    if not first_unlocked:
+        first_unlocked = next(
+            (item for item in summary.get("levels", []) if item.get("unlocked")),
+            None,
+        )
+    context = {
+        "robot_lab_summary": summary,
+        "first_unlocked_level_id": first_unlocked.get("id") if first_unlocked else None,
+    }
+    return render(
+        request,
+        "estudy/robot_lab_hub.html",
+        with_progress(context, request.user),
+    )
+
+
+@login_required
+def robot_lab_play(request, level_id: str):
+    if not _robot_lab_enabled(request.user):
+        raise Http404("Robot Lab is not available.")
+    from .services.robot_lab_levels import (
+        RobotLabLevelNotFoundError,
+        load_level,
+        next_level_id,
+        ordered_level_ids,
+    )
+    from .services.robot_lab_progress import ensure_robot_lab_progress_rows
+
+    try:
+        level = load_level(level_id)
+    except (RobotLabLevelNotFoundError, FileNotFoundError, ValueError):
+        raise Http404("Robot Lab level not found.")
+
+    progress_map = ensure_robot_lab_progress_rows(request.user)
+    row = progress_map.get(level_id)
+    if not row or not row.unlocked:
+        messages.error(
+            request, "Nivelul este blocat. Finalizează nivelurile anterioare."
+        )
+        return redirect("estudy:robot_lab_hub")
+
+    all_ids = ordered_level_ids()
+    try:
+        idx = all_ids.index(level_id)
+    except ValueError:
+        idx = 0
+    prev_level_id = all_ids[idx - 1] if idx > 0 else None
+    next_id = next_level_id(level_id)
+    next_unlocked = bool(
+        next_id and progress_map.get(next_id) and progress_map[next_id].unlocked
+    )
+
+    context = {
+        "level": level,
+        "level_id": level_id,
+        "level_json": json.dumps(
+            {
+                "id": level.get("id"),
+                "title": level.get("title"),
+                "goal": level.get("goal") or {},
+                "goal_text": level.get("goal_text") or "",
+                "grid": level.get("grid") or [],
+                "legend": level.get("legend") or {},
+                "starter_code": level.get("starter_code") or "",
+                "max_steps": int(level.get("max_steps") or 200),
+                "xp_reward": int(level.get("xp_reward") or 0),
+                "allowed_api": level.get("allowed_api") or [],
+                "concepts": level.get("concepts") or [],
+            }
+        ),
+        "level_progress": row,
+        "prev_level_id": prev_level_id,
+        "next_level_id": next_id,
+        "next_level_unlocked": next_unlocked,
+    }
+    return render(
+        request,
+        "estudy/robot_lab_play.html",
+        with_progress(context, request.user),
+    )
+
+
+@action_required(ACTION_ANALYTICS_VIEW)
+def robot_lab_teacher(request):
+    if not _robot_lab_enabled(request.user):
+        raise Http404("Robot Lab is not available.")
+    from .services.robot_lab_analytics import build_robot_lab_analytics
+
+    filters = {
+        "date_from": request.GET.get("date_from", "").strip(),
+        "date_to": request.GET.get("date_to", "").strip(),
+        "level_id": request.GET.get("level_id", "").strip(),
+        "error_type": request.GET.get("error_type", "").strip(),
+        "classroom": request.GET.get("classroom", "").strip(),
+    }
+    payload = build_robot_lab_analytics(filters=filters)
+    context = {
+        "robot_lab_analytics": payload,
+        "robot_lab_filters": filters,
+    }
+    return render(
+        request,
+        "estudy/robot_lab_teacher.html",
+        with_progress(context, request.user),
     )

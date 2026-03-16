@@ -89,9 +89,14 @@ class LessonQualityAnalyzer:
 
         completion_rate = (completions / total_views * 100) if total_views > 0 else 0
 
-        # Video engagement if applicable
+        # Video engagement if applicable (legacy lesson.media or direct field fallback)
         video_completion_rate = 0
-        if lesson.video_url:
+        video_url = getattr(lesson, "video_url", None)
+        if not video_url:
+            media = getattr(lesson, "media", None)
+            video_url = getattr(media, "video_url", None) if media else None
+
+        if video_url:
             video_progresses = VideoProgress.objects.filter(lesson=lesson)
             if video_progresses.exists():
                 completed_videos = video_progresses.filter(
@@ -106,7 +111,7 @@ class LessonQualityAnalyzer:
             "completions": completions,
             "completion_rate": round(completion_rate, 1),
             "video_completion_rate": round(video_completion_rate, 1)
-            if lesson.video_url
+            if video_url
             else None,
         }
 

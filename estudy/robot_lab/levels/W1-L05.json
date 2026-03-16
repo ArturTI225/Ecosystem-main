@@ -1,0 +1,42 @@
+{
+  "id": "W1-L05",
+  "title": "Livreaza bateria",
+  "description": "Ia bateria B si livreaz-o la G.",
+  "goal_text": "Ridica bateria si ajungi la G.",
+  "goal": {
+    "type": "deliver_item",
+    "item": "battery"
+  },
+  "concepts": ["condition", "sequencing"],
+  "difficulty": "medium",
+  "max_steps": 130,
+  "time_limit_ms": 1000,
+  "xp_reward": 40,
+  "start_dir": "E",
+  "allowed_api": [
+    "move",
+    "turn_left",
+    "turn_right",
+    "front_is_clear",
+    "on_item",
+    "pick",
+    "at_goal",
+    "has_item"
+  ],
+  "legend": {
+    "#": "wall",
+    ".": "empty",
+    "S": "start",
+    "B": "battery",
+    "G": "goal"
+  },
+  "grid": [
+    "#########",
+    "#S..#...#",
+    "#..B#...#",
+    "#..###..#",
+    "#......G#",
+    "#########"
+  ],
+  "starter_code": "while not at_goal():\n    if on_item():\n        pick()\n    if front_is_clear():\n        move()\n    else:\n        turn_right()"
+}

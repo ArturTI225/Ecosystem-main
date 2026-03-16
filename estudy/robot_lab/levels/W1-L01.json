@@ -1,0 +1,34 @@
+{
+  "id": "W1-L01",
+  "title": "Primii pasi",
+  "description": "Ajuta robotul sa ajunga la poarta G.",
+  "goal_text": "Mergi pana la G.",
+  "goal": {
+    "type": "reach_goal"
+  },
+  "concepts": ["sequencing"],
+  "difficulty": "easy",
+  "max_steps": 60,
+  "time_limit_ms": 500,
+  "xp_reward": 20,
+  "start_dir": "E",
+  "allowed_api": [
+    "move",
+    "turn_left",
+    "turn_right",
+    "at_goal"
+  ],
+  "legend": {
+    "#": "wall",
+    ".": "empty",
+    "S": "start",
+    "G": "goal"
+  },
+  "grid": [
+    "########",
+    "#S...G.#",
+    "#......#",
+    "########"
+  ],
+  "starter_code": "move()\nmove()\nmove()"
+}

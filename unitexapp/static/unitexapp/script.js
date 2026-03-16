@@ -3,6 +3,7 @@
     const html = doc.documentElement;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const THEME_STORAGE_KEY = 'unitex-theme';
+    const PAGE_READY_FLAG = 'unitexPageReadyHookBound';
 
     const ICON_LIGHT = '\u2600';
     const ICON_DARK = '\u263D';
@@ -79,8 +80,16 @@
         });
     }
 
-    doc.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', event => {
+    if (html.dataset.unitexSmoothScrollBound !== 'true') {
+        html.dataset.unitexSmoothScrollBound = 'true';
+        doc.addEventListener('click', event => {
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
+            const anchor = event.target instanceof Element ? event.target.closest('a[href^="#"]') : null;
+            if (!anchor) {
+                return;
+            }
             const targetId = anchor.getAttribute('href');
             if (!targetId || targetId === '#' || targetId === '#0') {
                 return;
@@ -95,7 +104,7 @@
                 requestAnimationFrame(() => target.focus({ preventScroll: true }));
             }
         });
-    });
+    }
 
     const scrollProgress = doc.querySelector('[data-scroll-progress]');
     const scrollTopButton = doc.querySelector('[data-scroll-top]');
@@ -123,29 +132,50 @@
         });
     }
 
-    const animatedBlocks = doc.querySelectorAll('[data-animate]');
-    if (animatedBlocks.length) {
+    const animationObserver = !prefersReducedMotion && 'IntersectionObserver' in window
+        ? new IntersectionObserver(entries => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    animationObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.15 })
+        : null;
+
+    const initializeAnimatedBlocks = () => {
+        const animatedBlocks = doc.querySelectorAll('[data-animate]');
+        if (!animatedBlocks.length) {
+            return;
+        }
         if (prefersReducedMotion) {
             animatedBlocks.forEach(el => el.classList.add('is-visible'));
-        } else if ('IntersectionObserver' in window) {
-            const observer = new IntersectionObserver(entries => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            }, { threshold: 0.15 });
-            animatedBlocks.forEach(el => observer.observe(el));
-        } else {
-            animatedBlocks.forEach(el => el.classList.add('is-visible'));
+            return;
         }
-    }
+        if (!animationObserver) {
+            animatedBlocks.forEach(el => el.classList.add('is-visible'));
+            return;
+        }
+        animatedBlocks.forEach(el => {
+            if (el.dataset.unitexAnimateBound === 'true') {
+                return;
+            }
+            el.dataset.unitexAnimateBound = 'true';
+            animationObserver.observe(el);
+        });
+    };
 
-    if (!prefersReducedMotion) {
+    const initializeTiltTargets = () => {
+        if (prefersReducedMotion) {
+            return;
+        }
         const tiltTargets = doc.querySelectorAll('.card, .info-card, .learning-card, .category-card, .benefit-card');
         const MAX_ROTATION = 6;
         tiltTargets.forEach(el => {
+            if (el.dataset.unitexTiltBound === 'true') {
+                return;
+            }
+            el.dataset.unitexTiltBound = 'true';
             const handleMove = event => {
                 const rect = el.getBoundingClientRect();
                 const rotateX = ((event.clientY - rect.top) / rect.height - 0.5) * -MAX_ROTATION;
@@ -159,13 +189,17 @@
             el.addEventListener('pointerleave', reset);
             el.addEventListener('pointerup', reset);
         });
-    }
+    };
 
     const initLeadForm = () => {
         const leadForm = doc.querySelector('[data-lead-form]');
         if (!leadForm) {
             return;
         }
+        if (leadForm.dataset.unitexLeadBound === 'true') {
+            return;
+        }
+        leadForm.dataset.unitexLeadBound = 'true';
         const successNode = leadForm.querySelector('[data-lead-success]');
         const errorNode = leadForm.querySelector('[data-lead-error]');
         const submitButton = leadForm.querySelector('[type="submit"]');
@@ -235,11 +269,16 @@
         });
     };
 
-    initLeadForm();
-
-    const progressBars = doc.querySelectorAll('[data-progress-bar]');
-    if (progressBars.length) {
+    const initializeProgressBars = () => {
+        const progressBars = doc.querySelectorAll('[data-progress-bar]');
+        if (!progressBars.length) {
+            return;
+        }
         progressBars.forEach(bar => {
+            if (bar.dataset.unitexProgressBound === 'true') {
+                return;
+            }
+            bar.dataset.unitexProgressBound = 'true';
             const targetValue = parseFloat(bar.dataset.progressInitial || bar.getAttribute('aria-valuenow') || '0');
             const clamped = Math.max(0, Math.min(100, isNaN(targetValue) ? 0 : targetValue));
             const valueOutput = bar.querySelector('[data-progress-percent]');
@@ -274,6 +313,23 @@
                 }
             };
             requestAnimationFrame(animate);
+        });
+    };
+
+    const initializePageInteractions = () => {
+        initializeAnimatedBlocks();
+        initializeTiltTargets();
+        initLeadForm();
+        initializeProgressBars();
+        updateScrollState();
+    };
+
+    initializePageInteractions();
+
+    if (html.dataset[PAGE_READY_FLAG] !== 'true') {
+        html.dataset[PAGE_READY_FLAG] = 'true';
+        doc.addEventListener('unitex:page-ready', () => {
+            initializePageInteractions();
         });
     }
 })();

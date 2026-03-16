@@ -1,427 +1,299 @@
-# 🎓 Ecosystem - Образовательная платформа
+# Ecosystem - Platforma educationala AI-first
 
-> Интерактивная платформа для онлайн-обучения с геймификацией, аналитикой и AI-помощником
+Ecosystem este o platforma educationala construita pe Django, orientata pe invatare adaptiva, gamification, analytics si asistenta AI, cu module dedicate pentru elevi, profesori, parinti si administratori.
 
-[![Django](https://img.shields.io/badge/Django-4.0.7-green.svg)](https://www.djangoproject.com/)
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+## Ce contine proiectul
 
----
+- Aplicatie web principala cu dashboard-uri pe roluri.
+- API REST pentru lectii, comentarii, rating, progres si Robot Lab.
+- Straturi de servicii pentru logica de business (fara logica critica in views).
+- Sistem separat de executie cod pentru Robot Lab (`runner_service`).
+- Set extins de teste pentru fluxuri critice.
 
-## 📋 Содержание
+## Imbunatatiri implementate (stare actuala)
 
-- [О проекте](#о-проекте)
-- [Возможности](#возможности)
-- [Новые модули](#новые-модули)
-- [Быстрый старт](#быстрый-старт)
-- [Документация](#документация)
-- [Технологии](#технологии)
+### AI si invatare adaptiva
 
----
+- Explicatii pentru greseli in teste si cod.
+- Follow-up socratic pentru invatare ghidata.
+- Generare de practica personalizata.
+- Rezumate de insight pentru profesor/parinte.
+- Gard pentru halucinatii AI (context + filtrare raspuns).
+- Tracking cost AI (prompt/completion, estimare token-uri).
 
-## 🎯 О проекте
+### Securitate si robustete
 
-**Ecosystem** - это комплексная образовательная платформа, которая объединяет:
+- Rate limiting global (middleware + servicii).
+- Idempotency pentru endpoint-uri critice de tip `POST`.
+- Audit trail imutabil pentru evenimente importante.
+- Detectie anti-cheat pentru anumite scenarii de evaluare.
+- Permisiuni pe actiuni si roluri.
 
-- 📚 **Обучающий контент** - уроки, тесты, практические задания
-- 🎮 **Геймификацию** - XP, уровни, значки, миссии, достижения
-- 👥 **Классы** - управление группами, задания, проверка работ
-- 📊 **Аналитику** - детальная статистика успеваемости
-- 🤖 **AI-помощник** - интеллектуальные подсказки
-- 🔔 **Уведомления** - система оповещений и напоминаний
+### Community si moderare
 
-### Роли пользователей:
-- **👨‍🎓 Студент** - проходит уроки, получает достижения
-- **👨‍🏫 Учитель** - создает задания, анализирует прогресс
-- **👨‍👩‍👧 Родитель** - отслеживает успехи ребенка
-- **👨‍💼 Админ** - управляет платформой
+- Sistem de reputatie.
+- Rol de contributor de incredere.
+- Moderare automata pentru comentarii.
+- Like-uri pe comentarii.
+- Raspunsuri curate de profesor.
+- Pagina de moderare comentarii pentru staff.
 
----
+### Gamification avansata
 
-## ✨ Возможности
+- Evenimente sezoniere.
+- Leaderboard pe skill-uri.
+- XP decay optional.
+- Perks cosmetice avatar.
+- Token-uri de streak freeze.
 
-### Для студентов:
-- ✅ Интерактивные уроки с теорией и практикой
-- ✅ Тесты с мгновенной проверкой
-- ✅ Система XP и уровней
-- ✅ Значки и достижения
-- ✅ Персонализированные рекомендации
-- ✅ Рейтинги и соревнования
-- ✅ AI-подсказки при затруднениях
-- ✅ Отслеживание прогресса
+### Analytics si BI
 
-### Для учителей:
-- ✅ Создание классов и заданий
-- ✅ Проверка работ студентов
-- ✅ Детальная аналитика класса
-- ✅ Выявление отстающих
-- ✅ Статистика по заданиям
-- ✅ Анализ сложности уроков
+- Funnel analytics.
+- Cohort analysis.
+- Risk scoring predictiv.
+- Early-warning pentru profesori.
+- Export analytics in CSV si format BigQuery (NDJSON + schema).
 
-### Для родителей:
-- ✅ Просмотр прогресса ребенка
-- ✅ Еженедельные отчеты
-- ✅ Связь с учителями
+### Offline si PWA
 
----
+- Politica de conflict pentru sincronizare progres offline.
+- Coada de progres offline in DB (`OfflineProgressQueue`).
+- Fisiere PWA de baza incluse (`service-worker.js`, `manifest.webmanifest`).
 
-## 🆕 Новые модули (v2.0)
+### Robot Lab (Python Missions)
 
-### 1. **Расширенная аналитика студентов**
-📊 Детальный анализ успеваемости с выявлением слабых тем
+- Niveluri JSON in `estudy/robot_lab/levels`.
+- API pentru niveluri, rulare, progres si mentor feedback.
+- Clasificare erori tipice + mentor AI structurat (RoboMentor).
+- Profil de skill pe utilizator si progres pe nivel.
+- Runner separat FastAPI pentru executie cod ne-incredere.
 
-```python
-from estudy.services.assessment_enhanced import get_student_performance_analytics
+### Developer Experience
 
-analytics = get_student_performance_analytics(user)
-# Получите: успеваемость, слабые темы, скорость обучения
-```
+- Feature flags cu rollout procentual.
+- `BaseServiceResult` pentru contract uniform in servicii.
+- Comenzi de management:
+  - `seed_demo_data`
+  - `sync_openapi`
+  - `export_analytics`
+  - `fix_empty_slugs`
 
-**Возможности:**
-- Автоматическое выявление слабых тем
-- Адаптивная рекомендация сложности
-- Персонализированный план обучения на 7 дней
-- Метрики скорости обучения
+## Arhitectura (high-level)
 
-### 2. **Умная система уведомлений**
-🔔 Шаблоны уведомлений и автоматические напоминания
+- `estudy/`: domeniul educational principal (models, views, api, services, templates).
+- `inregistrare/`: autentificare, profil, fluxuri account.
+- `unitexapp/`: pagini publice/landing si UI shared.
+- `unitex_school/`: configurari Django.
+- `runner_service/`: sandbox de executie pentru Robot Lab (FastAPI).
+- `docs/openapi.yaml`: schema OpenAPI sincronizabila din cod.
 
-```python
-from estudy.services.notifications_enhanced import NotificationTemplate
+## Tehnologii
 
-NotificationTemplate.create('level_up', recipient=user, level=5)
-```
+- Backend principal: Django 4.0.7
+- API: Django REST Framework + Token auth
+- Runner cod: FastAPI + Uvicorn
+- Baza de date: SQLite (dev), `DATABASE_URL` pentru override (ex: PostgreSQL)
+- Cache: LocMem (default) sau Redis (`REDIS_URL`)
 
-**Возможности:**
-- 10+ готовых шаблонов
-- Дайджесты (дневные/недельные)
-- Автоматические напоминания о дедлайнах
-- Отчеты родителям
+## Cerinte locale
 
-### 3. **Продвинутые достижения**
-🏆 Автоматическая система достижений и челленджей
+- Python 3.10+ recomandat
+- `pip` actualizat
+- (Optional) Redis pentru cache/rate limit distribuit
 
-```python
-from estudy.services.achievements import AchievementEngine
+## Instalare aplicatie Django
 
-new_badges = AchievementEngine.check_and_award(user)
-```
-
-**Возможности:**
-- 10+ типов достижений (скорость, серии, количество)
-- Недельные челленджи
-- Глобальные и классовые рейтинги
-- Соревновательные миссии
-
-### 4. **Аналитика для учителей**
-📈 Инструменты анализа класса и студентов
-
-```python
-from estudy.services.teacher_analytics import TeacherAnalytics
-
-overview = TeacherAnalytics.get_classroom_overview(classroom)
-struggling = TeacherAnalytics.identify_struggling_students(classroom)
-```
-
-**Возможности:**
-- Обзор класса с ключевыми метриками
-- Детальные отчеты по студентам
-- Автоматическое выявление отстающих
-- Анализ реальной сложности уроков
-
----
-
-## 🚀 Быстрый старт
-
-### Установка
-
-1. **Клонируйте репозиторий:**
 ```bash
-git clone https://github.com/your-username/ecosystem.git
-cd ecosystem
+git clone <repo-url>
+cd Ecosystem-main
+python -m venv .venv
 ```
 
-2. **Создайте виртуальное окружение:**
+Activare virtualenv:
+
+- Windows (PowerShell):
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+- Linux/macOS:
+
 ```bash
-python -m venv myenv
-myenv\Scripts\activate  # Windows
-# source myenv/bin/activate  # Linux/Mac
+source .venv/bin/activate
 ```
 
-3. **Установите зависимости:**
+Instalare dependinte de baza (in lipsa unui `requirements.txt` in radacina):
+
 ```bash
-pip install -r requirements.txt
+pip install --upgrade pip
+pip install "Django==4.0.7" "djangorestframework>=3.14,<3.16" "Pillow>=10,<12" "dj-database-url>=2,<3" "django-redis>=5,<6" "sentry-sdk>=2,<3" "PyYAML>=6,<7"
 ```
 
-4. **Примените миграции:**
+Migrate + superuser:
+
 ```bash
 python manage.py migrate
-```
-
-5. **Создайте суперпользователя:**
-```bash
 python manage.py createsuperuser
 ```
 
-6. **Запустите сервер:**
+Pornire server:
+
 ```bash
 python manage.py runserver
 ```
 
-7. **Откройте в браузере:**
-```
-http://127.0.0.1:8000/
-```
+## Configurare minima (variabile de mediu)
 
-### Быстрый тест новых функций
+Exemplu minim pentru dezvoltare:
 
 ```bash
-python manage.py shell
+DJANGO_DEBUG=True
+DJANGO_SECRET_KEY=change-me
+ALLOWED_HOSTS=127.0.0.1,localhost
+TIME_ZONE=Europe/Chisinau
+LANGUAGE_CODE=ro
 ```
 
-```python
-from django.contrib.auth.models import User
-from estudy.services.assessment_enhanced import get_student_performance_analytics
+Variabile importante pentru functionalitati extinse:
 
-user = User.objects.first()
-analytics = get_student_performance_analytics(user)
-print(f"Успеваемость: {analytics['success_rate']}%")
-```
+- `DATABASE_URL`
+- `REDIS_URL`
+- `ROBOT_RUNNER_URL`
+- `ROBOT_RUNNER_TOKEN`
+- `ROBOT_RUNNER_TIMEOUT_MS`
+- `ESTUDY_AUDIT_TRAIL_ENABLED`
+- `ESTUDY_RATE_LIMIT_ENABLED`
+- `ESTUDY_IDEMPOTENCY_ENABLED`
+- `ESTUDY_AI_COST_*`
 
-Подробнее: [QUICKSTART.md](QUICKSTART.md)
+## Rulare Robot Lab Runner (serviciu separat)
 
----
-
-## 📚 Документация
-
-- **[IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md)** - полный план улучшений и развития
-- **[USAGE_EXAMPLES.py](USAGE_EXAMPLES.py)** - примеры использования всех функций
-- **[QUICKSTART.md](QUICKSTART.md)** - руководство по быстрому старту
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - архитектура платформы
-- **[CHECKLIST.md](CHECKLIST.md)** - чек-лист внедрения
-- **[FINAL_REPORT.md](FINAL_REPORT.md)** - итоговый отчет
-
----
-
-## 🛠 Технологии
-
-### Backend:
-- **Django 4.0.7** - web-фреймворк
-- **Python 3.8+** - язык программирования
-- **SQLite** (dev) / **PostgreSQL** (prod) - база данных
-
-### Frontend:
-- HTML5, CSS3, JavaScript
-- Bootstrap - UI framework
-
-### Дополнительно:
-- Django Signals - для событий
-- JSON Fields - для гибких данных
-- Caching - для производительности
-
-### Рекомендуется:
-- **Redis** - кеширование
-- **Celery** - фоновые задачи
-- **Django REST Framework** - API
-
----
-
-## 📊 Структура проекта
-
-```
-ecosystem/
-├── estudy/                    # Основное приложение
-│   ├── models.py              # Модели данных (25+ моделей)
-│   ├── views.py               # Представления
-│   ├── urls.py                # URL маршруты
-│   ├── services/              # Бизнес-логика
-│   │   ├── assessment.py      # Базовая оценка
-│   │   ├── assessment_enhanced.py  # ✨ Расширенная аналитика
-│   │   ├── notifications_enhanced.py  # ✨ Умные уведомления
-│   │   ├── achievements.py    # ✨ Продвинутые достижения
-│   │   ├── teacher_analytics.py  # ✨ Аналитика учителей
-│   │   ├── gamification.py    # Геймификация
-│   │   ├── ai.py              # AI помощник
-│   │   └── ...
-│   ├── templates/             # HTML шаблоны
-│   └── static/                # Статические файлы
-├── inregistrare/              # Регистрация/авторизация
-├── unitexapp/                 # Дополнительное приложение
-├── unitex_school/             # Настройки проекта
-├── manage.py
-├── requirements.txt
-└── README.md                  # Этот файл
-```
-
----
-
-## 🎓 Основные модели
-
-```python
-# Обучение
-Lesson          # Урок
-Test            # Тест
-LessonProgress  # Прогресс по уроку
-TestAttempt     # Попытка теста
-
-# Геймификация
-UserProfile     # Профиль пользователя
-Badge           # Значок
-Mission         # Миссия
-UserBadge       # Выданный значок
-
-# Классы
-Classroom       # Класс
-ClassAssignment # Задание
-Submission      # Сданная работа
-
-# Проекты
-Project         # Проект
-ProjectSubmission  # Сданный проект
-
-# Система
-Notification    # Уведомление
-DailyChallenge  # Ежедневный челлендж
-```
-
----
-
-## 🔧 Конфигурация
-
-### Настройки окружения
-
-Создайте `.env` файл:
-
-```env
-SECRET_KEY=your-secret-key
-DEBUG=True
-DATABASE_URL=postgresql://user:password@localhost/dbname
-REDIS_URL=redis://localhost:6379/0
-```
-
-### Email (опционально)
-
-```python
-# settings.py
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-```
-
----
-
-## 🧪 Тестирование
+Din `runner_service/`:
 
 ```bash
-# Запустить все тесты
+cd runner_service
+python -m venv .venv
+```
+
+Activare:
+
+- Windows:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+- Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+Instalare + start:
+
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8101
+```
+
+Seteaza in aplicatia Django:
+
+```bash
+ROBOT_RUNNER_URL=http://127.0.0.1:8101
+ROBOT_RUNNER_TOKEN=<aceeasi-valoare-ca-in-runner>
+```
+
+## Activare feature flag pentru Robot Lab
+
+Robot Lab este protejat de flag-ul `robot_lab_enabled`.
+
+```bash
+python manage.py shell -c "from estudy.models import FeatureFlag; FeatureFlag.objects.update_or_create(key='robot_lab_enabled', defaults={'enabled': True, 'rollout_percentage': 100, 'description': 'Enable Robot Lab'})"
+```
+
+## Comenzi utile
+
+Sincronizare OpenAPI:
+
+```bash
+python manage.py sync_openapi
+```
+
+Seed demo data:
+
+```bash
+python manage.py seed_demo_data
+```
+
+Export analytics CSV:
+
+```bash
+python manage.py export_analytics --kind event_log --format csv --output analytics_event_log.csv
+```
+
+Export analytics BigQuery:
+
+```bash
+python manage.py export_analytics --kind event_log --format bigquery --output analytics_event_log.ndjson
+```
+
+## Endpoint-uri API principale
+
+Prefix principal: `/estudy/api/` (si alias `/estudy/api/v1/`)
+
+- `POST /estudy/api/token/`
+- `GET|POST /estudy/api/lessons/{lesson_slug}/comments/`
+- `POST /estudy/api/comments/{comment_id}/like/`
+- `POST /estudy/api/lessons/{lesson_slug}/rate/`
+- `GET /estudy/api/lessons/{lesson_slug}/stats/`
+- `GET /estudy/api/progress/`
+- `POST /estudy/api/robot-lab/mentor/`
+- `GET /estudy/api/robot-lab/levels/`
+- `GET /estudy/api/robot-lab/levels/{level_id}/`
+- `POST /estudy/api/robot-lab/runs/`
+- `GET /estudy/api/robot-lab/progress/`
+
+Schema API:
+
+- `docs/openapi.yaml` (fara garantie sa fie la zi daca nu rulezi `sync_openapi`)
+
+## Testare
+
+Rulare teste Django:
+
+```bash
 python manage.py test
-
-# Запустить тесты конкретного приложения
-python manage.py test estudy
-
-# С отчетом о покрытии
-coverage run --source='.' manage.py test
-coverage report
 ```
 
----
+Rulare teste runner:
 
-## 📈 Метрики
+```bash
+cd runner_service
+python -m unittest -q
+```
 
-### Пользовательские:
-- **Активные пользователи** (DAU/MAU)
-- **Retention rate** (7/30 дней)
-- **Среднее время сессии**
-- **Уроков на пользователя**
+## Ce este inca in roadmap
 
-### Учебные:
-- **Средняя успеваемость** по тестам
-- **Скорость прохождения** уроков
-- **Процент завершения** курсов
+- Sandbox de productie complet hardenizat (gVisor/Docker cu limite stricte de resurse si retea blocata complet).
+- AI orchestrator central cu politici de raspuns.
+- Versionare lectii + A/B testing.
+- Peer review avansat (flux complet conflict/plagiarism).
+- Retry/backoff si indicatori vizuali completi pentru offline sync.
+- CI mai strict (lint + test + scan security + migrari rollback-safe).
 
-### Технические:
-- **Время загрузки** страницы < 2s
-- **API response time** < 200ms
-- **Error rate** < 1%
-- **Uptime** > 99.9%
+## Fisiere de context utile
 
----
+- `improve.md` - checklist extins de platforma si reguli arhitecturale.
+- `game.md` - concept si directii pentru Robot Lab.
+- `robot_lab_ai_agent_spec.txt` - specificatie agent AI pentru Robot Lab.
+- `runner_service/README.md` - detalii runner FastAPI.
 
-## 🤝 Вклад в проект
+## Nota de siguranta
 
-Мы приветствуем вклад в развитие проекта!
+Inainte de productie:
 
-1. Fork репозиторий
-2. Создайте ветку: `git checkout -b feature/amazing-feature`
-3. Commit изменения: `git commit -m 'Add amazing feature'`
-4. Push в ветку: `git push origin feature/amazing-feature`
-5. Создайте Pull Request
-
----
-
-## 📝 Changelog
-
-### v2.0.0 (9 ноября 2025)
-✨ **Новые возможности:**
-- Расширенная аналитика студентов
-- Умная система уведомлений
-- Продвинутые достижения
-- Аналитика для учителей
-
-📚 **Документация:**
-- Полный план улучшений
-- Примеры использования
-- Архитектура системы
-
-### v1.0.0
-- Базовый функционал платформы
-- Уроки, тесты, геймификация
-- Классы и задания
-
----
-
-## 📞 Поддержка
-
-- **Email:** support@ecosystem.edu
-- **Документация:** [docs](IMPROVEMENT_PLAN.md)
-- **Issues:** [GitHub Issues](https://github.com/your-username/ecosystem/issues)
-
----
-
-## 📄 Лицензия
-
-Этот проект распространяется под лицензией MIT. См. файл [LICENSE](LICENSE) для деталей.
-
----
-
-## 👏 Благодарности
-
-- Django Community
-- Bootstrap Team
-- Все контрибьюторы проекта
-
----
-
-## 🚀 Roadmap
-
-### Q4 2025
-- [ ] API для мобильного приложения
-- [ ] Улучшенная проверка кода
-- [ ] Интеграция с GitHub
-
-### Q1 2026
-- [ ] Система сертификатов
-- [ ] Peer-to-peer обучение
-- [ ] PWA и офлайн режим
-
-### Q2 2026
-- [ ] Интерактивные симуляции
-- [ ] Расширенный AI функционал
-- [ ] Мобильные приложения (iOS/Android)
-
----
-
-**Создано с ❤️ командой Ecosystem**
-
-*Последнее обновление: 9 ноября 2025* 
+- muta toate credentialele sensibile in variabile de mediu,
+- seteaza `DJANGO_DEBUG=False`,
+- configureaza corect `ALLOWED_HOSTS` si `CSRF_TRUSTED_ORIGINS`,
+- foloseste baza de date si cache de productie.

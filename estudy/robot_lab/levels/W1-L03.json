@@ -1,0 +1,37 @@
+{
+  "id": "W1-L03",
+  "title": "Terminal online",
+  "description": "Mergi la terminal si activeaza-l.",
+  "goal_text": "Activeaza terminalul T.",
+  "goal": {
+    "type": "activate_terminal"
+  },
+  "concepts": ["sequencing", "condition"],
+  "difficulty": "easy",
+  "max_steps": 100,
+  "time_limit_ms": 800,
+  "xp_reward": 30,
+  "start_dir": "E",
+  "allowed_api": [
+    "move",
+    "turn_left",
+    "turn_right",
+    "front_is_clear",
+    "near_terminal",
+    "activate"
+  ],
+  "legend": {
+    "#": "wall",
+    ".": "empty",
+    "S": "start",
+    "T": "terminal"
+  },
+  "grid": [
+    "########",
+    "#S....T#",
+    "#..##..#",
+    "#......#",
+    "########"
+  ],
+  "starter_code": "while not near_terminal():\n    if front_is_clear():\n        move()\n    else:\n        turn_right()\nactivate()"
+}

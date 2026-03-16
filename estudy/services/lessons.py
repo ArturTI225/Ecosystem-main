@@ -2,42 +2,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Set
 
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
 from django.utils import timezone
 
-from ..models import LearningPath, LearningPathLesson, Lesson, LessonProgress, Subject
+from ..models import LearningPath, LearningPathLesson, Lesson, Subject
 from .gamification import build_overall_progress, get_badge_summary
+from .lesson_access import compute_accessibility
 from .recommendations import refresh_recommendations
-
-
-def _compute_accessibility_for_subjects(
-    user, subjects: List[Subject]
-) -> Tuple[Set[int], Set[int], Dict[int, Any]]:
-    completed_ids = set(
-        LessonProgress.objects.filter(user=user, completed=True).values_list(
-            "lesson_id", flat=True
-        )
-    )
-    accessible_ids = set(completed_ids)
-    locked_reasons: Dict[int, Any] = {}
-
-    for subject in subjects:
-        lessons = list(subject.lessons.all())
-        required_lesson = None
-        for lesson in lessons:
-            if lesson.id in completed_ids:
-                required_lesson = lesson
-                continue
-            if required_lesson is None or required_lesson.id == lesson.id:
-                accessible_ids.add(lesson.id)
-                if required_lesson is None:
-                    required_lesson = lesson
-            else:
-                locked_reasons[lesson.id] = required_lesson
-    return completed_ids, accessible_ids, locked_reasons
 
 
 def build_lesson_blocks(
@@ -241,7 +215,7 @@ def prepare_lessons_list(user, params: Dict[str, Any] | None = None) -> Dict[str
     if upcoming_only:
         lessons_qs = lessons_qs.filter(date__gte=timezone.localdate())
 
-    completed_ids, accessible_ids, locked_reasons = _compute_accessibility_for_subjects(
+    completed_ids, accessible_ids, locked_reasons = compute_accessibility(
         user, subjects
     )
 

@@ -1,3 +1,5 @@
+import random
+from decimal import Decimal
 from typing import Optional
 
 from django.contrib.auth.models import User
@@ -39,6 +41,73 @@ class Skill(models.Model):
 
     def __str__(self) -> str:
         return self.title
+
+
+class Course(models.Model):
+    LEVEL_BEGINNER = "beginner"
+    LEVEL_INTERMEDIATE = "intermediate"
+    LEVEL_ADVANCED = "advanced"
+
+    LEVEL_CHOICES = [
+        (LEVEL_BEGINNER, "Beginner"),
+        (LEVEL_INTERMEDIATE, "Intermediate"),
+        (LEVEL_ADVANCED, "Advanced"),
+    ]
+
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=220, unique=True)
+    description = models.TextField(blank=True)
+    subject = models.ForeignKey(
+        Subject, on_delete=models.CASCADE, related_name="courses", null=True, blank=True
+    )
+    level = models.CharField(
+        max_length=20, choices=LEVEL_CHOICES, default=LEVEL_BEGINNER
+    )
+    duration_weeks = models.PositiveIntegerField(default=4)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("title",)
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class CourseGoal(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="goals")
+    description = models.CharField(max_length=255)
+
+    class Meta:
+        ordering = ("id",)
+
+    def __str__(self) -> str:
+        return f"{self.course.title}: {self.description}"
+
+
+class Module(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(max_length=220, unique=True)
+    order = models.PositiveIntegerField(default=1)
+    description = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("course", "order")
+
+    def __str__(self) -> str:
+        return f"{self.course.title} / {self.title}"
+
+
+class TopicTag(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    slug = models.SlugField(max_length=140, unique=True)
+
+    class Meta:
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return self.name
 
 
 def default_theory_takeaways():
@@ -83,6 +152,13 @@ class Lesson(models.Model):
     subject = models.ForeignKey(
         Subject, on_delete=models.CASCADE, related_name="lessons"
     )
+    module = models.ForeignKey(
+        "Module",
+        on_delete=models.SET_NULL,
+        related_name="lessons",
+        null=True,
+        blank=True,
+    )
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, blank=True, null=True)
     excerpt = models.CharField(max_length=300, blank=True)
@@ -126,6 +202,7 @@ class Lesson(models.Model):
     hero_theme = models.CharField(max_length=60, default="sky-fizz")
     hero_emoji = models.CharField(max_length=10, default="🚀")
     skills = models.ManyToManyField(Skill, blank=True, related_name="lessons")
+    topics = models.ManyToManyField("TopicTag", blank=True, related_name="lessons")
 
     class Meta:
         ordering = ("date", "title")
@@ -366,6 +443,26 @@ class Lesson(models.Model):
         return self.title
 
 
+class LessonPrerequisite(models.Model):
+    prerequisite_lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name="unlocks_lessons",
+    )
+    target_lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name="prerequisites",
+    )
+
+    class Meta:
+        unique_together = ("prerequisite_lesson", "target_lesson")
+        ordering = ("target_lesson_id",)
+
+    def __str__(self) -> str:
+        return f"{self.prerequisite_lesson} -> {self.target_lesson}"
+
+
 class LessonObjective(models.Model):
     lesson = models.ForeignKey(
         Lesson, on_delete=models.CASCADE, related_name="objectives"
@@ -558,12 +655,26 @@ class UserProfile(models.Model):
     ROLE_ADMIN = "admin"
     ROLE_PARENT = "parent"
 
+    GOAL_SKILLS = "skills"
+    GOAL_GRADES = "grades"
+    GOAL_CAREER = "career"
+    GOAL_FUN = "fun"
+
     STATUS_CHOICES = [
         (ROLE_STUDENT, "Student"),
         (ROLE_PROFESSOR, "Profesor"),
         (ROLE_ADMIN, "Administrator"),
         (ROLE_PARENT, "Parinte"),
     ]
+    GOAL_CHOICES = [
+        (GOAL_SKILLS, "Build skills"),
+        (GOAL_GRADES, "Improve grades"),
+        (GOAL_CAREER, "Career prep"),
+        (GOAL_FUN, "Learn for fun"),
+    ]
+
+    REPUTATION_SCORE_DEFAULT = 0
+    TRUSTED_CONTRIBUTOR_DEFAULT = False
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     # index to speed up role-based queries (dashboards, permission checks)
@@ -581,10 +692,19 @@ class UserProfile(models.Model):
     xp = models.PositiveIntegerField(default=0)
     level = models.PositiveIntegerField(default=1)
     streak = models.PositiveIntegerField(default=0)
+    reputation_score = models.IntegerField(default=REPUTATION_SCORE_DEFAULT)
+    is_trusted_contributor = models.BooleanField(default=TRUSTED_CONTRIBUTOR_DEFAULT)
     last_activity_at = models.DateTimeField(blank=True, null=True)
     weekly_goal = models.PositiveIntegerField(default=3)
     notifications_enabled = models.BooleanField(default=True)
     parent_email = models.EmailField(blank=True)
+    learning_goal = models.CharField(
+        max_length=30, choices=GOAL_CHOICES, default=GOAL_SKILLS
+    )
+    diagnostic_onboarded = models.BooleanField(default=False)
+    first_mission_assigned = models.BooleanField(default=False)
+    preferred_locale = models.CharField(max_length=10, default="en")
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True)
 
     def __str__(self) -> str:
@@ -651,6 +771,15 @@ def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
         profile = UserProfile.objects.create(user=instance)
         NotificationPreference.objects.get_or_create(user=instance)
+        try:
+            # auto-assign starter missions and mark onboarding progress
+            from .services.gamification import ensure_user_missions
+
+            ensure_user_missions(instance)
+            profile.first_mission_assigned = True
+            profile.save(update_fields=["first_mission_assigned"])
+        except Exception:
+            pass
         return profile
     instance.userprofile.save()
 
@@ -733,6 +862,86 @@ class LessonProgress(models.Model):
         else:
             # delegate to mark_completed to ensure XP, streaks, etc. are awarded once
             self.mark_completed(award_xp=award_xp)
+
+
+class LearningPlan(models.Model):
+    PLAN_7_DAYS = "7d"
+    PLAN_14_DAYS = "14d"
+    PLAN_30_DAYS = "30d"
+
+    PLAN_CHOICES = [
+        (PLAN_7_DAYS, "7 days"),
+        (PLAN_14_DAYS, "14 days"),
+        (PLAN_30_DAYS, "30 days"),
+    ]
+
+    STATUS_ACTIVE = "active"
+    STATUS_COMPLETED = "completed"
+    STATUS_CANCELLED = "cancelled"
+
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="learning_plans"
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="learning_plans",
+    )
+    plan_type = models.CharField(
+        max_length=10, choices=PLAN_CHOICES, default=PLAN_14_DAYS
+    )
+    start_date = models.DateField(default=timezone.now)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        course_label = self.course.title if self.course else "general"
+        return f"{self.user} - {course_label} ({self.plan_type})"
+
+
+class LearningPlanItem(models.Model):
+    STATUS_PENDING = "pending"
+    STATUS_DONE = "done"
+    STATUS_SKIPPED = "skipped"
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_DONE, "Done"),
+        (STATUS_SKIPPED, "Skipped"),
+    ]
+
+    plan = models.ForeignKey(
+        LearningPlan, on_delete=models.CASCADE, related_name="items"
+    )
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="plan_items"
+    )
+    order = models.PositiveIntegerField(default=1)
+    due_date = models.DateField(null=True, blank=True)
+    status = models.CharField(
+        max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING
+    )
+
+    class Meta:
+        ordering = ("plan", "order")
+        unique_together = ("plan", "lesson")
+
+    def __str__(self) -> str:
+        return f"{self.plan} -> {self.lesson} ({self.status})"
 
 
 class VideoProgress(models.Model):
@@ -868,6 +1077,205 @@ class UserReward(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} · {self.reward.name}"
+
+
+class Classroom(models.Model):
+    name = models.CharField(max_length=120)
+    description = models.TextField(blank=True)
+    invite_code = models.CharField(max_length=12, unique=True, blank=True)
+    owner = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="owned_classrooms"
+    )
+    archived = models.BooleanField(default=False)
+    team_support = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("name",)
+
+    def __str__(self) -> str:
+        return self.name
+
+    def save(self, *args, **kwargs):
+        if not self.invite_code:
+            alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+            self.invite_code = "".join(random.choice(alphabet) for _ in range(8))
+        super().save(*args, **kwargs)
+
+
+class ClassroomMembership(models.Model):
+    ROLE_STUDENT = "student"
+    ROLE_ASSISTANT = "assistant"
+    ROLE_PARENT = "parent"
+    ROLE_CHOICES = [
+        (ROLE_STUDENT, "Student"),
+        (ROLE_ASSISTANT, "Assistant"),
+        (ROLE_PARENT, "Parent"),
+    ]
+
+    classroom = models.ForeignKey(
+        Classroom, on_delete=models.CASCADE, related_name="memberships"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="classroom_memberships"
+    )
+    role = models.CharField(
+        max_length=20, choices=ROLE_CHOICES, default=ROLE_STUDENT, db_index=True
+    )
+    approved = models.BooleanField(default=False)
+    group_name = models.CharField(max_length=50, blank=True)
+    joined_at = models.DateTimeField(auto_now_add=True)
+    points = models.PositiveIntegerField(default=0)
+    last_activity_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        unique_together = ("classroom", "user")
+        ordering = ("-joined_at",)
+
+    def __str__(self) -> str:
+        return f"{self.user.username} -> {self.classroom.name}"
+
+    def clean(self):
+        if (
+            self.role in (self.ROLE_ASSISTANT, self.ROLE_PARENT)
+            and self.classroom.owner != self.user
+        ):
+            self.approved = False
+
+
+class ClassAssignment(models.Model):
+    classroom = models.ForeignKey(
+        Classroom, on_delete=models.CASCADE, related_name="assignments"
+    )
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    points = models.PositiveIntegerField(default=100)
+    created_by = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="class_assignments_created"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"{self.classroom.name}: {self.title}"
+
+
+class AssignmentSubmission(models.Model):
+    STATUS_DRAFT = "draft"
+    STATUS_SUBMITTED = "submitted"
+    STATUS_RETURNED = "returned"
+    STATUS_GRADED = "graded"
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, "Draft"),
+        (STATUS_SUBMITTED, "Submitted"),
+        (STATUS_RETURNED, "Returned"),
+        (STATUS_GRADED, "Graded"),
+    ]
+
+    assignment = models.ForeignKey(
+        ClassAssignment, on_delete=models.CASCADE, related_name="submissions"
+    )
+    student = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="assignment_submissions"
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_SUBMITTED
+    )
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    score = models.FloatField(null=True, blank=True)
+    feedback = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ("-submitted_at",)
+        unique_together = ("assignment", "student")
+
+    def __str__(self) -> str:
+        return f"{self.assignment.title} by {self.student.username}"
+
+
+class ParentChildLink(models.Model):
+    parent = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="linked_children"
+    )
+    child = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="linked_parents"
+    )
+    approved = models.BooleanField(default=False)
+    requested_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("parent", "child")
+
+    def __str__(self) -> str:
+        status = "ok" if self.approved else "pending"
+        return f"{self.parent} -> {self.child} ({status})"
+
+
+class CommunityThread(models.Model):
+    title = models.CharField(max_length=200)
+    body = models.TextField()
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="community_threads"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class CommunityReply(models.Model):
+    thread = models.ForeignKey(
+        CommunityThread, on_delete=models.CASCADE, related_name="replies"
+    )
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="community_replies"
+    )
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at",)
+
+    def __str__(self) -> str:
+        return f"Reply by {self.author}"
+
+
+COMMUNITY_CURATION_NOTE_MAX_LENGTH = 255
+
+
+class CommunityCuratedAnswer(models.Model):
+    thread = models.ForeignKey(
+        CommunityThread, on_delete=models.CASCADE, related_name="curated_answers"
+    )
+    reply = models.OneToOneField(
+        CommunityReply, on_delete=models.CASCADE, related_name="curation"
+    )
+    curated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="curated_answers",
+    )
+    note = models.CharField(max_length=COMMUNITY_CURATION_NOTE_MAX_LENGTH, blank=True)
+    curated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-curated_at",)
+        indexes = [
+            models.Index(fields=["thread", "curated_at"], name="community_curated_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Curated reply {self.reply_id} in {self.thread_id}"
 
 
 class Badge(models.Model):
@@ -1128,6 +1536,54 @@ class AIHintRequest(models.Model):
         return f"AI request by {self.user.username}"
 
 
+AI_COST_DEFAULT = Decimal("0.000000")
+AI_COST_DECIMAL_PLACES = 6
+AI_COST_MAX_DIGITS = 12
+AI_COST_PROVIDER_MAX_LENGTH = 50
+AI_COST_MODEL_MAX_LENGTH = 100
+AI_COST_CURRENCY_MAX_LENGTH = 10
+AI_COST_TOKEN_DEFAULT = 0
+AI_COST_ESTIMATED_DEFAULT = True
+AI_COST_DEFAULT_PROVIDER = "internal"
+AI_COST_DEFAULT_MODEL = "keyword-hints"
+AI_COST_DEFAULT_CURRENCY = "USD"
+
+
+class AIUsageCost(models.Model):
+    request = models.OneToOneField(
+        AIHintRequest, on_delete=models.CASCADE, related_name="usage_cost"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="ai_usage_costs"
+    )
+    provider = models.CharField(
+        max_length=AI_COST_PROVIDER_MAX_LENGTH, default=AI_COST_DEFAULT_PROVIDER
+    )
+    model_name = models.CharField(
+        max_length=AI_COST_MODEL_MAX_LENGTH, default=AI_COST_DEFAULT_MODEL
+    )
+    prompt_tokens = models.PositiveIntegerField(default=AI_COST_TOKEN_DEFAULT)
+    completion_tokens = models.PositiveIntegerField(default=AI_COST_TOKEN_DEFAULT)
+    total_tokens = models.PositiveIntegerField(default=AI_COST_TOKEN_DEFAULT)
+    cost = models.DecimalField(
+        max_digits=AI_COST_MAX_DIGITS,
+        decimal_places=AI_COST_DECIMAL_PLACES,
+        default=AI_COST_DEFAULT,
+    )
+    currency = models.CharField(
+        max_length=AI_COST_CURRENCY_MAX_LENGTH, default=AI_COST_DEFAULT_CURRENCY
+    )
+    is_estimated = models.BooleanField(default=AI_COST_ESTIMATED_DEFAULT)
+    details = models.JSONField(default=default_empty_dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"AI cost for {self.user.username} ({self.total_tokens} tokens)"
+
+
 class AvatarUnlock(models.Model):
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="avatar_unlocks"
@@ -1140,6 +1596,149 @@ class AvatarUnlock(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} unlocked {self.slug}"
+
+
+STREAK_FREEZE_DEFAULT = 0
+
+
+class StreakFreezeBalance(models.Model):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="streak_freeze_balance"
+    )
+    available_tokens = models.PositiveIntegerField(default=STREAK_FREEZE_DEFAULT)
+    used_tokens = models.PositiveIntegerField(default=STREAK_FREEZE_DEFAULT)
+    last_awarded_streak = models.PositiveIntegerField(default=STREAK_FREEZE_DEFAULT)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self) -> str:
+        return f"{self.user.username} freeze tokens: {self.available_tokens}"
+
+
+SEASONAL_EVENT_SLUG_MAX_LENGTH = 80
+SEASONAL_EVENT_TITLE_MAX_LENGTH = 160
+SEASONAL_EVENT_THEME_MAX_LENGTH = 40
+
+SEASONAL_DEFAULT_POINTS_GOAL = 100
+SEASONAL_DEFAULT_REWARD_XP = 50
+
+
+class SeasonalEvent(models.Model):
+    slug = models.SlugField(max_length=SEASONAL_EVENT_SLUG_MAX_LENGTH, unique=True)
+    title = models.CharField(max_length=SEASONAL_EVENT_TITLE_MAX_LENGTH)
+    description = models.TextField(blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    theme = models.CharField(max_length=SEASONAL_EVENT_THEME_MAX_LENGTH, blank=True)
+    points_goal = models.PositiveIntegerField(default=SEASONAL_DEFAULT_POINTS_GOAL)
+    reward_xp = models.PositiveIntegerField(default=SEASONAL_DEFAULT_REWARD_XP)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-start_date",)
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.start_date} - {self.end_date})"
+
+
+class UserSeasonalProgress(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="seasonal_progress"
+    )
+    event = models.ForeignKey(
+        SeasonalEvent, on_delete=models.CASCADE, related_name="progress_entries"
+    )
+    points = models.PositiveIntegerField(default=0)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "event")
+        indexes = [
+            models.Index(fields=["user", "event"], name="seasonal_progress_user_event"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} -> {self.event.slug}: {self.points}"
+
+
+COSMETIC_PERK_SLUG_MAX_LENGTH = 80
+COSMETIC_PERK_TITLE_MAX_LENGTH = 120
+COSMETIC_PERK_COLOR_MAX_LENGTH = 20
+COSMETIC_PERK_SOURCE_MAX_LENGTH = 60
+
+
+class CosmeticPerk(models.Model):
+    CATEGORY_FRAME = "frame"
+    CATEGORY_AURA = "aura"
+    CATEGORY_BACKGROUND = "background"
+
+    CATEGORY_CHOICES = [
+        (CATEGORY_FRAME, "Avatar frame"),
+        (CATEGORY_AURA, "Avatar aura"),
+        (CATEGORY_BACKGROUND, "Profile background"),
+    ]
+
+    RARITY_COMMON = "common"
+    RARITY_RARE = "rare"
+    RARITY_EPIC = "epic"
+
+    RARITY_CHOICES = [
+        (RARITY_COMMON, "Common"),
+        (RARITY_RARE, "Rare"),
+        (RARITY_EPIC, "Epic"),
+    ]
+
+    slug = models.SlugField(max_length=COSMETIC_PERK_SLUG_MAX_LENGTH, unique=True)
+    title = models.CharField(max_length=COSMETIC_PERK_TITLE_MAX_LENGTH)
+    description = models.TextField(blank=True)
+    category = models.CharField(
+        max_length=30, choices=CATEGORY_CHOICES, default=CATEGORY_FRAME
+    )
+    rarity = models.CharField(
+        max_length=20, choices=RARITY_CHOICES, default=RARITY_COMMON
+    )
+    accent_color = models.CharField(
+        max_length=COSMETIC_PERK_COLOR_MAX_LENGTH, blank=True
+    )
+    unlock_min_level = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("category", "title")
+
+    def __str__(self) -> str:
+        return f"{self.title} ({self.category})"
+
+
+class UserCosmeticPerk(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="cosmetic_perks"
+    )
+    perk = models.ForeignKey(
+        CosmeticPerk, on_delete=models.CASCADE, related_name="unlocks"
+    )
+    source = models.CharField(max_length=COSMETIC_PERK_SOURCE_MAX_LENGTH, blank=True)
+    unlocked_at = models.DateTimeField(auto_now_add=True)
+    is_equipped = models.BooleanField(default=False)
+    equipped_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("user", "perk")
+        indexes = [
+            models.Index(
+                fields=["user", "is_equipped"],
+                name="cosmetic_user_equipped_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} -> {self.perk.slug}"
 
 
 class LeaderboardSnapshot(models.Model):
@@ -1210,9 +1809,9 @@ def check_and_award_rewards(user: User) -> None:
         UserReward.objects.get_or_create(user=user, reward=reward)
 
     if profile:
-        profile.streak += 1
-        profile.last_activity_at = timezone.now()
-        profile.save(update_fields=["streak", "last_activity_at"])
+        from .services.streak_freeze import update_streak_on_activity
+
+        update_streak_on_activity(user=user)
 
 
 class Test(models.Model):
@@ -1237,7 +1836,9 @@ class Test(models.Model):
         return self.question
 
     def answer_choices(self) -> list[str]:
-        return [self.correct_answer, *self.wrong_answers]
+        options = [self.correct_answer, *self.wrong_answers]
+        random.shuffle(options)
+        return options
 
 
 class TestAttempt(models.Model):
@@ -1259,6 +1860,72 @@ class TestAttempt(models.Model):
 
     def __str__(self) -> str:
         return f"{self.user.username} · {self.test.question[:30]}..."
+
+
+class DiagnosticTest(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="diagnostic_tests",
+    )
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="diagnostic_tests",
+    )
+    recommended_level = models.CharField(
+        max_length=20, choices=Course.LEVEL_CHOICES, default=Course.LEVEL_BEGINNER
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class DiagnosticAttempt(models.Model):
+    test = models.ForeignKey(
+        DiagnosticTest, on_delete=models.CASCADE, related_name="attempts"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="diagnostic_attempts"
+    )
+    score = models.PositiveIntegerField(default=0)
+    recommended_course = models.ForeignKey(
+        Course,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="diagnostic_recommendations",
+    )
+    recommended_module = models.ForeignKey(
+        Module,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="diagnostic_recommendations",
+    )
+    recommended_level = models.CharField(
+        max_length=20, choices=Course.LEVEL_CHOICES, default=Course.LEVEL_BEGINNER
+    )
+    notes = models.TextField(blank=True)
+    taken_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-taken_at",)
+        unique_together = ("test", "user")
+
+    def __str__(self) -> str:
+        return f"{self.user} -> {self.test} ({self.score})"
 
 
 def default_practice_data() -> dict[str, list]:
@@ -1378,6 +2045,24 @@ class NotificationPreference(models.Model):
 
     def __str__(self) -> str:
         return f"Preferences for {self.user.username}"
+
+
+class FeatureFlag(models.Model):
+    key = models.CharField(max_length=120, unique=True)
+    enabled = models.BooleanField(default=False)
+    rollout_percentage = models.PositiveIntegerField(
+        default=100, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("key",)
+
+    def __str__(self) -> str:
+        status = "on" if self.enabled else "off"
+        return f"{self.key} ({status})"
 
 
 class LessonFeedback(models.Model):
@@ -1727,29 +2412,184 @@ class LessonAnalytics(models.Model):
         return (self.completions / self.unique_views) * 100
 
 
+LESSON_HEALTH_DEFAULT = 0.0
+LESSON_HEALTH_SCORE_MIN = 0
+LESSON_HEALTH_SCORE_MAX = 100
+LESSON_HEALTH_RATING_MIN = 0
+LESSON_HEALTH_RATING_MAX = 5
+
+
+class LessonHealthScore(models.Model):
+    """Health score summary for a lesson."""
+
+    lesson = models.OneToOneField(
+        Lesson, on_delete=models.CASCADE, related_name="health_score"
+    )
+    score = models.FloatField(
+        default=LESSON_HEALTH_DEFAULT,
+        validators=[
+            MinValueValidator(LESSON_HEALTH_SCORE_MIN),
+            MaxValueValidator(LESSON_HEALTH_SCORE_MAX),
+        ],
+    )
+    quality_score = models.FloatField(
+        default=LESSON_HEALTH_DEFAULT,
+        validators=[
+            MinValueValidator(LESSON_HEALTH_SCORE_MIN),
+            MaxValueValidator(LESSON_HEALTH_SCORE_MAX),
+        ],
+    )
+    completion_rate = models.FloatField(
+        default=LESSON_HEALTH_DEFAULT,
+        validators=[
+            MinValueValidator(LESSON_HEALTH_SCORE_MIN),
+            MaxValueValidator(LESSON_HEALTH_SCORE_MAX),
+        ],
+    )
+    avg_rating = models.FloatField(
+        default=LESSON_HEALTH_DEFAULT,
+        validators=[
+            MinValueValidator(LESSON_HEALTH_RATING_MIN),
+            MaxValueValidator(LESSON_HEALTH_RATING_MAX),
+        ],
+    )
+    average_completion_time_minutes = models.FloatField(null=True, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    computed_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-computed_at",)
+
+    def __str__(self) -> str:
+        return f"{self.lesson.title}: {self.score:.1f}"
+
+
 # Temporary placeholder models for dashboard functionality
 # TODO: Implement full functionality later
 
 
+class Rubric(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("title",)
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class RubricCriterion(models.Model):
+    rubric = models.ForeignKey(
+        Rubric, on_delete=models.CASCADE, related_name="criteria"
+    )
+    name = models.CharField(max_length=150)
+    description = models.TextField(blank=True)
+    weight = models.FloatField(default=1.0)
+    max_score = models.PositiveIntegerField(default=5)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ("rubric", "order")
+
+    def __str__(self) -> str:
+        return f"{self.rubric.title}: {self.name} ({self.weight})"
+
+
 class Project(models.Model):
-    """Placeholder for Project model"""
+    """Project definition evaluated with a rubric"""
+
+    STATUS_DRAFT = "draft"
+    STATUS_ACTIVE = "active"
+    STATUS_RETIRED = "retired"
+
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, "Draft"),
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_RETIRED, "Retired"),
+    ]
 
     title = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True, blank=True, null=True)
+    description = models.TextField(blank=True)
     level = models.IntegerField(default=1)
+    rubric = models.ForeignKey(
+        Rubric,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="projects",
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("title",)
 
     def __str__(self):
         return self.title
 
 
 class ProjectSubmission(models.Model):
-    """Placeholder for ProjectSubmission model"""
+    """Submissions with status and checklist validation"""
+
+    STATUS_SUBMITTED = "submitted"
+    STATUS_RETURNED = "returned"
+    STATUS_ACCEPTED = "accepted"
+
+    STATUS_CHOICES = [
+        (STATUS_SUBMITTED, "Submitted"),
+        (STATUS_RETURNED, "Returned"),
+        (STATUS_ACCEPTED, "Accepted"),
+    ]
 
     student = models.ForeignKey(User, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    attempt_no = models.PositiveIntegerField(default=1)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_SUBMITTED
+    )
+    feedback = models.TextField(blank=True)
+    score = models.FloatField(default=0.0)
+    pre_submit_checklist = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ("-uploaded_at",)
+        unique_together = ("student", "project", "attempt_no")
 
     def __str__(self):
-        return f"{self.student.username} - {self.project.title}"
+        return f"{self.student.username} - {self.project.title} (attempt {self.attempt_no})"
+
+
+class ProjectEvaluation(models.Model):
+    """Teacher evaluation of a project submission using a rubric"""
+
+    submission = models.ForeignKey(
+        ProjectSubmission, on_delete=models.CASCADE, related_name="evaluations"
+    )
+    rubric = models.ForeignKey(
+        Rubric,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="evaluations",
+    )
+    evaluator = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="project_evaluations"
+    )
+    total_score = models.FloatField(default=0.0)
+    comments = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self) -> str:
+        return f"Evaluation for {self.submission} by {self.evaluator.username}"
 
 
 class DailyChallenge(models.Model):
@@ -1762,3 +2602,297 @@ class DailyChallenge(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class PeerReview(models.Model):
+    """Optional peer review for project submissions."""
+
+    submission = models.ForeignKey(
+        ProjectSubmission, on_delete=models.CASCADE, related_name="peer_reviews"
+    )
+    reviewer = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="peer_reviews_given"
+    )
+    feedback = models.TextField(blank=True)
+    score = models.FloatField(default=0.0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        unique_together = ("submission", "reviewer")
+
+    def __str__(self):
+        return f"Peer review by {self.reviewer} for {self.submission}"
+
+
+class RobotLabSkillProfile(models.Model):
+    """Per-student skill vector for Robot Lab missions."""
+
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="robot_lab_skill_profile"
+    )
+    sequencing_score = models.PositiveIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    loop_score = models.PositiveIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    condition_score = models.PositiveIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    function_score = models.PositiveIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    debugging_score = models.PositiveIntegerField(
+        default=0, validators=[MinValueValidator(0), MaxValueValidator(100)]
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self) -> str:
+        return f"RobotLab skills for {self.user.username}"
+
+
+class RobotLabAttemptLog(models.Model):
+    """Stores structured Robot Lab attempts for analytics and personalization."""
+
+    CONCEPT_FOCUS_CHOICES = [
+        ("sequencing", "Sequencing"),
+        ("condition", "Condition"),
+        ("loop", "Loop"),
+        ("function", "Function"),
+        ("debugging", "Debugging"),
+    ]
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="robot_lab_attempt_logs"
+    )
+    level_id = models.CharField(max_length=40)
+    attempt_number = models.PositiveIntegerField(default=1)
+    error_type = models.CharField(max_length=20, default="logic")
+    primary_error = models.CharField(max_length=80, blank=True)
+    typical_error = models.CharField(max_length=80, default="unknown")
+    solved = models.BooleanField(default=False)
+    hints_used = models.PositiveIntegerField(default=0)
+    requested_solution = models.BooleanField(default=False)
+    concept_focus = models.CharField(
+        max_length=20, choices=CONCEPT_FOCUS_CHOICES, default="debugging"
+    )
+    metadata = models.JSONField(default=default_empty_dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(
+                fields=["user", "created_at"], name="est_rl_att_u_created_idx"
+            ),
+            models.Index(
+                fields=["level_id", "created_at"], name="est_rl_att_l_created_idx"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        status = "solved" if self.solved else "failed"
+        return f"{self.user.username} · {self.level_id} · {status}"
+
+
+class RobotLabRun(models.Model):
+    """Execution snapshot for one Robot Lab run."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="robot_lab_runs"
+    )
+    level_id = models.CharField(max_length=40)
+    attempt_number = models.PositiveIntegerField(default=1)
+    code = models.TextField()
+    error_type = models.CharField(max_length=20, default="logic")
+    primary_error = models.CharField(max_length=80, blank=True)
+    execution_trace = models.JSONField(default=default_empty_list, blank=True)
+    final_state = models.JSONField(default=default_empty_dict, blank=True)
+    level_snapshot = models.JSONField(default=default_empty_dict, blank=True)
+    steps_used = models.PositiveIntegerField(default=0)
+    duration_ms = models.PositiveIntegerField(default=0)
+    solved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(
+                fields=["user", "created_at"], name="est_rl_run_u_created_idx"
+            ),
+            models.Index(
+                fields=["level_id", "created_at"], name="est_rl_run_l_created_idx"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        status = "ok" if self.solved else "fail"
+        return f"{self.user.username} · {self.level_id} · {status}"
+
+
+class RobotLabLevelProgress(models.Model):
+    """Per-user progress state for Robot Lab levels."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="robot_lab_level_progress"
+    )
+    level_id = models.CharField(max_length=40)
+    unlocked = models.BooleanField(default=False)
+    completed = models.BooleanField(default=False)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    best_steps = models.PositiveIntegerField(null=True, blank=True)
+    attempts_count = models.PositiveIntegerField(default=0)
+    xp_awarded_total = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("level_id",)
+        unique_together = ("user", "level_id")
+        indexes = [
+            models.Index(
+                fields=["user", "updated_at"], name="est_rl_prog_u_updated_idx"
+            ),
+            models.Index(
+                fields=["level_id", "completed"], name="est_rl_prog_l_done_idx"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        state = "done" if self.completed else "todo"
+        return f"{self.user.username} · {self.level_id} · {state}"
+
+
+class EventLog(models.Model):
+    """Audit log for key platform events."""
+
+    EVENT_LOGIN = "login"
+    EVENT_LESSON_VIEW = "lesson_view"
+    EVENT_TEST_START = "test_start"
+    EVENT_TEST_SUBMIT = "test_submit"
+    EVENT_ACHIEVEMENT = "achievement_awarded"
+    EVENT_REPUTATION_CHANGE = "reputation_change"
+    EVENT_XP_DECAY = "xp_decay"
+    EVENT_COMMUNITY_CURATION = "community_curation"
+    EVENT_COSMETIC_UNLOCK = "cosmetic_unlock"
+    EVENT_COSMETIC_EQUIP = "cosmetic_equip"
+    EVENT_STREAK_FREEZE_GRANT = "streak_freeze_grant"
+    EVENT_STREAK_FREEZE_USE = "streak_freeze_use"
+    EVENT_SEASONAL_PROGRESS = "seasonal_progress"
+    EVENT_SEASONAL_COMPLETED = "seasonal_completed"
+    EVENT_OFFLINE_PROGRESS_SYNC = "offline_progress_sync"
+    EVENT_OFFLINE_PROGRESS_CONFLICT = "offline_progress_conflict"
+
+    EVENT_CHOICES = [
+        (EVENT_LOGIN, "Login"),
+        (EVENT_LESSON_VIEW, "Lesson view"),
+        (EVENT_TEST_START, "Test start"),
+        (EVENT_TEST_SUBMIT, "Test submit"),
+        (EVENT_ACHIEVEMENT, "Achievement awarded"),
+        (EVENT_REPUTATION_CHANGE, "Reputation change"),
+        (EVENT_XP_DECAY, "XP decay"),
+        (EVENT_COMMUNITY_CURATION, "Community curation"),
+        (EVENT_COSMETIC_UNLOCK, "Cosmetic unlock"),
+        (EVENT_COSMETIC_EQUIP, "Cosmetic equip"),
+        (EVENT_STREAK_FREEZE_GRANT, "Streak freeze grant"),
+        (EVENT_STREAK_FREEZE_USE, "Streak freeze use"),
+        (EVENT_SEASONAL_PROGRESS, "Seasonal progress"),
+        (EVENT_SEASONAL_COMPLETED, "Seasonal completed"),
+        (EVENT_OFFLINE_PROGRESS_SYNC, "Offline progress sync"),
+        (EVENT_OFFLINE_PROGRESS_CONFLICT, "Offline progress conflict"),
+    ]
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="event_logs",
+    )
+    event_type = models.CharField(max_length=50, choices=EVENT_CHOICES)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["event_type", "created_at"]),
+            models.Index(fields=["user", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.event_type} at {self.created_at}"
+
+
+AUDIT_EVENT_TYPE_MAX_LENGTH = 50
+AUDIT_SOURCE_MAX_LENGTH = 40
+AUDIT_HASH_ALGO_MAX_LENGTH = 20
+AUDIT_HASH_HEX_LENGTH = 64
+AUDIT_DEFAULT_SOURCE = "app"
+AUDIT_DEFAULT_HASH_ALGO = "sha256"
+
+
+class AuditTrailEntry(models.Model):
+    """Tamper-evident audit trail entry (hash-chained)."""
+
+    event_type = models.CharField(max_length=AUDIT_EVENT_TYPE_MAX_LENGTH)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_trail_entries",
+    )
+    source = models.CharField(
+        max_length=AUDIT_SOURCE_MAX_LENGTH, default=AUDIT_DEFAULT_SOURCE
+    )
+    hash_algorithm = models.CharField(
+        max_length=AUDIT_HASH_ALGO_MAX_LENGTH, default=AUDIT_DEFAULT_HASH_ALGO
+    )
+    payload_hash = models.CharField(max_length=AUDIT_HASH_HEX_LENGTH)
+    previous_hash = models.CharField(
+        max_length=AUDIT_HASH_HEX_LENGTH, blank=True, null=True
+    )
+    record_hash = models.CharField(max_length=AUDIT_HASH_HEX_LENGTH, unique=True)
+    metadata = models.JSONField(default=default_empty_dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-id",)
+        indexes = [
+            models.Index(
+                fields=["event_type", "created_at"],
+                name="estudy_audit_event_created_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.event_type} at {self.created_at}"
+
+
+class OfflineProgressQueue(models.Model):
+    """Offline progress entries to sync when user reconnects."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="offline_progress_queue"
+    )
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="offline_progress_queue"
+    )
+    payload = models.JSONField(default=dict)
+    synced = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    synced_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        indexes = [
+            models.Index(fields=["user", "synced"]),
+            models.Index(fields=["lesson", "synced"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} offline progress for {self.lesson}"

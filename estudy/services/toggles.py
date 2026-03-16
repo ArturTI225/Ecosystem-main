@@ -3,7 +3,11 @@ from __future__ import annotations
 from typing import Dict
 
 from ..models import Lesson, LessonProgress
-from .gamification import build_overall_progress, record_lesson_completion
+from .gamification import (
+    build_overall_progress,
+    invalidate_overall_progress_cache,
+    record_lesson_completion,
+)
 
 
 def toggle_lesson_completion_service(
@@ -24,6 +28,7 @@ def toggle_lesson_completion_service(
         progress.completed = False
         progress.completed_at = None
         progress.save(update_fields=["completed", "completed_at", "updated_at"])
+        invalidate_overall_progress_cache(user)
         snapshot = build_overall_progress(user)
         return {"completed": False, "progress_snapshot": snapshot}
 
