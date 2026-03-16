@@ -90,9 +90,9 @@ body.lesson-page .btn--glow {
 
 .lesson-root {
     width: min(1280px, calc(100% - 2rem));
-    margin: clamp(3rem, 6vw, 4.5rem) auto clamp(4rem, 7vw, 5.5rem);
+    margin: clamp(1rem, 2.2vw, 1.9rem) auto clamp(2rem, 4vw, 3rem);
     display: grid;
-    gap: clamp(2.5rem, 5vw, 3.5rem);
+    gap: clamp(1.4rem, 2.8vw, 2.2rem);
 }
 
 .lesson-section {
@@ -213,6 +213,42 @@ body.lesson-page .btn--glow {
     gap: clamp(2rem, 4vw, 2.75rem);
 }
 
+.lesson-body > #concept {
+    order: 10;
+}
+
+.lesson-body > #example {
+    order: 20;
+}
+
+.lesson-body > #code-exercises {
+    order: 21;
+}
+
+.lesson-body > #practice {
+    order: 30;
+}
+
+.lesson-body > #test {
+    order: 40;
+}
+
+.lesson-body > #summary {
+    order: 50;
+}
+
+.lesson-body > #assistant {
+    order: 60;
+}
+
+.lesson-body > #reflection {
+    order: 70;
+}
+
+.lesson-body > #resources {
+    order: 80;
+}
+
 [data-animate] {
     opacity: 0;
     transform: translateY(28px);
@@ -230,14 +266,16 @@ body.lesson-page .btn--glow {
 
 .lesson-hero {
     display: grid;
-    gap: clamp(2rem, 4vw, 3rem);
+    grid-template-columns: minmax(0, 1.55fr) minmax(240px, 0.85fr);
+    gap: clamp(1.2rem, 2.4vw, 2rem);
     background: var(--lesson-surface);
     border-radius: var(--lesson-radius);
-    padding: clamp(2.4rem, 6vw, 3.1rem);
+    padding: clamp(1.4rem, 2.6vw, 2rem);
     box-shadow: var(--lesson-shadow);
     border: 1px solid var(--lesson-border);
     position: relative;
     overflow: hidden;
+    align-items: start;
 }
 
 .lesson-hero::after {
@@ -262,12 +300,13 @@ body.lesson-page .btn--glow {
 
 .lesson-hero__status {
     display: grid;
-    gap: 1.25rem;
+    gap: 0.9rem;
+    align-content: start;
 }
 
 .lesson-hero h1 {
     font-family: 'Poppins', 'Manrope', 'Inter', system-ui, sans-serif;
-    font-size: clamp(2.1rem, 5vw, 2.8rem);
+    font-size: clamp(1.9rem, 3.7vw, 2.45rem);
     color: var(--lesson-text);
     margin: 0;
     line-height: 1.2;
@@ -385,9 +424,9 @@ body.lesson-page .btn--glow {
 
 .lesson-hero__metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 0.75rem;
-    margin-top: 0.5rem;
+    margin-top: 0.2rem;
 }
 
 .lesson-metric {
@@ -422,7 +461,7 @@ html[data-theme='light'] body.lesson-page .lesson-metric {
 }
 
 .lesson-hero__visual {
-    width: min(320px, 100%);
+    width: min(230px, 100%);
     margin-inline: auto;
     filter: drop-shadow(0 28px 45px rgba(8, 15, 32, 0.55));
 }
@@ -477,6 +516,218 @@ html[data-theme='light'] body.lesson-page .lesson-metric {
     display: block;
     font-size: 1.2rem;
     color: var(--lesson-text);
+}
+
+/* ==========================================================================
+   Adventure mode (intro + code arena)
+   ========================================================================== */
+
+.lesson-card--adventure {
+    overflow: hidden;
+    position: relative;
+}
+
+.lesson-card--adventure::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 15% 10%, rgba(59, 130, 246, 0.16), transparent 45%),
+        radial-gradient(circle at 85% 90%, rgba(20, 184, 166, 0.14), transparent 45%);
+}
+
+.lesson-card--adventure > * {
+    position: relative;
+    z-index: 1;
+}
+
+.adventure-intro {
+    display: grid;
+    gap: 1.1rem;
+}
+
+.adventure-intro__lead {
+    margin: 0;
+    font-size: 1.03rem;
+    color: var(--lesson-text-muted);
+}
+
+.adventure-cast {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.adventure-cast__card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: var(--lesson-radius-sm);
+    background: rgba(15, 23, 42, 0.38);
+    border: 1px solid var(--lesson-border);
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.adventure-cast__card h3 {
+    margin: 0;
+    color: var(--lesson-text);
+}
+
+.adventure-cast__card small {
+    display: block;
+    margin-top: 0.1rem;
+    color: var(--lesson-text-subtle);
+}
+
+.adventure-cast__card p {
+    margin: 0.45rem 0 0;
+    color: var(--lesson-text-muted);
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+
+.adventure-cast__card.is-active {
+    transform: translateY(-3px);
+    border-color: var(--lesson-border-strong);
+    box-shadow: 0 16px 34px -24px rgba(59, 130, 246, 0.65);
+}
+
+.adventure-cast__emoji {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.2);
+    font-size: 1.2rem;
+    animation: lesson-float 3.6s ease-in-out infinite;
+}
+
+.adventure-path {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.5rem;
+    color: var(--lesson-text-muted);
+}
+
+.code-arena {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+}
+
+.code-arena__theory,
+.code-arena__missions {
+    padding: 1rem 1.1rem;
+    border-radius: var(--lesson-radius-sm);
+    background: rgba(15, 23, 42, 0.36);
+    border: 1px solid var(--lesson-border);
+    display: grid;
+    gap: 0.85rem;
+}
+
+.code-arena__theory h3,
+.code-arena__missions h3 {
+    margin: 0;
+    color: var(--lesson-text);
+    font-size: 1.1rem;
+}
+
+.code-arena__theory p,
+.code-arena__theory li {
+    color: var(--lesson-text-muted);
+}
+
+.code-arena__theory ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.code-arena__mission-list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.arena-mission {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--lesson-border);
+    border-radius: var(--lesson-radius-xs);
+    background: rgba(2, 6, 23, 0.45);
+    color: var(--lesson-text);
+    padding: 0.75rem 0.85rem;
+    display: grid;
+    gap: 0.2rem;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.arena-mission strong {
+    font-size: 0.96rem;
+}
+
+.arena-mission small {
+    color: var(--lesson-text-subtle);
+}
+
+.arena-mission__badge {
+    display: inline-flex;
+    width: fit-content;
+    padding: 0.18rem 0.58rem;
+    border-radius: 999px;
+    font-size: 0.74rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: rgba(59, 130, 246, 0.18);
+    color: #bfdbfe;
+}
+
+.arena-mission:hover,
+.arena-mission:focus-visible,
+.arena-mission.is-active {
+    transform: translateY(-1px);
+    border-color: var(--lesson-border-strong);
+    background: rgba(59, 130, 246, 0.16);
+}
+
+.code-arena__status {
+    padding: 0.9rem 1rem;
+    border-radius: var(--lesson-radius-xs);
+    background: rgba(15, 23, 42, 0.55);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    display: grid;
+    gap: 0.6rem;
+}
+
+.code-arena__status h4 {
+    margin: 0;
+    color: var(--lesson-text);
+}
+
+.code-arena__status p {
+    margin: 0;
+    color: var(--lesson-text-muted);
+}
+
+.code-arena__status-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+    font-weight: 600;
+    color: var(--lesson-success);
+}
+
+@keyframes lesson-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
 }
 
 /* ==========================================================================
@@ -720,6 +971,60 @@ html[data-theme='light'] body.lesson-page .lesson-metric {
     font-size: 0.85rem;
 }
 
+.code-lab__mission {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.95rem 1rem;
+    border-radius: var(--lesson-radius-sm);
+    border: 1px solid rgba(20, 184, 166, 0.35);
+    background: rgba(20, 184, 166, 0.1);
+}
+
+.code-lab__mission-title {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--lesson-text);
+}
+
+.code-lab__mission-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.4rem;
+}
+
+.code-lab__mission-list li {
+    position: relative;
+    padding-left: 1.7rem;
+    color: var(--lesson-text-muted);
+    font-size: 0.94rem;
+}
+
+.code-lab__mission-list li::before {
+    content: '○';
+    position: absolute;
+    left: 0;
+    top: 0.04rem;
+    color: var(--lesson-text-subtle);
+    font-weight: 700;
+}
+
+.code-lab__mission-list li.is-done {
+    color: var(--lesson-text);
+}
+
+.code-lab__mission-list li.is-done::before {
+    content: '✓';
+    color: #22d3ee;
+}
+
+.code-lab__mission-status {
+    margin: 0;
+    font-size: 0.88rem;
+    color: var(--lesson-text-subtle);
+}
+
 .code-lab__grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -847,6 +1152,15 @@ body.lesson-page .hljs {
 html[data-theme='light'] body.lesson-page .lesson-output {
     background: rgba(239, 246, 255, 0.9);
     color: #1F2937;
+}
+
+html[data-theme='light'] body.lesson-page .code-lab__mission {
+    border-color: rgba(45, 212, 191, 0.36);
+    background: rgba(45, 212, 191, 0.12);
+}
+
+html[data-theme='light'] body.lesson-page .code-lab__mission-list li.is-done::before {
+    color: #0891b2;
 }
 
 /* ==========================================================================
@@ -1391,6 +1705,334 @@ html[data-theme='light'] body.lesson-page .match-slot {
     color: var(--lesson-text-subtle);
 }
 
+/* ==========================================================================
+   Immersive split layout
+   ========================================================================== */
+
+body.lesson-page--immersive {
+    overflow: hidden;
+}
+
+body.lesson-page--immersive .site-main {
+    padding-top: 0.75rem;
+    gap: 0;
+}
+
+body.lesson-page--immersive .workspace-shell {
+    gap: 0;
+}
+
+body.lesson-page--immersive .workspace-main {
+    width: min(100vw - 1.35rem, 1720px);
+    max-width: none;
+    min-height: calc(100vh - var(--navbar-height) - 0.75rem);
+    padding-inline: 0;
+    padding-bottom: 0.35rem;
+    gap: 0.75rem;
+}
+
+body.lesson-page--immersive .lesson-root {
+    width: 100%;
+    margin: 0;
+    height: 100%;
+    min-height: 0;
+    gap: 0.75rem;
+    grid-template-rows: minmax(0, 1fr);
+}
+
+body.lesson-page--immersive .lesson-hero,
+body.lesson-page--immersive #warmup,
+body.lesson-page--immersive #adventure-mode,
+body.lesson-page--immersive #media-guide,
+body.lesson-page--immersive #code-exercises,
+body.lesson-page--immersive #assistant,
+body.lesson-page--immersive #resources,
+body.lesson-page--immersive #reflection {
+    display: none !important;
+}
+
+body.lesson-page--immersive .lesson-layout {
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(260px, 25%) minmax(0, 1fr);
+    gap: 0.9rem;
+}
+
+body.lesson-page--immersive .lesson-sidebar {
+    position: relative;
+    top: 0;
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: 1rem;
+    gap: 1rem;
+}
+
+body.lesson-page--immersive .lesson-sidebar__theory {
+    display: grid;
+    gap: 0.7rem;
+}
+
+body.lesson-page--immersive .lesson-sidebar__theory h2 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+body.lesson-page--immersive .lesson-sidebar__theory p {
+    margin: 0;
+    color: var(--lesson-text-muted);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+body.lesson-page--immersive .lesson-sidebar__theory-list {
+    margin: 0;
+    padding-left: 1rem;
+    display: grid;
+    gap: 0.35rem;
+    color: var(--lesson-text-muted);
+    font-size: 0.88rem;
+}
+
+body.lesson-page--immersive .lesson-sidebar__hint {
+    width: 100%;
+}
+
+body.lesson-page--immersive .lesson-sidebar__select {
+    display: none;
+}
+
+body.lesson-page--immersive .lesson-nav__link {
+    transform: none;
+}
+
+body.lesson-page--immersive .lesson-nav__link.is-active,
+body.lesson-page--immersive .lesson-nav__link:hover,
+body.lesson-page--immersive .lesson-nav__link:focus-visible {
+    transform: none;
+}
+
+body.lesson-page--immersive .lesson-body {
+    display: block;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.lesson-page--immersive .lesson-body > .lesson-section {
+    display: none;
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+    padding: 1rem;
+}
+
+body.lesson-page--immersive .lesson-body > .lesson-section.is-panel-active {
+    display: grid;
+}
+
+body.lesson-page--immersive .lesson-body > #example.is-panel-active {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+    gap: 0.7rem;
+}
+
+body.lesson-page--immersive #example .lesson-card__header {
+    gap: 0.8rem;
+    align-items: center;
+}
+
+body.lesson-page--immersive #example .lesson-card__icon {
+    width: 2.7rem;
+    height: 2.7rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+body.lesson-page--immersive #example .lesson-card__header h2 {
+    font-size: clamp(1.3rem, 2vw, 1.75rem);
+    margin-bottom: 0.15rem;
+}
+
+body.lesson-page--immersive #example .lesson-card__header p {
+    font-size: 0.95rem;
+}
+
+body.lesson-page--immersive #example .code-lab {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+    padding: 0.9rem;
+    gap: 0.7rem;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+}
+
+body.lesson-page--immersive #example .code-lab__mission {
+    padding: 0.7rem 0.8rem;
+    gap: 0.35rem;
+}
+
+body.lesson-page--immersive #example .code-lab__mission-list li {
+    font-size: 0.88rem;
+}
+
+body.lesson-page--immersive #example .code-lab__mission-status {
+    font-size: 0.82rem;
+}
+
+body.lesson-page--immersive #example .code-lab__header {
+    align-items: center;
+}
+
+body.lesson-page--immersive #example .code-lab__chips span {
+    font-size: 0.78rem;
+    padding: 0.22rem 0.65rem;
+}
+
+body.lesson-page--immersive #example .code-lab__grid {
+    min-height: 0;
+    height: 100%;
+    gap: 0.8rem;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+}
+
+body.lesson-page--immersive #example .code-lab__field {
+    min-height: 0;
+}
+
+body.lesson-page--immersive #example .code-lab__editor {
+    min-height: 0;
+    height: 100%;
+    resize: none;
+    padding: 0.8rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+body.lesson-page--immersive #example .code-lab__preview {
+    min-height: 0;
+    height: 100%;
+    padding: 0.8rem;
+    font-size: 0.88rem;
+}
+
+body.lesson-page--immersive #example .code-lab__field--inline input {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.9rem;
+}
+
+body.lesson-page--immersive #example .code-lab__actions {
+    gap: 0.45rem;
+}
+
+body.lesson-page--immersive #example .code-lab__status {
+    font-size: 0.88rem;
+}
+
+body.lesson-page--immersive #example .code-lab__buttons .btn {
+    padding: 0.52rem 1rem;
+}
+
+body.lesson-page--immersive #example .code-lab__console {
+    min-height: 78px;
+    max-height: 110px;
+    padding: 0.7rem 0.8rem;
+    font-size: 0.86rem;
+}
+
+body.lesson-page--immersive #example .lesson-code-caption {
+    margin-top: 0;
+    font-size: 0.83rem;
+}
+
+body.lesson-page--immersive .test-accordion__panel {
+    display: block;
+}
+
+body.lesson-page--immersive .test-accordion__toggle {
+    display: none;
+}
+
+body.lesson-page--immersive .scroll-top-button,
+body.lesson-page--immersive .scroll-progress {
+    display: none;
+}
+
+.lesson-hint-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+}
+
+.lesson-hint-modal[hidden] {
+    display: none;
+}
+
+.lesson-hint-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(3, 7, 18, 0.76);
+    cursor: pointer;
+}
+
+.lesson-hint-modal__dialog {
+    position: relative;
+    z-index: 1;
+    width: min(520px, calc(100vw - 2rem));
+    max-height: min(82vh, 620px);
+    overflow: auto;
+    display: grid;
+    gap: 0.55rem;
+    border-radius: var(--lesson-radius-sm);
+    border: 1px solid var(--lesson-border-strong);
+    background: var(--lesson-surface);
+    box-shadow: var(--lesson-shadow);
+    padding: 1rem;
+}
+
+.lesson-hint-modal__close {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.5rem;
+    width: 1.95rem;
+    height: 1.95rem;
+    border-radius: 999px;
+    border: 1px solid var(--lesson-border);
+    background: transparent;
+    color: var(--lesson-text);
+    cursor: pointer;
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.lesson-hint-modal__eyebrow {
+    margin: 0;
+    font-size: 0.76rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lesson-text-subtle);
+}
+
+.lesson-hint-modal__dialog h3 {
+    margin: 0;
+}
+
+.lesson-hint-modal__content {
+    margin: 0;
+    white-space: pre-wrap;
+    color: var(--lesson-text-muted);
+    line-height: 1.6;
+}
+
+body.lesson-page--immersive.lesson-hint-modal-open {
+    overflow: hidden;
+}
+
 .lesson-completion-card .btn--ghost {
     color: #ecfdf5;
     border-color: rgba(255, 255, 255, 0.35);
@@ -1411,6 +2053,78 @@ body.lesson-page .hidden {
    ========================================================================== */
 
 @media (max-width: 1100px) {
+    body.lesson-page--immersive {
+        overflow: auto;
+    }
+
+    body.lesson-page--immersive .site-main {
+        padding-top: var(--section-gap-tight, 3rem);
+        gap: var(--section-gap, 4rem);
+    }
+
+    body.lesson-page--immersive .workspace-shell {
+        gap: clamp(3rem, 5vw, 4.5rem);
+    }
+
+    body.lesson-page--immersive .workspace-main {
+        width: min(1200px, calc(100% - 3rem));
+        min-height: auto;
+        padding-bottom: 0;
+    }
+
+    body.lesson-page--immersive .lesson-root {
+        width: min(1280px, calc(100% - 2rem));
+        margin: clamp(1rem, 2.2vw, 1.9rem) auto clamp(2rem, 4vw, 3rem);
+        height: auto;
+        min-height: auto;
+    }
+
+    body.lesson-page--immersive .lesson-layout {
+        height: auto;
+        min-height: auto;
+        grid-template-columns: 1fr;
+    }
+
+    body.lesson-page--immersive .lesson-sidebar {
+        height: auto;
+        overflow: visible;
+    }
+
+    body.lesson-page--immersive .lesson-sidebar__select {
+        display: grid;
+    }
+
+    body.lesson-page--immersive .lesson-body {
+        display: grid;
+        gap: clamp(2rem, 4vw, 2.75rem);
+        height: auto;
+        overflow: visible;
+    }
+
+    body.lesson-page--immersive .lesson-body > .lesson-section {
+        display: grid;
+        height: auto;
+        overflow: visible;
+        padding: clamp(2rem, 4vw, 2.4rem);
+    }
+
+    body.lesson-page--immersive .lesson-body > #media-guide,
+    body.lesson-page--immersive .lesson-body > #code-exercises,
+    body.lesson-page--immersive .lesson-body > #assistant,
+    body.lesson-page--immersive .lesson-body > #resources,
+    body.lesson-page--immersive .lesson-body > #reflection {
+        display: none;
+    }
+
+    body.lesson-page--immersive .test-accordion__toggle {
+        display: flex;
+    }
+
+    body.lesson-page--immersive .scroll-top-button,
+    body.lesson-page--immersive .scroll-progress {
+        display: block;
+    }
+
     .lesson-layout {
         grid-template-columns: 1fr;
     }
@@ -1447,6 +2161,10 @@ body.lesson-page .hidden {
         padding: 1.2rem;
     }
 
+    .code-arena {
+        grid-template-columns: 1fr;
+    }
+
     .code-lab__grid {
         grid-template-columns: 1fr;
     }
@@ -1478,6 +2196,10 @@ body.lesson-page .hidden {
 
     .practice-subcard {
         padding: 1.25rem;
+    }
+
+    .adventure-cast {
+        grid-template-columns: 1fr;
     }
 
     .lesson-sidebar {

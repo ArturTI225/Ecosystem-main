@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.urls import reverse
 
@@ -26,6 +26,36 @@ def notify_on_new_comment(sender, instance, created, **kwargs):
             notify_comment_reply(
                 instance.parent.user, instance.user, instance.lesson.title, lesson_url
             )
+
+
+@receiver(pre_save, sender=LessonComment)
+def cache_comment_state(sender, instance, **kwargs):
+    if not instance.pk:
+        instance._previous_state = None
+        return
+    previous = (
+        LessonComment.objects.filter(pk=instance.pk)
+        .values("is_approved", "is_hidden")
+        .first()
+    )
+    instance._previous_state = previous
+
+
+@receiver(post_save, sender=LessonComment)
+def update_comment_reputation(sender, instance, created, **kwargs):
+    from .services.reputation import (
+        apply_comment_moderation_reputation,
+        apply_new_comment_reputation,
+    )
+
+    if created:
+        apply_new_comment_reputation(instance)
+        return
+    previous_state = getattr(instance, "_previous_state", None)
+    apply_comment_moderation_reputation(
+        comment=instance,
+        previous_state=previous_state,
+    )
 
 
 @receiver(post_save, sender=LessonRating)

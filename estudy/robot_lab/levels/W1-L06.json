@@ -1,0 +1,44 @@
+{
+  "id": "W1-L06",
+  "title": "Cheie si iesire",
+  "description": "Ia cheia K si du-o la poarta G.",
+  "goal_text": "Livreaza cheia la G.",
+  "goal": {
+    "type": "deliver_item",
+    "item": "key"
+  },
+  "concepts": ["loop", "condition"],
+  "difficulty": "medium",
+  "max_steps": 150,
+  "time_limit_ms": 1100,
+  "xp_reward": 45,
+  "start_dir": "E",
+  "allowed_api": [
+    "move",
+    "turn_left",
+    "turn_right",
+    "front_is_clear",
+    "on_item",
+    "pick",
+    "at_goal",
+    "has_item"
+  ],
+  "legend": {
+    "#": "wall",
+    ".": "empty",
+    "S": "start",
+    "K": "key",
+    "D": "door",
+    "G": "goal"
+  },
+  "grid": [
+    "##########",
+    "#S...#...#",
+    "#.##.#.#K#",
+    "#....D...#",
+    "#..####..#",
+    "#......G.#",
+    "##########"
+  ],
+  "starter_code": "for _ in range(60):\n    if on_item():\n        pick()\n    if front_is_clear():\n        move()\n    else:\n        turn_right()\n    if at_goal() and has_item('key'):\n        break"
+}

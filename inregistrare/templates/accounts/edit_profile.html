@@ -1,7 +1,7 @@
 {% extends 'accounts/base.html' %}
 {% load static %}
 
-{% block title %}Editeaza profilul - UNITEX{% endblock %}
+{% block title %}Editează profilul - UNITEX{% endblock %}
 
 {% block body_class %}auth-body profile-body{% endblock %}
 
@@ -17,14 +17,14 @@
             <span class="profile-card__sticker profile-card__sticker--rocket" aria-hidden="true">🚀</span>
             <span class="profile-card__sticker profile-card__sticker--sparkle" aria-hidden="true">💡</span>
         </div>
-        <h1 class="profile-card__title">Personalizeaza-ti profilul</h1>
+        <h1 class="profile-card__title">Personalizează-ți profilul</h1>
         <p class="profile-card__subtitle">
-            Actualizeaza datele de contact, adauga o descriere si incarca o imagine reprezentativa ca sa te recunoasca echipa.
+            Actualizează datele de contact, adaugă o descriere și încarcă o imagine reprezentativă ca să te recunoască echipa.
         </p>
         <ul class="profile-card__tips">
-            <li><i class="fa-solid fa-wand-magic-sparkles"></i> Alege un avatar clar si prietenos.</li>
-            <li><i class="fa-solid fa-shield-heart"></i> Pastreaza datele de contact actualizate.</li>
-            <li><i class="fa-solid fa-meteor"></i> Foloseste bio-ul pentru a spune ce misiuni iti plac.</li>
+            <li><i class="fa-solid fa-wand-magic-sparkles"></i> Alege un avatar clar și prietenos.</li>
+            <li><i class="fa-solid fa-shield-heart"></i> Păstrează datele de contact actualizate.</li>
+            <li><i class="fa-solid fa-meteor"></i> Folosește bio-ul pentru a spune ce misiuni îți plac.</li>
         </ul>
     </aside>
 
@@ -35,7 +35,7 @@
                 <label for="id_avatar" class="form-label">Avatar</label>
                 <div class="form-file-control">
                     {{ form.avatar }}
-                    <span class="form-file-control__hint"><i class="fa-solid fa-cloud-arrow-up"></i> Incarca imagine PNG sau JPG (max 2MB)</span>
+                    <span class="form-file-control__hint"><i class="fa-solid fa-cloud-arrow-up"></i> Încarcă imagine PNG sau JPG (max 2MB)</span>
                 </div>
             </div>
 
@@ -64,7 +64,7 @@
             <div class="form-field">
                 <label for="id_bio" class="form-label">Bio</label>
                 {{ form.bio }}
-                <p class="form-hint">Ex: „Coordonez misiunile de robotica si iubesc provocarile logice”.</p>
+                <p class="form-hint">Ex: „Coordonez misiunile de robotică și iubesc provocările logice”.</p>
             </div>
 
             {% if form.non_field_errors %}
@@ -74,8 +74,8 @@
             {% endif %}
 
             <div class="form-actions">
-                <button type="submit" class="btn btn--primary"><i class="fa-solid fa-floppy-disk"></i> Salveaza modificarile</button>
-                <a class="btn btn--ghost" href="{% url 'inregistrare_profile' %}"><i class="fa-solid fa-circle-chevron-left"></i> Renunta</a>
+                <button type="submit" class="btn btn--primary"><i class="fa-solid fa-floppy-disk"></i> Salvează modificările</button>
+                <a class="btn btn--ghost" href="{% url 'inregistrare_profile' %}"><i class="fa-solid fa-circle-chevron-left"></i> Renunță</a>
             </div>
         </form>
     </div>

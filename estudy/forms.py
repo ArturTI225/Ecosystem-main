@@ -1,11 +1,16 @@
 from django import forms
 
 from .models import (
+    ClassAssignment,
+    Classroom,
+    CommunityReply,
+    CommunityThread,
     Lesson,
     LessonMedia,
     LessonPractice,
     LessonResource,
     NotificationPreference,
+    ProjectSubmission,
     Test,
     UserProfile,
 )
@@ -148,6 +153,8 @@ class ProfileForm(forms.ModelForm):
             "weekly_goal",
             "notifications_enabled",
             "parent_email",
+            "learning_goal",
+            "preferred_locale",
         ]
         widgets = {
             "display_name": forms.TextInput(attrs={"class": "form-control"}),
@@ -159,8 +166,99 @@ class ProfileForm(forms.ModelForm):
             "level": forms.NumberInput(attrs={"class": "form-control"}),
             "streak": forms.NumberInput(attrs={"class": "form-control"}),
             "weekly_goal": forms.NumberInput(attrs={"class": "form-control"}),
+            "notifications_enabled": forms.CheckboxInput(
+                attrs={"class": "form-check-input"}
+            ),
             "parent_email": forms.EmailInput(attrs={"class": "form-control"}),
+            "learning_goal": forms.Select(attrs={"class": "form-select"}),
+            "preferred_locale": forms.TextInput(attrs={"class": "form-control"}),
         }
+
+
+class ClassroomForm(forms.ModelForm):
+    class Meta:
+        model = Classroom
+        fields = ["name", "description", "team_support"]
+
+
+class ClassAssignmentForm(forms.ModelForm):
+    class Meta:
+        model = ClassAssignment
+        fields = ["title", "description", "due_date", "points"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 4}),
+            "due_date": forms.DateInput(attrs={"type": "date"}),
+        }
+
+
+class ThreadForm(forms.ModelForm):
+    tags = forms.CharField(
+        required=False,
+        help_text="Separă tag-urile cu virgulă",
+    )
+
+    class Meta:
+        model = CommunityThread
+        fields = ["title", "body"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control"}),
+            "body": forms.Textarea(attrs={"class": "form-control", "rows": 5}),
+        }
+
+
+class ReplyForm(forms.ModelForm):
+    class Meta:
+        model = CommunityReply
+        fields = ["body"]
+        widgets = {
+            "body": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+        }
+
+
+class ProjectSubmissionForm(forms.ModelForm):
+    description = forms.CharField(widget=forms.Textarea(attrs={"rows": 4}))
+    solution_url = forms.URLField(required=False)
+    attachment = forms.FileField(required=False)
+
+    class Meta:
+        model = ProjectSubmission
+        fields = []
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields["description"].initial = self.instance.feedback
+
+    def save(self, commit=True):
+        submission = super().save(commit=False)
+        description = (self.cleaned_data.get("description") or "").strip()
+        solution_url = (self.cleaned_data.get("solution_url") or "").strip()
+        attachment = self.cleaned_data.get("attachment")
+
+        submission.feedback = description
+
+        checklist = submission.pre_submit_checklist
+        if not isinstance(checklist, list):
+            checklist = []
+        checklist = [
+            item
+            for item in checklist
+            if not (isinstance(item, dict) and item.get("type") == "submission_meta")
+        ]
+
+        submission_meta = {"type": "submission_meta"}
+        if solution_url:
+            submission_meta["solution_url"] = solution_url
+        if attachment:
+            submission_meta["attachment_name"] = attachment.name
+        if len(submission_meta) > 1:
+            checklist.append(submission_meta)
+
+        submission.pre_submit_checklist = checklist
+
+        if commit:
+            submission.save()
+        return submission
 
 
 class NotificationPreferenceForm(forms.ModelForm):

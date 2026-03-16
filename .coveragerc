@@ -1,18 +1,9 @@
 [run]
-source = .
-
-[report]
 omit =
     */migrations/*
-    */migrations/*.py
-    */admin.py
-    */apps.py
-    unitex_school/settings.py
+    */__pycache__/*
+    myenv/*
     manage.py
-    _tmp_render_form.py
-    */__init__.py
-    unitexapp/views.py
-    */views.py
 
-[html]
-directory = htmlcov
+[report]
+skip_covered = True

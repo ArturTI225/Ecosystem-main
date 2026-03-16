@@ -60,6 +60,14 @@ class NotificationTemplate:
             "message": 'Учитель {teacher} оставил отзыв на "{assignment}"',
             "category": Notification.CATEGORY_FEEDBACK,
         },
+        "teacher_early_warning": {
+            "title": "Early warning: {count} students need attention",
+            "message": (
+                "Classroom {classroom} has students at risk: {students}. "
+                "Review progress and plan support."
+            ),
+            "category": Notification.CATEGORY_FEEDBACK,
+        },
         "parent_report": {
             "title": "📈 Отчет о прогрессе ребенка",
             "message": "{child} завершил {lessons} уроков. Успеваемость: {rate}%",
@@ -140,6 +148,54 @@ def get_notification_digest(user, period: str = "daily") -> Dict:
             }
 
     return digest
+
+
+def enforce_quiet_hours(user, notification: Notification) -> bool:
+    """Return True if notification should be suppressed due to quiet hours."""
+    pref, _ = NotificationPreference.objects.get_or_create(user=user)
+    quiet_start = getattr(pref, "quiet_hours_start", None)
+    quiet_end = getattr(pref, "quiet_hours_end", None)
+    if quiet_start is None or quiet_end is None:
+        return False
+    now = timezone.localtime().time()
+    if quiet_start < quiet_end:
+        return quiet_start <= now <= quiet_end
+    # overnight window
+    return now >= quiet_start or now <= quiet_end
+
+
+def send_with_quiet_hours(user: User, title: str, message: str, category: str = None):
+    """Send notification respecting quiet hours and preferences."""
+    pref, _ = NotificationPreference.objects.get_or_create(user=user)
+    if not pref.in_app_enabled:
+        return None
+    notification = Notification(
+        recipient=user,
+        title=title,
+        message=message,
+        category=category or Notification.CATEGORY_SYSTEM,
+    )
+    if enforce_quiet_hours(user, notification):
+        # skip immediate send; caller may schedule later
+        return None
+    notification.save()
+    return notification
+
+
+def build_weekly_digest(user: User):
+    """Create or return weekly digest notification."""
+    digest = get_notification_digest(user, period="weekly")
+    if digest["total"] == 0:
+        return None
+    return NotificationTemplate.create(
+        "weekly_summary",
+        recipient=user,
+        lessons=digest["total"],
+        xp=0,
+        badges=digest.get("by_category", {})
+        .get(Notification.CATEGORY_PROGRESS, {})
+        .get("count", 0),
+    )
 
 
 def mark_all_as_read(user, category: str = None):

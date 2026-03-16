@@ -48,6 +48,13 @@ class LessonViewsTests(TestCase):
         self.assertIsNotNone(progress)
         self.assertTrue(progress.completed)
 
+    def test_lessons_list_hides_signup_cta_for_authenticated_user(self):
+        self._create_lesson("List lesson", days_offset=0)
+        response = self.client.get(reverse("estudy:lessons_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Dashboardul meu")
+        self.assertNotContains(response, 'href="/auth/signup/"')
+
     def test_run_code_api_executes_and_returns_results(self):
         lesson = self._create_lesson("Exec", days_offset=0)
         exercise = CodeExercise.objects.create(

@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "unlock_strategy": "linear",
+  "levels": [
+    {
+      "id": "W1-L01",
+      "file": "W1-L01.json",
+      "world": 1,
+      "order": 1,
+      "title": "Primii pasi",
+      "goal": "Reach the goal",
+      "concepts": ["sequencing"],
+      "difficulty": "easy",
+      "xp_reward": 20
+    },
+    {
+      "id": "W1-L02",
+      "file": "W1-L02.json",
+      "world": 1,
+      "order": 2,
+      "title": "Ocoleste zidul",
+      "goal": "Reach the goal",
+      "concepts": ["condition"],
+      "difficulty": "easy",
+      "xp_reward": 25
+    },
+    {
+      "id": "W1-L03",
+      "file": "W1-L03.json",
+      "world": 1,
+      "order": 3,
+      "title": "Terminal online",
+      "goal": "Activate terminal",
+      "concepts": ["sequencing", "condition"],
+      "difficulty": "easy",
+      "xp_reward": 30
+    },
+    {
+      "id": "W1-L04",
+      "file": "W1-L04.json",
+      "world": 1,
+      "order": 4,
+      "title": "Terminal cu bucla",
+      "goal": "Activate terminal",
+      "concepts": ["loop", "condition"],
+      "difficulty": "medium",
+      "xp_reward": 35
+    },
+    {
+      "id": "W1-L05",
+      "file": "W1-L05.json",
+      "world": 1,
+      "order": 5,
+      "title": "Livreaza bateria",
+      "goal": "Deliver item",
+      "concepts": ["condition", "sequencing"],
+      "difficulty": "medium",
+      "xp_reward": 40
+    },
+    {
+      "id": "W1-L06",
+      "file": "W1-L06.json",
+      "world": 1,
+      "order": 6,
+      "title": "Cheie si iesire",
+      "goal": "Deliver item",
+      "concepts": ["loop", "condition"],
+      "difficulty": "medium",
+      "xp_reward": 45
+    }
+  ]
+}

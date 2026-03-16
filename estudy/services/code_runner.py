@@ -6,7 +6,12 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+from django.conf import settings
+
 SAFE_TIMEOUT_SECONDS = 5
+CODE_RUNNER_SETTING = "ESTUDY_CODE_RUNNER_ENABLED"
+CODE_RUNNER_DISABLED_MESSAGE = "Code execution is disabled."
+DEFAULT_EXECUTION_TIME_MS = 0
 
 
 @dataclass
@@ -39,6 +44,15 @@ class CodeRunner:
 
     @staticmethod
     def run_python_code(code: str, test_cases: List[Dict[str, Any]]) -> CodeRunResult:
+        if not getattr(settings, CODE_RUNNER_SETTING, False):
+            return CodeRunResult(
+                passed=0,
+                total=len(test_cases),
+                test_results=[],
+                is_correct=False,
+                error=CODE_RUNNER_DISABLED_MESSAGE,
+                execution_time_ms=DEFAULT_EXECUTION_TIME_MS,
+            )
         start = time.perf_counter()
         results: List[Dict[str, Any]] = []
         passed = 0

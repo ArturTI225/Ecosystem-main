@@ -60,7 +60,14 @@ class LessonCommentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "user", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "user",
+            "created_at",
+            "updated_at",
+            "is_approved",
+            "is_hidden",
+        ]
 
     def get_likes_count(self, obj):
         return obj.likes.count()

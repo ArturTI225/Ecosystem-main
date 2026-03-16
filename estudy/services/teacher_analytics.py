@@ -19,6 +19,7 @@ from ..models import (
     TestAttempt,
     User,
 )
+from .difficulty_mismatch import build_lesson_difficulty_analysis
 
 
 class TeacherAnalytics:
@@ -271,42 +272,15 @@ class TeacherAnalytics:
 
     @staticmethod
     def get_lesson_difficulty_analysis(lesson: Lesson) -> Dict:
-        """Анализ сложности урока на основе данных"""
-        attempts = TestAttempt.objects.filter(test__lesson=lesson)
-
-        total = attempts.count()
-        if total == 0:
-            return {"lesson": lesson.title, "insufficient_data": True}
-
-        correct = attempts.filter(is_correct=True).count()
-        success_rate = correct / total * 100
-
-        # Средняя скорость
-        avg_time = attempts.aggregate(Avg("time_taken_ms"))["time_taken_ms__avg"] or 0
-
-        # Определяем реальную сложность
-        if success_rate >= 80:
-            real_difficulty = "easy"
-        elif success_rate >= 50:
-            real_difficulty = "medium"
-        else:
-            real_difficulty = "hard"
-
-        # Сравниваем с заявленной
-        difficulty_match = real_difficulty == lesson.difficulty
-
-        return {
-            "lesson": lesson.title,
-            "declared_difficulty": lesson.difficulty,
-            "real_difficulty": real_difficulty,
-            "difficulty_match": difficulty_match,
-            "success_rate": round(success_rate, 1),
-            "avg_time_seconds": round(avg_time / 1000, 1),
-            "total_attempts": total,
-            "recommendation": _get_difficulty_recommendation(
-                lesson.difficulty, real_difficulty
-            ),
-        }
+        """Ранализ сложности урока на основе данных."""
+        result = build_lesson_difficulty_analysis(lesson)
+        if not result.success:
+            return {
+                "lesson": lesson.title,
+                "insufficient_data": True,
+                "error": result.error,
+            }
+        return result.data.get("analysis", {})
 
 
 def _identify_concerns(
@@ -329,18 +303,6 @@ def _identify_concerns(
         concerns.append("Мало завершенных уроков")
 
     return concerns
-
-
-def _get_difficulty_recommendation(declared: str, real: str) -> str:
-    """Рекомендация по корректировке сложности"""
-    if declared == real:
-        return "Сложность соответствует реальной"
-    elif real == "easy" and declared != "beginner":
-        return "Рекомендуется понизить сложность"
-    elif real == "hard" and declared != "advanced":
-        return "Рекомендуется повысить сложность"
-    else:
-        return "Возможна корректировка сложности"
 
 
 class AdminAnalytics:

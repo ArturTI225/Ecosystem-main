@@ -3,6 +3,10 @@ from django.test import TestCase
 from django.utils import timezone
 
 from .models import Lesson, LessonProgress, Subject
+from .services.gamification import (
+    build_overall_progress,
+    invalidate_overall_progress_cache,
+)
 from .services.toggles import toggle_lesson_completion_service
 
 
@@ -35,3 +39,14 @@ class ToggleServiceTests(TestCase):
         self.assertFalse(res2["completed"])
         lp = LessonProgress.objects.get(user=self.user, lesson=self.lesson)
         self.assertFalse(lp.completed)
+
+    def test_toggle_returns_fresh_snapshot_when_progress_cache_exists(self):
+        invalidate_overall_progress_cache(self.user)
+        initial = build_overall_progress(self.user)
+        self.assertEqual(initial["completed"], 0)
+
+        completed_result = toggle_lesson_completion_service(self.user, self.lesson)
+        self.assertEqual(completed_result["progress_snapshot"]["completed"], 1)
+
+        unmarked_result = toggle_lesson_completion_service(self.user, self.lesson)
+        self.assertEqual(unmarked_result["progress_snapshot"]["completed"], 0)

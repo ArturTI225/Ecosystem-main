@@ -8,7 +8,11 @@
             <h1>Învățare digitală simplă și practică</h1>
             <p>Alege lecțiile potrivite pentru ritmul tău și descoperă abilități noi.</p>
             <div class="lessons-hero__cta">
+                {% if user.is_authenticated %}
+                <a class="btn btn--primary" href="{% url 'estudy:dashboard' %}">Dashboardul meu</a>
+                {% else %}
                 <a class="btn btn--primary" href="{% url 'signup' %}">Creează contul</a>
+                {% endif %}
                 <a class="btn btn--ghost" href="#lesson-catalog">Vezi modulele</a>
             </div>
             <div class="lessons-hero__progress" role="group" aria-label="Progres general">
@@ -35,6 +39,11 @@
     <nav class="lessons-quick-nav" aria-label="Navigație UNITEX">
         <div class="container">
             <ul>
+                <li class="lessons-quick-nav__back">
+                    <a href="{% url 'estudy:dashboard' %}" data-history-back aria-label="Înapoi la pagina anterioară">
+                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Înapoi
+                    </a>
+                </li>
                 <li><a href="{% url 'estudy:dashboard' %}">Dashboard</a></li>
                 <li><a href="{% url 'estudy:lessons_list' %}" class="is-active">Lecții</a></li>
                 <li><a href="{% url 'estudy:missions' %}">Misiuni</a></li>
@@ -47,7 +56,6 @@
     </nav>
 </section>
 {% endblock %}
-
 {% block page_content %}
 <main class="catalog-layout" data-lessons-dashboard>
     <section class="catalog-filters" aria-labelledby="catalog-filters-title" data-filters>
@@ -144,7 +152,11 @@
                             </div>
                             <span class="module-progress__label" data-module-progress-label>1 din 4 lecții</span>
                         </div>
+                        {% if digital_literacy_entry_slug %}
+                        <a class="btn btn--primary" href="{% url 'estudy:lesson_detail' slug=digital_literacy_entry_slug %}">Începe lecția</a>
+                        {% else %}
                         <a class="btn btn--primary" href="{% url 'estudy:lesson_module_digital_literacy' %}">Începe lecția</a>
+                        {% endif %}
                     </div>
                 </article>
 
@@ -262,3 +274,4 @@
     </section>
 </main>
 {% endblock %}
+

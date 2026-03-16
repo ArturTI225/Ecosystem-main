@@ -1,0 +1,37 @@
+{
+  "id": "W1-L04",
+  "title": "Terminal cu bucla",
+  "description": "Foloseste o bucla ca sa gasesti terminalul.",
+  "goal_text": "Gaseste T si foloseste activate().",
+  "goal": {
+    "type": "activate_terminal"
+  },
+  "concepts": ["loop", "condition"],
+  "difficulty": "medium",
+  "max_steps": 120,
+  "time_limit_ms": 900,
+  "xp_reward": 35,
+  "start_dir": "E",
+  "allowed_api": [
+    "move",
+    "turn_left",
+    "turn_right",
+    "front_is_clear",
+    "near_terminal",
+    "activate"
+  ],
+  "legend": {
+    "#": "wall",
+    ".": "empty",
+    "S": "start",
+    "T": "terminal"
+  },
+  "grid": [
+    "#########",
+    "#S#.....#",
+    "#.#.###.#",
+    "#...#T..#",
+    "#########"
+  ],
+  "starter_code": "for _ in range(40):\n    if near_terminal():\n        activate()\n        break\n    if front_is_clear():\n        move()\n    else:\n        turn_right()"
+}
