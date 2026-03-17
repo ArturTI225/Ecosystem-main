@@ -19,10 +19,102 @@
         }
     };
 
+    const STAGE_CONFIG = {
+        buttons: {
+            showBuilder: true,
+            readOnly: true,
+            codeLabel: "Cod construit automat",
+            emptyConsole: "Apasa sagetile ca sa construiesti ruta, apoi ruleaza.",
+        },
+        buttons_code: {
+            showBuilder: true,
+            readOnly: true,
+            codeLabel: "Cod generat",
+            emptyConsole: "Construieste ruta cu butoane si observa cum apare codul Python.",
+        },
+        fill_gaps: {
+            showBuilder: false,
+            readOnly: false,
+            codeLabel: "Completeaza linia lipsa",
+            emptyConsole: "Completeaza comanda lipsa direct in editor, apoi ruleaza programul.",
+        },
+        code: {
+            showBuilder: false,
+            readOnly: false,
+            codeLabel: "Programul tau",
+            emptyConsole: "Scrie singur programul, apoi apasa Ruleaza codul.",
+        },
+    };
+
+    const COMMAND_META = {
+        up: {
+            label: "up()",
+            shortLabel: "Sus",
+            symbolHtml: "&uarr;",
+            className: "dir--up",
+            kind: "direction",
+        },
+        down: {
+            label: "down()",
+            shortLabel: "Jos",
+            symbolHtml: "&darr;",
+            className: "dir--down",
+            kind: "direction",
+        },
+        left: {
+            label: "left()",
+            shortLabel: "Stanga",
+            symbolHtml: "&larr;",
+            className: "dir--left",
+            kind: "direction",
+        },
+        right: {
+            label: "right()",
+            shortLabel: "Dreapta",
+            symbolHtml: "&rarr;",
+            className: "dir--right",
+            kind: "direction",
+        },
+        move: {
+            label: "move()",
+            shortLabel: "Mergi",
+            symbolHtml: "Go",
+            kind: "action",
+        },
+        turn_left: {
+            label: "turn_left()",
+            shortLabel: "Rotire stanga",
+            symbolHtml: "TL",
+            kind: "action",
+        },
+        turn_right: {
+            label: "turn_right()",
+            shortLabel: "Rotire dreapta",
+            symbolHtml: "TR",
+            kind: "action",
+        },
+        pick: {
+            label: "pick()",
+            shortLabel: "Colecteaza",
+            symbolHtml: "Pick",
+            kind: "action",
+        },
+        activate: {
+            label: "activate()",
+            shortLabel: "Activeaza",
+            symbolHtml: "On",
+            kind: "action",
+        },
+    };
+
     const level = parseJSON(levelDataNode.textContent || "{}", {});
     const runUrl = root.dataset.runUrl || "";
     const levelId = root.dataset.levelId || level.id || "";
+    const uiStage = String(level.ui_stage || "code");
+    const stageConfig = STAGE_CONFIG[uiStage] || STAGE_CONFIG.code;
     const starterCode = level.starter_code || "";
+    const startDir = String(level.start_dir || "E").toUpperCase();
+    const allowedApi = Array.isArray(level.allowed_api) ? level.allowed_api.map((item) => String(item)) : [];
     const grid = Array.isArray(level.grid) ? level.grid.map((row) => String(row)) : [];
     const maxCols = grid.reduce((acc, row) => Math.max(acc, row.length), 0);
     const tileSprites = [1, 2, 3, 4].map((idx) => `/static/estudy/game/tiles/tile-${idx}.png`);
@@ -30,11 +122,18 @@
 
     const gridNode = root.querySelector("[data-robot-grid]");
     const codeInput = root.querySelector("[data-code-input]");
+    const codeLabel = root.querySelector("[data-code-label]");
     const runBtn = root.querySelector("[data-run-btn]");
     const resetCodeBtn = root.querySelector("[data-reset-code]");
+    const clearCodeButtons = Array.from(root.querySelectorAll("[data-clear-code]"));
     const statusNode = root.querySelector("[data-run-status]");
     const requestSolution = root.querySelector("[data-request-solution]");
     const traceList = root.querySelector("[data-trace-list]");
+    const consoleList = root.querySelector("[data-console-list]");
+    const builderPanel = root.querySelector("[data-builder-panel]");
+    const directionPad = root.querySelector("[data-direction-pad]");
+    const extraCommands = root.querySelector("[data-extra-commands]");
+    const programList = root.querySelector("[data-program-list]");
 
     const mentorNodes = {
         what: root.querySelector("[data-mentor-what]"),
@@ -65,17 +164,17 @@
             fallback: "Explicatia apare dupa o rulare a codului.",
         },
         hint1: {
-            title: "Hint 1",
+            title: "Indiciu 1",
             node: mentorNodes.hint1,
-            fallback: "Hint-ul de nivel 1 apare dupa evaluare.",
+            fallback: "Indiciul de nivel 1 apare dupa evaluare.",
         },
         hint2: {
-            title: "Hint 2",
+            title: "Indiciu 2",
             node: mentorNodes.hint2,
-            fallback: "Hint-ul de nivel 2 apare dupa evaluare.",
+            fallback: "Indiciul de nivel 2 apare dupa evaluare.",
         },
         focus: {
-            title: "Concept focus",
+            title: "Concept cheie",
             node: mentorNodes.focus,
             fallback: "Conceptul vizat apare dupa rulare.",
         },
@@ -87,7 +186,7 @@
         solution: {
             title: "Solutie exemplu",
             node: mentorNodes.solution,
-            fallback: "Bifeaza \"Vreau si un exemplu de solutie\", apoi ruleaza codul.",
+            fallback: 'Bifeaza "Vreau si un exemplu de solutie", apoi ruleaza codul.',
         },
     };
 
@@ -96,6 +195,10 @@
         index: -1,
         timer: null,
         robot: null,
+    };
+
+    const builderState = {
+        lines: [],
     };
 
     const getCsrfToken = () => {
@@ -110,11 +213,11 @@
     };
 
     const findStart = () => {
-        for (let r = 0; r < grid.length; r += 1) {
-            const row = grid[r];
-            for (let c = 0; c < row.length; c += 1) {
-                if (row[c] === "S") {
-                    return { r, c };
+        for (let rowIndex = 0; rowIndex < grid.length; rowIndex += 1) {
+            const row = grid[rowIndex];
+            for (let colIndex = 0; colIndex < row.length; colIndex += 1) {
+                if (row[colIndex] === "S") {
+                    return { r: rowIndex, c: colIndex };
                 }
             }
         }
@@ -123,10 +226,10 @@
 
     const startPos = findStart();
     const dirGlyph = {
-        N: "↑",
-        E: "→",
-        S: "↓",
-        W: "←",
+        N: "N",
+        E: "E",
+        S: "S",
+        W: "W",
     };
 
     const robotFromTrace = (traceEntry) => {
@@ -136,7 +239,7 @@
         return {
             r: Number(traceEntry.position[0]) || 0,
             c: Number(traceEntry.position[1]) || 0,
-            dir: String(traceEntry.dir || "E").toUpperCase(),
+            dir: String(traceEntry.dir || startDir).toUpperCase(),
         };
     };
 
@@ -147,21 +250,21 @@
         return tile;
     };
 
-    const pickSprite = (pool, r, c) => {
+    const pickSprite = (pool, rowIndex, colIndex) => {
         if (!pool.length) {
             return "";
         }
-        const index = Math.abs((r * 37 + c * 17 + r * c) % pool.length);
+        const index = Math.abs((rowIndex * 37 + colIndex * 17 + rowIndex * colIndex) % pool.length);
         return pool[index];
     };
 
-    const tileOverlay = (tile) => {
-        if (tile === "G") return "G";
-        if (tile === "T") return "T";
-        if (tile === "B") return "B";
-        if (tile === "K") return "K";
-        if (tile === "H") return "H";
-        if (tile === "D") return "D";
+    const tileTokenKind = (tile) => {
+        if (tile === "G") return "goal";
+        if (tile === "T") return "terminal";
+        if (tile === "B") return "battery";
+        if (tile === "K") return "key";
+        if (tile === "H") return "hazard";
+        if (tile === "D") return "door";
         return "";
     };
 
@@ -172,42 +275,70 @@
         gridNode.innerHTML = "";
         gridNode.style.gridTemplateColumns = `repeat(${Math.max(1, maxCols)}, minmax(24px, 1fr))`;
 
-        for (let r = 0; r < grid.length; r += 1) {
-            const row = grid[r];
-            for (let c = 0; c < maxCols; c += 1) {
+        for (let rowIndex = 0; rowIndex < grid.length; rowIndex += 1) {
+            const row = grid[rowIndex];
+            for (let colIndex = 0; colIndex < maxCols; colIndex += 1) {
                 const cell = document.createElement("div");
                 cell.className = "robotlab-cell";
-                const tile = normalizeTile(row[c] || "#");
+                const tile = normalizeTile(row[colIndex] || "#");
                 let sprite = "";
+
                 if (tile === "#") {
                     cell.classList.add("is-wall");
-                    sprite = pickSprite(wallSprites, r, c);
+                    sprite = pickSprite(wallSprites, rowIndex, colIndex);
                 } else if (tile === "G") {
                     cell.classList.add("is-goal");
-                    sprite = pickSprite(tileSprites, r, c);
+                    sprite = pickSprite(tileSprites, rowIndex, colIndex);
                 } else if (tile === "T") {
                     cell.classList.add("is-terminal");
-                    sprite = pickSprite(tileSprites, r, c);
+                    sprite = pickSprite(tileSprites, rowIndex, colIndex);
                 } else if (tile === "B" || tile === "K") {
                     cell.classList.add("is-item");
-                    sprite = pickSprite(tileSprites, r, c);
+                    sprite = pickSprite(tileSprites, rowIndex, colIndex);
                 } else if (tile === "H") {
                     cell.classList.add("is-hazard");
-                    sprite = pickSprite(tileSprites, r, c);
+                    sprite = pickSprite(tileSprites, rowIndex, colIndex);
                 } else if (tile === "D") {
-                    sprite = pickSprite(tileSprites, r, c);
+                    cell.classList.add("is-door");
+                    sprite = pickSprite(tileSprites, rowIndex, colIndex);
                 } else {
-                    sprite = pickSprite(tileSprites, r, c);
+                    cell.classList.add("is-floor");
+                    sprite = pickSprite(tileSprites, rowIndex, colIndex);
                 }
+
                 if (sprite) {
                     cell.style.setProperty("--robotlab-cell-sprite", `url("${sprite}")`);
                 }
-                cell.textContent = tileOverlay(tile);
 
-                if (playback.robot && playback.robot.r === r && playback.robot.c === c) {
-                    cell.classList.add("has-robot");
-                    cell.textContent = dirGlyph[playback.robot.dir] || "R";
+                const tokenKind = tileTokenKind(tile);
+                if (tokenKind) {
+                    const token = document.createElement("span");
+                    token.className = `robotlab-cell__token robotlab-cell__token--${tokenKind}`;
+                    cell.appendChild(token);
                 }
+
+                if (playback.robot && playback.robot.r === rowIndex && playback.robot.c === colIndex) {
+                    cell.classList.add("has-robot");
+
+                    const robot = document.createElement("span");
+                    robot.className = "robotlab-robot";
+
+                    const eyes = document.createElement("span");
+                    eyes.className = "robotlab-robot__eyes";
+
+                    const smile = document.createElement("span");
+                    smile.className = "robotlab-robot__smile";
+
+                    const dir = document.createElement("span");
+                    dir.className = "robotlab-robot__dir";
+                    dir.textContent = dirGlyph[playback.robot.dir] || "E";
+
+                    robot.appendChild(eyes);
+                    robot.appendChild(smile);
+                    robot.appendChild(dir);
+                    cell.appendChild(robot);
+                }
+
                 gridNode.appendChild(cell);
             }
         }
@@ -220,16 +351,30 @@
         }
     };
 
-    const setStatus = (text) => {
+    const setStatus = (text, kind = "idle") => {
         if (statusNode) {
             statusNode.textContent = text;
+            statusNode.dataset.statusKind = kind;
         }
+    };
+
+    const renderConsole = (lines) => {
+        if (!consoleList) {
+            return;
+        }
+        consoleList.innerHTML = "";
+        const safeLines = Array.isArray(lines) && lines.length ? lines : [stageConfig.emptyConsole];
+        safeLines.forEach((line) => {
+            const item = document.createElement("li");
+            item.textContent = line;
+            consoleList.appendChild(item);
+        });
     };
 
     const readMentorValue = (type) => {
         const config = HINT_CONFIG[type];
         if (!config) {
-            return "Hint indisponibil.";
+            return "Indiciu indisponibil.";
         }
         const value = config.node?.textContent?.trim() || "";
         if (value && value !== "-") {
@@ -274,38 +419,42 @@
         traceList.innerHTML = "";
         if (!playback.trace.length) {
             const item = document.createElement("li");
-            item.textContent = "Ruleaza codul ca sa vezi trace-ul.";
+            item.textContent = "Ruleaza codul ca sa vezi pasii executiei.";
             traceList.appendChild(item);
             return;
         }
+
         playback.trace.forEach((entry) => {
-            const li = document.createElement("li");
+            const item = document.createElement("li");
             const step = Number(entry.step || 0);
-            const action = entry.action ? `action=${entry.action}` : "";
+            const action = entry.action ? `${entry.action}()` : "";
             const error = entry.error ? `error=${entry.error}` : "";
             const where = Array.isArray(entry.position)
                 ? `pos=[${entry.position[0]},${entry.position[1]}]`
                 : "";
-            li.textContent = [`#${step}`, action, error, where].filter(Boolean).join(" · ");
-            traceList.appendChild(li);
+            item.textContent = [`#${step}`, action, error, where].filter(Boolean).join(" - ");
+            traceList.appendChild(item);
         });
     };
 
     const applyTraceIndex = (index) => {
         if (!playback.trace.length) {
-            playback.robot = { r: startPos.r, c: startPos.c, dir: "E" };
+            playback.robot = { r: startPos.r, c: startPos.c, dir: startDir };
             renderGrid();
             return;
         }
+
         const safeIndex = Math.max(-1, Math.min(index, playback.trace.length - 1));
         playback.index = safeIndex;
+
         if (safeIndex < 0) {
-            playback.robot = { r: startPos.r, c: startPos.c, dir: "E" };
+            playback.robot = { r: startPos.r, c: startPos.c, dir: startDir };
             renderGrid();
             return;
         }
+
         const robot = robotFromTrace(playback.trace[safeIndex]);
-        playback.robot = robot || playback.robot || { r: startPos.r, c: startPos.c, dir: "E" };
+        playback.robot = robot || playback.robot || { r: startPos.r, c: startPos.c, dir: startDir };
         renderGrid();
     };
 
@@ -313,7 +462,7 @@
         stopPlayback();
         playback.trace = [];
         playback.index = -1;
-        playback.robot = { r: startPos.r, c: startPos.c, dir: "E" };
+        playback.robot = { r: startPos.r, c: startPos.c, dir: startDir };
         renderGrid();
         renderTrace();
     };
@@ -338,15 +487,139 @@
         updateSolutionHintButton();
     };
 
+    const normalizeLines = (rawCode) =>
+        String(rawCode || "")
+            .split(/\r?\n/)
+            .map((line) => line.trim())
+            .filter(Boolean);
+
+    const renderProgramList = (lines) => {
+        if (!programList) {
+            return;
+        }
+        programList.innerHTML = "";
+        const safeLines = lines.length ? lines : ["Adauga comenzi din butoane."];
+        safeLines.forEach((line) => {
+            const item = document.createElement("li");
+            item.textContent = line;
+            programList.appendChild(item);
+        });
+    };
+
+    const syncCodeFromBuilder = () => {
+        if (!codeInput) {
+            return;
+        }
+        codeInput.value = builderState.lines.join("\n");
+        renderProgramList(builderState.lines);
+    };
+
+    const syncProgramFromCode = () => {
+        const lines = normalizeLines(codeInput?.value || "");
+        renderProgramList(lines);
+    };
+
+    const insertAtCursor = (line) => {
+        if (!codeInput) {
+            return;
+        }
+        const start = typeof codeInput.selectionStart === "number" ? codeInput.selectionStart : codeInput.value.length;
+        const end = typeof codeInput.selectionEnd === "number" ? codeInput.selectionEnd : codeInput.value.length;
+        const before = codeInput.value.slice(0, start);
+        const after = codeInput.value.slice(end);
+        const needsLeadingNewline = before && !before.endsWith("\n");
+        const needsTrailingNewline = after && !after.startsWith("\n");
+        const inserted = `${needsLeadingNewline ? "\n" : ""}${line}${needsTrailingNewline ? "\n" : ""}`;
+        codeInput.value = `${before}${inserted}${after}`;
+        const caret = before.length + inserted.length;
+        codeInput.focus();
+        codeInput.selectionStart = caret;
+        codeInput.selectionEnd = caret;
+    };
+
+    const appendCommand = (command) => {
+        const line = `${command}()`;
+        if (uiStage === "buttons" || uiStage === "buttons_code") {
+            builderState.lines.push(line);
+            syncCodeFromBuilder();
+            return;
+        }
+
+        if (uiStage === "fill_gaps" && codeInput) {
+            if (codeInput.value.includes("___")) {
+                codeInput.value = codeInput.value.replace("___", line);
+            } else {
+                insertAtCursor(line);
+            }
+            syncProgramFromCode();
+            return;
+        }
+
+        insertAtCursor(line);
+        syncProgramFromCode();
+    };
+
+    const clearProgram = () => {
+        if (!codeInput) {
+            return;
+        }
+        if (uiStage === "buttons" || uiStage === "buttons_code") {
+            builderState.lines = [];
+            syncCodeFromBuilder();
+        } else {
+            codeInput.value = "";
+            syncProgramFromCode();
+        }
+        renderConsole(["Program golit. Construieste o solutie noua si ruleaza din nou."]);
+        setStatus("Program golit.", "idle");
+    };
+
+    const resetCode = () => {
+        if (!codeInput) {
+            return;
+        }
+        if (uiStage === "buttons" || uiStage === "buttons_code") {
+            builderState.lines = normalizeLines(starterCode);
+            syncCodeFromBuilder();
+        } else {
+            codeInput.value = starterCode;
+            syncProgramFromCode();
+        }
+        renderConsole([stageConfig.emptyConsole]);
+        setStatus("Cod resetat.", "idle");
+    };
+
+    const buildFallbackConsole = (data) => {
+        const lines = ["Program pornit..."];
+        const trace = Array.isArray(data.execution_trace) ? data.execution_trace : [];
+        trace.forEach((entry) => {
+            const step = Number(entry.step || 0);
+            const action = entry.action ? `${entry.action}()` : "actiune";
+            lines.push(`Pasul ${step}: ${action}`);
+        });
+        if (data.solved) {
+            lines.push(`Misiune finalizata in ${Number(data.steps_used || 0)} pasi.`);
+        } else if (data.primary_error) {
+            lines.push(String(data.primary_error));
+        } else {
+            lines.push("Program terminat.");
+        }
+        return lines;
+    };
+
     const runCode = async () => {
         if (!runUrl || !levelId || !codeInput) {
             return;
         }
+
         stopPlayback();
-        setStatus("Rulez misiunea...");
+        setStatus("Rulez misiunea...", "busy");
+        renderConsole(["Program pornit...", "Simulare in curs..."]);
+
         if (runBtn) {
             runBtn.setAttribute("disabled", "disabled");
         }
+
         try {
             const response = await fetch(runUrl, {
                 method: "POST",
@@ -362,29 +635,100 @@
             });
             const data = await response.json();
             if (!response.ok) {
-                throw new Error(data.error || data.detail || "Run failed");
+                throw new Error(data.error || data.detail || "Rularea a esuat");
             }
+
             playback.trace = Array.isArray(data.execution_trace) ? data.execution_trace : [];
             playback.index = -1;
             renderTrace();
             applyTraceIndex(playback.trace.length ? 0 : -1);
             setMentor(data.mentor || {});
+            renderConsole(Array.isArray(data.console_output) ? data.console_output : buildFallbackConsole(data));
 
             const solved = Boolean(data.solved);
-            const steps = Number(data.steps_used || 0);
-            const xp = Number(data.xp_granted || 0);
-            setStatus(
-                solved
-                    ? `Misiune finalizata in ${steps} pasi. XP +${xp}.`
-                    : `Misiunea nu este completa. Verifica hint-urile RoboMentor.`
-            );
+            const kind = data.status_kind || (solved ? "success" : data.error_type === "logic" ? "warning" : "error");
+            const statusText =
+                data.status_message ||
+                (solved
+                    ? `Misiune finalizata in ${Number(data.steps_used || 0)} pasi.`
+                    : "Misiunea nu este completa. Verifica consola si indiciile.");
+            setStatus(statusText, kind);
         } catch (error) {
-            setStatus(`Eroare: ${error.message}`);
+            const message = `Eroare: ${error.message}`;
+            setStatus(message, "error");
+            renderConsole(["Programul s-a oprit inainte de executie.", message]);
         } finally {
             if (runBtn) {
                 runBtn.removeAttribute("disabled");
             }
         }
+    };
+
+    const createCommandButton = (command) => {
+        const meta = COMMAND_META[command] || {
+            label: `${command}()`,
+            shortLabel: `${command}()`,
+            symbolHtml: `${command}()`,
+            kind: "action",
+        };
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "btn btn--ghost btn--small robotlab-command-btn";
+        if (meta.className) {
+            button.classList.add(meta.className);
+        }
+        if (meta.kind === "direction") {
+            button.classList.add("robotlab-command-btn--direction");
+        }
+        button.dataset.command = command;
+        button.title = meta.label;
+        button.setAttribute("aria-label", meta.label);
+        button.innerHTML = meta.symbolHtml;
+        button.addEventListener("click", () => {
+            appendCommand(command);
+            setStatus(`Adaugat ${meta.label}.`, "idle");
+        });
+        return button;
+    };
+
+    const renderBuilderControls = () => {
+        if (!builderPanel) {
+            return;
+        }
+        builderPanel.hidden = !stageConfig.showBuilder;
+        if (!stageConfig.showBuilder) {
+            return;
+        }
+
+        const directionCommands = ["up", "left", "right", "down"].filter((command) => allowedApi.includes(command));
+        const extraActionCommands = allowedApi.filter(
+            (command) =>
+                !["up", "down", "left", "right", "at_goal", "front_is_clear", "on_item", "near_terminal", "has_item"].includes(command)
+        );
+
+        if (directionPad) {
+            directionPad.innerHTML = "";
+            directionCommands.forEach((command) => {
+                directionPad.appendChild(createCommandButton(command));
+            });
+        }
+
+        if (extraCommands) {
+            extraCommands.innerHTML = "";
+            extraActionCommands.forEach((command) => {
+                extraCommands.appendChild(createCommandButton(command));
+            });
+        }
+    };
+
+    const applyStageUI = () => {
+        if (codeLabel) {
+            codeLabel.textContent = stageConfig.codeLabel;
+        }
+        if (codeInput) {
+            codeInput.readOnly = Boolean(stageConfig.readOnly);
+        }
+        renderBuilderControls();
     };
 
     root.querySelector("[data-playback-step]")?.addEventListener("click", () => {
@@ -414,6 +758,7 @@
 
     root.querySelector("[data-playback-reset]")?.addEventListener("click", () => {
         applyTraceIndex(-1);
+        setStatus("Robotul s-a intors la start.", "idle");
     });
 
     hintButtons.forEach((button) => {
@@ -443,16 +788,34 @@
     });
 
     resetCodeBtn?.addEventListener("click", () => {
-        if (!codeInput) {
-            return;
-        }
-        codeInput.value = starterCode;
-        setStatus("Cod resetat.");
+        resetCode();
     });
 
-    if (codeInput && !codeInput.value.trim()) {
-        codeInput.value = starterCode;
+    clearCodeButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            clearProgram();
+        });
+    });
+
+    codeInput?.addEventListener("input", () => {
+        if (stageConfig.showBuilder) {
+            syncProgramFromCode();
+        }
+    });
+
+    if (uiStage === "buttons" || uiStage === "buttons_code") {
+        builderState.lines = normalizeLines(starterCode);
+        syncCodeFromBuilder();
+    } else {
+        if (codeInput && !codeInput.value.trim() && starterCode) {
+            codeInput.value = starterCode;
+        }
+        syncProgramFromCode();
     }
+
+    applyStageUI();
     resetPlayback();
+    renderConsole([stageConfig.emptyConsole]);
+    setStatus("Pregatit.", "idle");
     updateSolutionHintButton();
 })();

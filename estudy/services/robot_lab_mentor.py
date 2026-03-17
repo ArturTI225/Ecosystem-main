@@ -26,6 +26,17 @@ TYPICAL_ERROR_TO_CONCEPT = {
 }
 
 
+def _uses_cardinal_commands(payload: dict[str, Any]) -> bool:
+    allowed_api = set(payload.get("level_metadata", {}).get("allowed_api") or [])
+    return bool({"up", "down", "left", "right"} & allowed_api)
+
+
+def _movement_example(payload: dict[str, Any]) -> str:
+    if _uses_cardinal_commands(payload):
+        return "right()\nright()\ndown()\nright()"
+    return "move()\nmove()\nturn_right()\nmove()"
+
+
 def _trace_summary(trace: list[dict[str, Any]], error_type: str) -> str:
     if error_type == "none":
         if trace:
@@ -129,6 +140,28 @@ def _mistake_and_hints(
             "Use repetition instead of writing one move only.",
         )
     if typical in {"indentation", "syntax"}:
+        primary_error = str(payload.get("primary_error") or "")
+        if primary_error.startswith("unknown_command:"):
+            parts = primary_error.split(":")
+            command = parts[1] if len(parts) > 1 else "unknown"
+            suggestion = parts[2] if len(parts) > 2 else ""
+            mistake = f"The program uses an unknown command: {command}()."
+            hint_2 = (
+                f"Try {suggestion}() instead."
+                if suggestion
+                else "Check the command list for the exact spelling."
+            )
+            return (
+                mistake,
+                "Compare the spelling with the allowed commands in this level.",
+                hint_2,
+            )
+        if primary_error == "missing_command_placeholder":
+            return (
+                "One line still has ___ instead of a real command.",
+                "Replace the blank with one allowed command.",
+                "Look at the map and choose the direction for the missing step.",
+            )
         return (
             "Python could not run the program because of formatting/syntax.",
             "Check indentation and punctuation line by line.",
@@ -145,10 +178,7 @@ def _mistake_and_hints(
         return (
             "The same issue keeps blocking progress.",
             "Focus on one small fix, run, then inspect the next trace step.",
-            (
-                "Direct pattern: while not at_goal(): "
-                "if front_is_clear(): move() else: turn_right()"
-            ),
+            f"Direct pattern: {_movement_example(payload)}",
         )
 
     if concept_focus == "loop":
@@ -183,6 +213,8 @@ def _mistake_and_hints(
 
 
 def _example_solution(payload: dict[str, Any], concept_focus: str) -> str:
+    if _uses_cardinal_commands(payload):
+        return _movement_example(payload)
     if concept_focus == "loop":
         return "while not at_goal():\n    if front_is_clear():\n        move()\n    else:\n        turn_right()"
     if concept_focus == "condition":
@@ -196,7 +228,7 @@ def _example_solution(payload: dict[str, Any], concept_focus: str) -> str:
             "    step_forward_safely()"
         )
     if concept_focus == "sequencing":
-        return "move()\nmove()\nturn_right()\nmove()"
+        return _movement_example(payload)
     return "while not at_goal():\n    if front_is_clear():\n        move()\n    else:\n        turn_left()"
 
 

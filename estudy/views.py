@@ -49,6 +49,7 @@ from .services.permissions import (
     ACTION_MODERATE_COMMENTS,
     action_required,
 )
+from .services.learner_age import filter_lessons_for_user_age, get_registration_profile_age
 
 try:
     from .forms import (
@@ -90,10 +91,14 @@ ROLE_TEACHER = UserProfile.ROLE_PROFESSOR
 ROLE_ADMIN = UserProfile.ROLE_ADMIN
 ROLE_PARENT = UserProfile.ROLE_PARENT
 
-MODULE_LESSON_ALIASES = {
-    "modul-1-alfabetizare-digitala": "nivel-1-prieteni-cu-variabilele",
-}
+MODULE_LESSON_ALIASES = {}
 DIGITAL_LITERACY_MODULE_SLUG = "modul-1-alfabetizare-digitala"
+PYTHON_TRACK_SUBJECT_NAMES = (
+    "Coding Quest",
+    "Programare in Python",
+    "Programare în Python",
+    "Python",
+)
 LEADERBOARD_LIMIT = 20
 
 
@@ -101,6 +106,171 @@ def _robot_lab_enabled(user) -> bool:
     from .services.feature_flags import is_enabled as feature_enabled
 
     return feature_enabled("robot_lab_enabled", user=user, default=False)
+
+
+def _robot_lab_tile_kind(symbol: str) -> str:
+    mapping = {
+        "#": "wall",
+        ".": "floor",
+        "S": "start",
+        "G": "goal",
+        "T": "terminal",
+        "B": "battery",
+        "K": "key",
+        "D": "door",
+        "H": "hazard",
+    }
+    return mapping.get(symbol, "floor")
+
+
+def _build_robot_lab_lesson_preview(user) -> dict | None:
+    try:
+        from .services.robot_lab_levels import load_level, ordered_level_ids
+    except Exception:
+        return None
+
+    level_ids = ordered_level_ids()
+    if not level_ids:
+        return None
+
+    selected_level_id = "W1-L03" if "W1-L03" in level_ids else level_ids[0]
+    play_url = None
+    hub_url = None
+    summary_data = {
+        "completed_levels": 0,
+        "unlocked_levels": 1,
+        "total_levels": len(level_ids),
+        "progress_percent": 0,
+    }
+
+    if user.is_authenticated and _robot_lab_enabled(user):
+        try:
+            from .services.robot_lab_progress import build_robot_lab_progress_summary
+
+            summary = build_robot_lab_progress_summary(user)
+            suggested = next(
+                (
+                    item
+                    for item in summary.get("levels", [])
+                    if item.get("unlocked") and not item.get("completed")
+                ),
+                None,
+            ) or next(
+                (item for item in summary.get("levels", []) if item.get("unlocked")),
+                None,
+            )
+            if suggested and suggested.get("id"):
+                selected_level_id = str(suggested["id"])
+                play_url = reverse("estudy:robot_lab_play", args=[selected_level_id])
+                hub_url = reverse("estudy:robot_lab_hub")
+            summary_data = {
+                "completed_levels": int(summary.get("completed_levels") or 0),
+                "unlocked_levels": int(summary.get("unlocked_levels") or 0),
+                "total_levels": int(summary.get("total_levels") or len(level_ids)),
+                "progress_percent": int(summary.get("progress_percent") or 0),
+            }
+        except Exception:
+            play_url = None
+            hub_url = None
+
+    try:
+        level = load_level(selected_level_id)
+    except Exception:
+        return None
+
+    legend = level.get("legend") or {}
+    used_symbols = set()
+    grid_rows = []
+    raw_grid = level.get("grid") or []
+    cols = max((len(str(row)) for row in raw_grid), default=0)
+    for row in raw_grid:
+        cells = []
+        for symbol in str(row):
+            used_symbols.add(symbol)
+            cells.append(
+                {
+                    "value": symbol,
+                    "kind": _robot_lab_tile_kind(symbol),
+                    "label": legend.get(symbol) or _robot_lab_tile_kind(symbol),
+                    "overlay": "" if symbol in {".", "#"} else symbol,
+                }
+            )
+        grid_rows.append(cells)
+
+    legend_order = ["S", "G", "T", "B", "K", "D", "H", "#", "."]
+    legend_items = []
+    for symbol in legend_order:
+        if symbol not in used_symbols:
+            continue
+        legend_items.append(
+            {
+                "symbol": symbol,
+                "kind": _robot_lab_tile_kind(symbol),
+                "label": legend.get(symbol) or _robot_lab_tile_kind(symbol),
+            }
+        )
+
+    return {
+        "id": str(level.get("id") or selected_level_id),
+        "title": level.get("title") or "Robot Lab",
+        "description": level.get("description")
+        or "Scrie Python si ghideaza robotul pe harta.",
+        "goal_text": level.get("goal_text") or "Completeaza misiunea robotului.",
+        "starter_code": level.get("starter_code") or "move()",
+        "concepts": list(level.get("concepts") or []),
+        "allowed_api": list(level.get("allowed_api") or []),
+        "xp_reward": int(level.get("xp_reward") or 0),
+        "max_steps": int(level.get("max_steps") or 0),
+        "grid_rows": grid_rows,
+        "grid_cols": cols,
+        "legend_items": legend_items,
+        "play_url": play_url,
+        "hub_url": hub_url,
+        "is_enabled": bool(play_url),
+        "summary": summary_data,
+        "flow_steps": ["Scrie", "Ruleaza", "Observa", "Reflecta", "Imbunatateste"],
+    }
+
+
+def _build_robot_lab_age_recommendation(user, *, level_mode: str | None = None) -> dict[str, object]:
+    learner_age = get_registration_profile_age(user)
+    mode_labels = {
+        "junior": "Mod Junior",
+        "code": "Mod Cod",
+    }
+    recommendation = {
+        "age": learner_age,
+        "has_profile_age": learner_age is not None,
+        "track": None,
+        "track_label": "",
+        "description": "",
+        "mismatch": False,
+        "mismatch_note": "",
+    }
+    if learner_age is None:
+        return recommendation
+
+    if learner_age <= 10:
+        recommendation["track"] = "junior"
+        recommendation["track_label"] = "Mod Junior"
+        recommendation["description"] = (
+            "Pentru 8-10 ani recomandam butoane mari, trasee vizuale si foarte putin text."
+        )
+    else:
+        recommendation["track"] = "code"
+        recommendation["track_label"] = "Mod Cod"
+        recommendation["description"] = (
+            "Pentru 11+ recomandam editor Python, consola si feedback de depanare."
+        )
+
+    current_mode = str(level_mode or "").strip().lower()
+    if current_mode and current_mode != recommendation["track"]:
+        recommendation["mismatch"] = True
+        recommendation["mismatch_note"] = (
+            f"Nivelul acesta foloseste {mode_labels.get(current_mode, current_mode)}. "
+            f"Pentru profilul tau recomandarea principala este {recommendation['track_label']}."
+        )
+    return recommendation
 
 
 def with_progress(context: dict, user) -> dict:
@@ -165,11 +335,42 @@ def _compute_accessibility(user, subjects=None):
     return compute_accessibility(user, subjects=subjects)
 
 
-def _resolve_module_entry_slug(module_slug: str) -> str | None:
+def _resolve_module_entry_slug(module_slug: str, user=None) -> str | None:
     alias_slug = MODULE_LESSON_ALIASES.get(module_slug)
     if alias_slug and Lesson.objects.filter(slug=alias_slug).exists():
         return alias_slug
-    return Lesson.objects.order_by("date", "id").values_list("slug", flat=True).first()
+    module_lessons = list(Lesson.objects.filter(module__slug=module_slug).order_by("date", "id"))
+    if user is not None:
+        module_lessons = filter_lessons_for_user_age(module_lessons, user)
+    module_lessons = [lesson for lesson in module_lessons if lesson.slug]
+    first_lesson = module_lessons[0] if module_lessons else None
+    return first_lesson.slug if first_lesson else None
+
+
+def _resolve_subject_entry_slug(subject_names: tuple[str, ...], user=None) -> str | None:
+    subject_lessons: list[Lesson] = []
+    for subject_name in subject_names:
+        subject_lessons = list(
+            Lesson.objects.filter(subject__name__iexact=subject_name).order_by("date", "id")
+        )
+        if subject_lessons:
+            break
+    fallback_filters = (
+        {"subject__name__icontains": "coding"},
+        {"subject__name__icontains": "python"},
+        {"slug__startswith": "nivel-"},
+    )
+    if not subject_lessons:
+        for lookup in fallback_filters:
+            subject_lessons = list(Lesson.objects.filter(**lookup).order_by("date", "id"))
+            if subject_lessons:
+                break
+    if not subject_lessons:
+        return None
+    if user is not None:
+        subject_lessons = filter_lessons_for_user_age(subject_lessons, user)
+    subject_lessons = [lesson for lesson in subject_lessons if lesson.slug]
+    return subject_lessons[0].slug if subject_lessons else None
 
 
 @login_required
@@ -353,7 +554,18 @@ def lessons_list(request):
     }
     context = prepare_lessons_list(request.user, params)
     context["digital_literacy_entry_slug"] = _resolve_module_entry_slug(
-        DIGITAL_LITERACY_MODULE_SLUG
+        DIGITAL_LITERACY_MODULE_SLUG, request.user
+    )
+    context["python_entry_slug"] = _resolve_subject_entry_slug(
+        PYTHON_TRACK_SUBJECT_NAMES, request.user
+    )
+    context["learner_age"] = get_registration_profile_age(request.user)
+    context["python_mode_label"] = (
+        "Junior 8-10 ani"
+        if context["learner_age"] is not None and context["learner_age"] <= 10
+        else "Code 11+ ani"
+        if context["learner_age"] is not None
+        else "Automat după vârstă"
     )
     return render(
         request, "estudy/lessons_list.html", with_progress(context, request.user)
@@ -769,7 +981,7 @@ def lesson_module_digital_literacy(request):
     context = {
         "module_name": "Modul 1 - Alfabetizare digitala",
         "digital_literacy_entry_slug": _resolve_module_entry_slug(
-            DIGITAL_LITERACY_MODULE_SLUG
+            DIGITAL_LITERACY_MODULE_SLUG, request.user
         ),
     }
     return render(
@@ -788,6 +1000,11 @@ def lesson_detail(request, slug):
         )
 
         payload = prepare_lesson_detail(request.user, slug)
+        payload["robot_lab_preview"] = (
+            _build_robot_lab_lesson_preview(request.user)
+            if payload.get("show_robot_lab_preview")
+            else None
+        )
         return render(
             request, "estudy/lesson_detail.html", with_progress(payload, request.user)
         )
@@ -1022,6 +1239,9 @@ def robot_lab_hub(request):
     context = {
         "robot_lab_summary": summary,
         "first_unlocked_level_id": first_unlocked.get("id") if first_unlocked else None,
+        "robot_lab_age_recommendation": _build_robot_lab_age_recommendation(
+            request.user
+        ),
     }
     return render(
         request,
@@ -1082,12 +1302,22 @@ def robot_lab_play(request, level_id: str):
                 "xp_reward": int(level.get("xp_reward") or 0),
                 "allowed_api": level.get("allowed_api") or [],
                 "concepts": level.get("concepts") or [],
+                "mode": level.get("mode") or "code",
+                "mode_label": level.get("mode_label") or "Mod Cod",
+                "ui_stage": level.get("ui_stage") or "code",
+                "ui_stage_label": level.get("ui_stage_label") or "Cod complet",
+                "ui_stage_description": level.get("ui_stage_description") or "",
+                "recommended_age": level.get("recommended_age") or "11+",
+                "start_dir": level.get("start_dir") or "E",
             }
         ),
         "level_progress": row,
         "prev_level_id": prev_level_id,
         "next_level_id": next_id,
         "next_level_unlocked": next_unlocked,
+        "robot_lab_age_recommendation": _build_robot_lab_age_recommendation(
+            request.user, level_mode=str(level.get("mode") or "code")
+        ),
     }
     return render(
         request,

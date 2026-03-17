@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+from inregistrare.models import Profile
+
 from .models import RobotLabLevelProgress, RobotLabRun, UserProfile
 from .services.robot_lab_runner_client import RobotLabRunnerUnavailableError
 
@@ -46,6 +48,28 @@ class RobotLabVerticalSliceApiTests(TestCase):
         self.assertEqual(detail["id"], "W1-L01")
         self.assertIn("starter_code", detail)
         self.assertIn("grid", detail)
+        self.assertEqual(detail["mode"], "junior")
+        self.assertEqual(detail["ui_stage"], "buttons")
+
+    def test_play_page_uses_romanian_ui_copy(self):
+        response = self.client.get(reverse("estudy:robot_lab_play", args=["W1-L01"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Rucsacul misiunii")
+        self.assertContains(response, "Ruleaza codul")
+        self.assertContains(response, "Stare misiune")
+        self.assertNotContains(response, "Mission backpack")
+        self.assertNotContains(response, "Run code")
+
+    def test_play_page_shows_profile_track_recommendation(self):
+        Profile.objects.update_or_create(
+            user=self.user,
+            defaults={"email": self.user.email, "age": 12},
+        )
+        response = self.client.get(reverse("estudy:robot_lab_play", args=["W1-L01"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Recomandare dupa profil")
+        self.assertContains(response, "Mod Cod")
+        self.assertContains(response, "profil 12 ani")
 
     def test_locked_level_cannot_run(self):
         response = self.client.post(
@@ -107,6 +131,27 @@ class RobotLabVerticalSliceApiTests(TestCase):
         # W1-L02 should unlock after W1-L01 completion.
         levels = {item["id"]: item for item in progress_payload["levels"]}
         self.assertTrue(levels["W1-L02"]["unlocked"])
+
+    @override_settings(ROBOT_RUNNER_URL="", ROBOT_RUNNER_LOCAL_FALLBACK=True)
+    def test_run_uses_local_runner_fallback_when_runner_url_missing(self):
+        response = self.client.post(
+            self.run_url,
+            data=json.dumps(
+                {
+                    "level_id": "W1-L01",
+                    "student_code": "right()\nright()\ndown()\nright()",
+                }
+            ),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["solved"])
+        self.assertEqual(payload["error_type"], "none")
+        self.assertTrue(payload["execution_trace"])
+        self.assertGreaterEqual(payload["duration_ms"], 0)
+        self.assertIn("console_output", payload)
+        self.assertIn("status_message", payload)
 
     @patch("estudy.services.robot_lab_runs.execute_robot_lab_code")
     def test_run_returns_controlled_error_when_runner_unavailable(self, mock_execute):

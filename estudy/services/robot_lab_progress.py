@@ -72,11 +72,20 @@ def serialize_robot_lab_levels_with_progress(user: User) -> list[dict[str, Any]]
                 "goal": entry.get("goal") or "",
                 "concepts": entry.get("concepts") or [],
                 "difficulty": entry.get("difficulty") or "easy",
+                "difficulty_label": entry.get("difficulty_label")
+                or entry.get("difficulty")
+                or "easy",
                 "world": entry.get("world", 1),
                 "order": entry.get("order", 1),
                 "xp_reward": int(entry.get("xp_reward") or 0),
+                "mode": entry.get("mode") or "code",
+                "mode_label": entry.get("mode_label") or "Mod Cod",
+                "ui_stage": entry.get("ui_stage") or "code",
+                "ui_stage_label": entry.get("ui_stage_label") or "Cod complet",
+                "recommended_age": entry.get("recommended_age") or "11+",
                 "unlocked": bool(progress.unlocked) if progress else False,
                 "completed": bool(progress.completed) if progress else False,
+                "concept_labels": entry.get("concept_labels") or entry.get("concepts") or [],
                 "best_steps": int(progress.best_steps)
                 if progress and progress.best_steps
                 else None,

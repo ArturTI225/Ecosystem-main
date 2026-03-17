@@ -1,37 +1,39 @@
 {
   "id": "W1-L03",
-  "title": "Terminal online",
-  "description": "Mergi la terminal si activeaza-l.",
-  "goal_text": "Activeaza terminalul T.",
+  "title": "Completeaza linia lipsa",
+  "description": "Mod Cod: completeaza linia lipsa si invata forma exacta a comenzilor Python.",
+  "goal_text": "Completeaza programul: lipseste o singura comanda.",
   "goal": {
-    "type": "activate_terminal"
+    "type": "reach_goal",
+    "target_tile": "T"
   },
-  "concepts": ["sequencing", "condition"],
+  "concepts": ["sequencing", "debugging"],
   "difficulty": "easy",
-  "max_steps": 100,
+  "max_steps": 20,
   "time_limit_ms": 800,
   "xp_reward": 30,
   "start_dir": "E",
+  "mode": "code",
+  "ui_stage": "fill_gaps",
+  "recommended_age": "11-13",
   "allowed_api": [
-    "move",
-    "turn_left",
-    "turn_right",
-    "front_is_clear",
-    "near_terminal",
-    "activate"
+    "up",
+    "down",
+    "left",
+    "right",
+    "at_goal"
   ],
   "legend": {
-    "#": "wall",
-    ".": "empty",
+    "#": "perete",
+    ".": "spatiu",
     "S": "start",
     "T": "terminal"
   },
   "grid": [
     "########",
-    "#S....T#",
-    "#..##..#",
-    "#......#",
+    "#S...#.#",
+    "#...T..#",
     "########"
   ],
-  "starter_code": "while not near_terminal():\n    if front_is_clear():\n        move()\n    else:\n        turn_right()\nactivate()"
+  "starter_code": "right()\nright()\n___\nright()"
 }

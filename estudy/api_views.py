@@ -286,6 +286,12 @@ def robot_lab_level_detail(request, level_id):
         "grid": level.get("grid") or [],
         "legend": level.get("legend") or {},
         "map_size": level.get("map_size") or level_map_size(level),
+        "mode": level.get("mode") or "code",
+        "mode_label": level.get("mode_label") or "Code Mode",
+        "ui_stage": level.get("ui_stage") or "code",
+        "ui_stage_label": level.get("ui_stage_label") or "Full Code",
+        "ui_stage_description": level.get("ui_stage_description") or "",
+        "recommended_age": level.get("recommended_age") or "11+",
     }
     return Response(level_payload)
 

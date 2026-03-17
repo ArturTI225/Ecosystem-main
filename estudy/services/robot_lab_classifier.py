@@ -17,6 +17,7 @@ FORBIDDEN_TOKENS = (
 
 SAFE_BUILTIN_CALLS = {"range", "len", "min", "max", "abs", "int", "float", "bool"}
 DEFAULT_TYPICAL_ERROR = "unknown"
+MOVEMENT_CALLS = ("move", "up", "down", "left", "right")
 
 ERROR_TO_CONCEPT = {
     "missing_condition_check": "condition",
@@ -72,6 +73,7 @@ def classify_robot_lab_typical_error(payload: dict[str, Any]) -> dict[str, Any]:
     trace = payload.get("execution_trace") or []
     primary_error = str(payload.get("primary_error") or "").strip()
     allowed_api = set(payload.get("level_metadata", {}).get("allowed_api") or [])
+    movement_count = sum(_count_call(code, name) for name in MOVEMENT_CALLS)
 
     for token in FORBIDDEN_TOKENS:
         if token in code:
@@ -111,7 +113,9 @@ def classify_robot_lab_typical_error(payload: dict[str, Any]) -> dict[str, Any]:
             "concept_focus": "debugging",
         }
 
-    if primary_error == "hit_wall" and not _uses_call(code, "front_is_clear"):
+    if primary_error == "hit_wall" and "front_is_clear" in allowed_api and not _uses_call(
+        code, "front_is_clear"
+    ):
         return {
             "typical_error": "missing_condition_check",
             "confidence": 0.9,
@@ -120,6 +124,17 @@ def classify_robot_lab_typical_error(payload: dict[str, Any]) -> dict[str, Any]:
                 "front_is_clear() is not used in student code",
             ],
             "concept_focus": "condition",
+        }
+
+    if primary_error == "hit_wall":
+        return {
+            "typical_error": "wrong_turn",
+            "confidence": 0.78,
+            "evidence": [
+                "Robot collided with a wall",
+                "The command order does not match the map",
+            ],
+            "concept_focus": "sequencing",
         }
 
     if error_type == "timeout" or primary_error == "step_limit_exceeded":
@@ -158,7 +173,7 @@ def classify_robot_lab_typical_error(payload: dict[str, Any]) -> dict[str, Any]:
         }
 
     if error_type == "logic" and primary_error == "not_reached_goal":
-        if _count_call(code, "move") <= 2:
+        if movement_count <= 2:
             return {
                 "typical_error": "insufficient_steps",
                 "confidence": 0.8,
