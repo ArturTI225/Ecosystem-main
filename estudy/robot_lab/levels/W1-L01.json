@@ -1,34 +1,39 @@
 {
   "id": "W1-L01",
-  "title": "Primii pasi",
-  "description": "Ajuta robotul sa ajunga la poarta G.",
-  "goal_text": "Mergi pana la G.",
+  "title": "Misiunea sagetilor",
+  "description": "Mod Junior: apasa butoanele mari si urmareste cum apare programul pas cu pas.",
+  "goal_text": "Trimite robotul la terminalul T folosind sagetile.",
   "goal": {
-    "type": "reach_goal"
+    "type": "reach_goal",
+    "target_tile": "T"
   },
   "concepts": ["sequencing"],
   "difficulty": "easy",
-  "max_steps": 60,
+  "max_steps": 20,
   "time_limit_ms": 500,
   "xp_reward": 20,
   "start_dir": "E",
+  "mode": "junior",
+  "ui_stage": "buttons",
+  "recommended_age": "8-10",
   "allowed_api": [
-    "move",
-    "turn_left",
-    "turn_right",
+    "up",
+    "down",
+    "left",
+    "right",
     "at_goal"
   ],
   "legend": {
-    "#": "wall",
-    ".": "empty",
+    "#": "perete",
+    ".": "spatiu",
     "S": "start",
-    "G": "goal"
+    "T": "terminal"
   },
   "grid": [
     "########",
-    "#S...G.#",
-    "#......#",
+    "#S...#.#",
+    "#...T..#",
     "########"
   ],
-  "starter_code": "move()\nmove()\nmove()"
+  "starter_code": ""
 }

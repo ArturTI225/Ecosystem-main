@@ -1,44 +1,40 @@
 {
   "id": "W1-L06",
-  "title": "Cheie si iesire",
-  "description": "Ia cheia K si du-o la poarta G.",
-  "goal_text": "Livreaza cheia la G.",
+  "title": "Ruta optima",
+  "description": "Mod Cod: rezolva misiunea, apoi incearca sa ajungi la terminal cu numarul optim de pasi.",
+  "goal_text": "Ajungi la terminalul T si compara solutia cu ruta optima.",
   "goal": {
-    "type": "deliver_item",
-    "item": "key"
+    "type": "reach_goal",
+    "target_tile": "T"
   },
-  "concepts": ["loop", "condition"],
+  "concepts": ["sequencing", "debugging"],
   "difficulty": "medium",
-  "max_steps": 150,
+  "max_steps": 40,
   "time_limit_ms": 1100,
   "xp_reward": 45,
   "start_dir": "E",
+  "mode": "code",
+  "ui_stage": "code",
+  "recommended_age": "14-16+",
   "allowed_api": [
-    "move",
-    "turn_left",
-    "turn_right",
-    "front_is_clear",
-    "on_item",
-    "pick",
-    "at_goal",
-    "has_item"
+    "up",
+    "down",
+    "left",
+    "right",
+    "at_goal"
   ],
   "legend": {
-    "#": "wall",
-    ".": "empty",
+    "#": "perete",
+    ".": "spatiu",
     "S": "start",
-    "K": "key",
-    "D": "door",
-    "G": "goal"
+    "T": "terminal"
   },
   "grid": [
-    "##########",
-    "#S...#...#",
-    "#.##.#.#K#",
-    "#....D...#",
-    "#..####..#",
-    "#......G.#",
-    "##########"
+    "#########",
+    "#S......#",
+    "#..##...#",
+    "#..T....#",
+    "#########"
   ],
-  "starter_code": "for _ in range(60):\n    if on_item():\n        pick()\n    if front_is_clear():\n        move()\n    else:\n        turn_right()\n    if at_goal() and has_item('key'):\n        break"
+  "starter_code": "# Rezolva mai intai, apoi optimizeaza\n"
 }

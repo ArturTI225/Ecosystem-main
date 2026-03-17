@@ -3,6 +3,7 @@
     const html = doc.documentElement;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const THEME_STORAGE_KEY = 'unitex-theme';
+    const COOKIE_CONSENT_KEY = 'unitex_cookie_consent';
     const PAGE_READY_FLAG = 'unitexPageReadyHookBound';
 
     const ICON_LIGHT = '\u2600';
@@ -10,9 +11,17 @@
     const themeToggle = doc.querySelector('[data-theme-toggle]');
     const themeLabel = themeToggle?.querySelector('[data-theme-toggle-label]');
     const themeIcon = themeToggle?.querySelector('.theme-toggle__icon');
-    const getCsrfToken = () => {
-        const match = doc.cookie.match(/csrftoken=([^;]+)/);
+    const getCookieValue = name => {
+        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const match = doc.cookie.match(new RegExp(`(?:^|; )${escapedName}=([^;]+)`));
         return match ? decodeURIComponent(match[1]) : '';
+    };
+    const setCookieValue = (name, value, maxAgeSeconds) => {
+        const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+        doc.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax${secureFlag}`;
+    };
+    const getCsrfToken = () => {
+        return getCookieValue('csrftoken');
     };
 
     const applyTheme = (theme) => {
@@ -269,6 +278,43 @@
         });
     };
 
+    const initCookieBanner = () => {
+        const banner = doc.querySelector('[data-cookie-banner]');
+        if (!banner || banner.dataset.unitexCookieBound === 'true') {
+            return;
+        }
+        banner.dataset.unitexCookieBound = 'true';
+
+        const showBanner = () => {
+            banner.hidden = false;
+            requestAnimationFrame(() => {
+                banner.classList.add('is-visible');
+            });
+        };
+        const hideBanner = () => {
+            banner.classList.remove('is-visible');
+            window.setTimeout(() => {
+                banner.hidden = true;
+            }, 220);
+        };
+
+        if (getCookieValue(COOKIE_CONSENT_KEY)) {
+            banner.hidden = true;
+        } else {
+            showBanner();
+        }
+
+        banner.querySelectorAll('[data-cookie-consent]').forEach(button => {
+            button.addEventListener('click', () => {
+                const choice = button.getAttribute('data-cookie-consent') === 'accept'
+                    ? 'accept'
+                    : 'essential';
+                setCookieValue(COOKIE_CONSENT_KEY, choice, 60 * 60 * 24 * 365);
+                hideBanner();
+            });
+        });
+    };
+
     const initializeProgressBars = () => {
         const progressBars = doc.querySelectorAll('[data-progress-bar]');
         if (!progressBars.length) {
@@ -320,6 +366,7 @@
         initializeAnimatedBlocks();
         initializeTiltTargets();
         initLeadForm();
+        initCookieBanner();
         initializeProgressBars();
         updateScrollState();
     };

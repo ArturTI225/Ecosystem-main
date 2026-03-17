@@ -1,9 +1,14 @@
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import CodeExercise, Lesson, LessonProgress, Subject
+from inregistrare.models import Profile
+
+from .models import CodeExercise, Lesson, LessonProgress, Subject, Test
+from .views import PYTHON_TRACK_SUBJECT_NAMES, _resolve_subject_entry_slug
 
 
 class LessonViewsTests(TestCase):
@@ -48,12 +53,164 @@ class LessonViewsTests(TestCase):
         self.assertIsNotNone(progress)
         self.assertTrue(progress.completed)
 
+    def test_lesson_detail_theory_track_hides_robot_lab_and_keeps_quiz_copy(self):
+        lesson = self._create_lesson("Solo", days_offset=0)
+        Test.objects.create(
+            lesson=lesson,
+            question="La ce foloseste o variabila?",
+            correct_answer="Pastreaza o valoare",
+            wrong_answers=["Trimite email", "Sterge programul", "Deseneaza un cerc"],
+            explanation="Variabila pastreaza o valoare pe care o poti refolosi.",
+        )
+        response = self.client.get(
+            reverse("estudy:lesson_detail", kwargs={"slug": lesson.slug})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Exemple ghidate si intrebari")
+        self.assertNotContains(response, "Misiune Robot Lab")
+        self.assertNotContains(response, "Previzualizare live")
+        self.assertContains(response, "Practica")
+        self.assertContains(response, "Trimite raspunsul")
+        self.assertContains(response, "Deschide / inchide testul")
+        self.assertNotContains(
+            response,
+            '\\nvarsta = 12\\nprint(f"Salut, {nume}! Ai {varsta} ani.")',
+        )
+
+    def test_python_track_for_older_students_renders_robot_lab_code_mode(self):
+        python_subject = Subject.objects.create(name="Coding Quest")
+        lesson = Lesson.objects.create(
+            subject=python_subject,
+            title="Python Mission",
+            content="Content",
+            date=timezone.localdate(),
+            age_bracket=Lesson.AGE_11_13,
+        )
+        response = self.client.get(
+            reverse("estudy:lesson_detail", kwargs={"slug": lesson.slug})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Robot Lab cu Python")
+        self.assertContains(response, "Misiune Robot Lab")
+        self.assertContains(response, "Ghideaza-l pe Robo spre terminal.")
+        self.assertContains(response, "Previzualizare live")
+
+    def test_python_track_for_junior_students_uses_visual_mode(self):
+        python_subject = Subject.objects.create(name="Coding Quest")
+        lesson = Lesson.objects.create(
+            subject=python_subject,
+            title="Junior Mission",
+            content="Content",
+            date=timezone.localdate(),
+            age_bracket=Lesson.AGE_8_10,
+        )
+        response = self.client.get(
+            reverse("estudy:lesson_detail", kwargs={"slug": lesson.slug})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Puzzle si potriviri")
+        self.assertContains(response, "Incepe jocul vizual")
+        self.assertContains(response, "Labirintul lui Robo")
+        self.assertContains(response, "Culori si reguli")
+        self.assertContains(response, "Carti secrete")
+        self.assertNotContains(response, "Misiune Robot Lab")
+        self.assertNotContains(response, "Previzualizare live")
+
     def test_lessons_list_hides_signup_cta_for_authenticated_user(self):
         self._create_lesson("List lesson", days_offset=0)
         response = self.client.get(reverse("estudy:lessons_list"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Dashboardul meu")
         self.assertNotContains(response, 'href="/auth/signup/"')
+
+    def test_lessons_list_promotes_python_module_when_python_lessons_exist(self):
+        python_subject = Subject.objects.create(name="Coding Quest")
+        lesson = Lesson.objects.create(
+            subject=python_subject,
+            title="Python Entry",
+            content="Content",
+            date=timezone.localdate(),
+            age_bracket=Lesson.AGE_11_13,
+        )
+
+        with patch("estudy.views._resolve_subject_entry_slug", return_value=lesson.slug):
+            response = self.client.get(reverse("estudy:lessons_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Programare")
+        self.assertContains(response, "Intra in modul")
+        self.assertContains(
+            response,
+            reverse("estudy:lesson_detail", kwargs={"slug": lesson.slug}),
+        )
+
+    def test_lessons_list_uses_junior_python_entry_for_younger_profile(self):
+        python_subject = Subject.objects.create(name="Coding Quest")
+        junior_lesson = Lesson.objects.create(
+            subject=python_subject,
+            title="Junior Entry",
+            content="Content",
+            date=timezone.localdate(),
+            age_bracket=Lesson.AGE_8_10,
+        )
+        Lesson.objects.create(
+            subject=python_subject,
+            title="Code Entry",
+            content="Content",
+            date=timezone.localdate() + timezone.timedelta(days=1),
+            age_bracket=Lesson.AGE_11_13,
+        )
+        Profile.objects.update_or_create(
+            user=self.user,
+            defaults={"email": self.user.email, "age": 9},
+        )
+        self.assertEqual(
+            _resolve_subject_entry_slug(PYTHON_TRACK_SUBJECT_NAMES, self.user),
+            junior_lesson.slug,
+        )
+
+        response = self.client.get(reverse("estudy:lessons_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["python_entry_slug"], junior_lesson.slug)
+        self.assertContains(
+            response,
+            reverse("estudy:lesson_detail", kwargs={"slug": junior_lesson.slug}),
+        )
+        self.assertContains(response, "Junior 8-10 ani")
+
+    def test_lessons_list_uses_code_python_entry_for_older_profile(self):
+        python_subject = Subject.objects.create(name="Coding Quest")
+        Lesson.objects.create(
+            subject=python_subject,
+            title="Junior Entry",
+            content="Content",
+            date=timezone.localdate(),
+            age_bracket=Lesson.AGE_8_10,
+        )
+        older_lesson = Lesson.objects.create(
+            subject=python_subject,
+            title="Code Entry",
+            content="Content",
+            date=timezone.localdate() + timezone.timedelta(days=1),
+            age_bracket=Lesson.AGE_11_13,
+        )
+        Profile.objects.update_or_create(
+            user=self.user,
+            defaults={"email": self.user.email, "age": 12},
+        )
+
+        response = self.client.get(reverse("estudy:lessons_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            reverse("estudy:lesson_detail", kwargs={"slug": older_lesson.slug}),
+        )
+        self.assertContains(response, "Code 11+ ani")
 
     def test_run_code_api_executes_and_returns_results(self):
         lesson = self._create_lesson("Exec", days_offset=0)

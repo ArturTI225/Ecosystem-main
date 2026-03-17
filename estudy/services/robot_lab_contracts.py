@@ -7,6 +7,10 @@ ROBOT_LAB_ERROR_TYPES = {"runtime", "logic", "timeout", "syntax", "none"}
 ROBOT_LAB_CONCEPTS = {"sequencing", "condition", "loop", "function", "debugging"}
 
 DEFAULT_ALLOWED_API = [
+    "up",
+    "down",
+    "left",
+    "right",
     "move",
     "turn_left",
     "turn_right",

@@ -9,11 +9,23 @@ from django.conf import settings
 from ..models import Lesson, LessonMedia, LessonProgress
 from ..views import _is_competitor_link
 from .gamification import get_badge_summary
+from .learner_age import get_registration_profile_age, resolve_learning_age_bracket
 from .lesson_access import compute_accessibility
 from .recommendations import refresh_recommendations
 
 INTRO_LESSON_COUNT = 2
-CYRILLIC_RE = re.compile(r"[А-Яа-яЁёІіЇїЄєҐґ]")
+CYRILLIC_RE = re.compile(r"[\u0400-\u04FF]")
+PYTHON_TRACK_SUBJECT_NAMES = {
+    "coding quest",
+    "python",
+    "programare in python",
+    "programare în python",
+}
+OLDER_CODE_AGE_BRACKETS = {
+    Lesson.AGE_11_13,
+    Lesson.AGE_14_16,
+    Lesson.AGE_16_PLUS,
+}
 
 
 def _contains_cyrillic(value: str) -> bool:
@@ -55,26 +67,157 @@ def _get_lesson_enrichment(slug: str) -> dict[str, Any]:
     return enrichment if isinstance(enrichment, dict) else {}
 
 
+def _normalize_subject_name(value: str | None) -> str:
+    return " ".join((value or "").casefold().split())
+
+
+def _is_python_track_lesson(lesson: Lesson) -> bool:
+    subject_name = _normalize_subject_name(
+        getattr(getattr(lesson, "subject", None), "name", "")
+    )
+    return subject_name in PYTHON_TRACK_SUBJECT_NAMES
+
+
+def _build_junior_activity_cards(
+    lesson: Lesson, practice, lesson_intro_text: str
+) -> list[dict[str, str]]:
+    practice_hint = _sanitize_display_text(getattr(practice, "instructions", ""), "")
+    intro_note = lesson_intro_text or "Priveste modelul, apoi continua cu jocul de mai jos."
+    return [
+        {
+            "title": "Puzzle de ordine",
+            "code": "START -> ? -> GOAL",
+            "note": "Pune pasii in ordinea corecta ca robotul sa ajunga la final.",
+        },
+        {
+            "title": "Potriveste culorile",
+            "code": "ROSU = stop\nVERDE = merge",
+            "note": "Leaga fiecare culoare de actiunea potrivita.",
+        },
+        {
+            "title": "Gaseste perechile",
+            "code": "robot <-> traseu",
+            "note": practice_hint or intro_note,
+        },
+    ]
+
+
+def _build_junior_games(
+    lesson: Lesson, practice, lesson_intro_text: str
+) -> dict[str, Any]:
+    practice_hint = _sanitize_display_text(getattr(practice, "instructions", ""), "")
+    order_commands = [
+        {"token_id": "left-1", "move": "left", "icon": "←", "label": "stanga"},
+        {"token_id": "right-1", "move": "right", "icon": "→", "label": "dreapta"},
+        {"token_id": "down-1", "move": "down", "icon": "↓", "label": "jos"},
+        {"token_id": "right-2", "move": "right", "icon": "→", "label": "dreapta"},
+    ]
+    memory_cards = [
+        {"card_id": "robot-a", "pair": "robot", "label": "Robot", "icon": "R"},
+        {"card_id": "path-a", "pair": "path", "label": "Traseu", "icon": "T"},
+        {"card_id": "terminal-a", "pair": "terminal", "label": "Terminal", "icon": "X"},
+        {"card_id": "robot-b", "pair": "robot", "label": "Robot", "icon": "R"},
+        {"card_id": "path-b", "pair": "path", "label": "Traseu", "icon": "T"},
+        {"card_id": "terminal-b", "pair": "terminal", "label": "Terminal", "icon": "X"},
+    ]
+    return {
+        "headline": "3 jocuri scurte pentru Robo",
+        "summary": "Rezolva toate jocurile ca sa deschizi urmatoarea misiune.",
+        "order": {
+            "game_id": "order",
+            "title": "1. Labirintul lui Robo",
+            "prompt": "Alege comenzile corecte si du-l pe Robo la terminal.",
+            "hint": "Robo merge doua casute la dreapta, apoi una in jos.",
+            "expected": ["right", "right", "down"],
+            "commands": order_commands,
+            "board": [
+                [
+                    {"kind": "start", "label": "Start"},
+                    {"kind": "path", "label": "Pas 1"},
+                    {"kind": "path", "label": "Pas 2"},
+                ],
+                [
+                    {"kind": "wall", "label": "Blocaj"},
+                    {"kind": "path", "label": "Pod"},
+                    {"kind": "terminal", "label": "Terminal"},
+                ],
+            ],
+        },
+        "colors": {
+            "game_id": "colors",
+            "title": "2. Culori si reguli",
+            "prompt": "Atinge o culoare, apoi regula potrivita.",
+            "pairs": [
+                {
+                    "pair_id": "red",
+                    "color_name": "Rosu",
+                    "color_hex": "#ef4444",
+                    "action": "Stop",
+                },
+                {
+                    "pair_id": "yellow",
+                    "color_name": "Galben",
+                    "color_hex": "#facc15",
+                    "action": "Atentie",
+                },
+                {
+                    "pair_id": "green",
+                    "color_name": "Verde",
+                    "color_hex": "#22c55e",
+                    "action": "Merge",
+                },
+            ],
+            "actions": [
+                {"pair_id": "yellow", "label": "Atentie"},
+                {"pair_id": "green", "label": "Merge"},
+                {"pair_id": "red", "label": "Stop"},
+            ],
+        },
+        "memory": {
+            "game_id": "memory",
+            "title": "3. Carti secrete",
+            "prompt": practice_hint
+            or lesson_intro_text
+            or "Intoarce cartile si gaseste toate perechile.",
+            "cards": memory_cards,
+        },
+    }
+
+
+def _build_theory_question_prompts(
+    lesson: Lesson, quiz_test, lesson_intro_text: str
+) -> list[str]:
+    prompts = [
+        f"Cum ai explica pe scurt lectia '{lesson.title}' unui coleg?",
+        lesson_intro_text or "Care este ideea principala pe care trebuie sa o retii?",
+    ]
+    if quiz_test and getattr(quiz_test, "question", ""):
+        prompts.append(f"Cum ai raspunde la intrebarea: {quiz_test.question}")
+    else:
+        prompts.append("Ce exemplu practic poti da dupa aceasta lectie?")
+    return prompts
+
+
 def _build_mentor_characters(lesson: Lesson) -> list[dict[str, str]]:
-    hero_emoji = (lesson.hero_emoji or "").strip() or "🚀"
+    hero_emoji = (lesson.hero_emoji or "").strip() or "ROBO"
     return [
         {
             "name": "Nova",
             "emoji": hero_emoji,
-            "role": "Căpitanul aventurii",
-            "line": "Transformăm curiozitatea în pași mici și distractivi.",
+            "role": "Capitanul aventurii",
+            "line": "Transformam curiozitatea in pasi mici si distractivi.",
         },
         {
             "name": "Byte",
-            "emoji": "🤖",
+            "emoji": "BOT",
             "role": "Mecanicul de cod",
-            "line": "Îți arăt cum fiecare linie de cod face ceva concret.",
+            "line": "Iti arat cum fiecare linie de cod face ceva concret.",
         },
         {
             "name": "Pixel",
-            "emoji": "🦊",
+            "emoji": "FOX",
             "role": "Exploratorul logicii",
-            "line": "Dacă greșim, învățăm rapid și încercăm din nou.",
+            "line": "Daca gresim, invatam rapid si incercam din nou.",
         },
     ]
 
@@ -89,7 +232,7 @@ def _build_code_arena_steps(
                 "title": exercise.title or f"Misiunea {idx}",
                 "goal": (
                     exercise.description
-                    or "Rezolvă provocarea scriind cod Python corect și clar."
+                    or "Rezolva provocarea scriind cod Python corect si clar."
                 ),
                 "xp": str(max(5, int(getattr(exercise, "points", 10) or 10))),
                 "badge": f"Dificultate {getattr(exercise, 'difficulty_level', 1)}",
@@ -107,7 +250,7 @@ def _build_code_arena_steps(
                     {
                         "title": challenge.get("title") or f"Misiunea {idx}",
                         "goal": challenge.get("prompt")
-                        or "Scrie un mic fragment de cod și verifică rezultatul.",
+                        or "Scrie un mic fragment de cod si verifica rezultatul.",
                         "xp": str(challenge.get("xp") or 10),
                         "badge": challenge.get("badge") or "Arena",
                         "target": "#example",
@@ -119,22 +262,22 @@ def _build_code_arena_steps(
 
     return [
         {
-            "title": "Misiunea 1: Încălzirea",
-            "goal": "Declară variabile simple și afișează-le cu print().",
+            "title": "Misiunea 1: Incalzirea",
+            "goal": "Declara variabile simple si afiseaza-le cu print().",
             "xp": "10",
             "badge": "Syntax",
             "target": "#example",
         },
         {
-            "title": "Misiunea 2: Combo de logică",
-            "goal": "Combină text și numere într-un mesaj clar pentru utilizator.",
+            "title": "Misiunea 2: Combo de logica",
+            "goal": "Combina text si numere intr-un mesaj clar pentru utilizator.",
             "xp": "15",
             "badge": "Flow",
             "target": "#practice",
         },
         {
             "title": "Misiunea 3: Boss mini-test",
-            "goal": "Treci testul final și explică de ce soluția ta funcționează.",
+            "goal": "Treci testul final si explica de ce solutia ta functioneaza.",
             "xp": "20",
             "badge": "Mastery",
             "target": "#test",
@@ -204,6 +347,7 @@ def prepare_lesson_detail(user, slug: str) -> dict:
     )
 
     payload = build_lesson_detail_payload(
+        user,
         lesson,
         subject_lessons,
         current_index,
@@ -219,6 +363,7 @@ def prepare_lesson_detail(user, slug: str) -> dict:
 
 
 def build_lesson_detail_payload(
+    user,
     lesson: Lesson,
     subject_lessons: List[Lesson],
     current_index: int,
@@ -248,21 +393,38 @@ def build_lesson_detail_payload(
     practice = getattr(lesson, "practice", None)
     code_exercises = list(lesson.code_exercises.order_by("order", "id"))
     is_intro_lesson = (current_index + 1) <= INTRO_LESSON_COUNT
+    is_python_track = _is_python_track_lesson(lesson)
+    learner_age = get_registration_profile_age(user)
+    effective_age_bracket = resolve_learning_age_bracket(
+        user, fallback=lesson.age_bracket
+    )
+    is_junior_track = effective_age_bracket == Lesson.AGE_8_10
+    is_older_track = effective_age_bracket in OLDER_CODE_AGE_BRACKETS
+    age_mode_label = "8-10 ani" if is_junior_track else "11+ ani"
+    age_mode_source = "profile" if learner_age is not None else "lesson"
     mentor_characters = _build_mentor_characters(lesson)
     code_arena_steps = _build_code_arena_steps(code_exercises, enrichment)
     lesson_intro_text = _sanitize_display_text(lesson.theory_intro, "")
     if not lesson_intro_text:
         lesson_intro_text = _sanitize_display_text(lesson.excerpt, "")
     if not lesson_intro_text:
-        lesson_intro_text = "Descoperă cum poți folosi variabilele pentru a face programele mai inteligente."
+        lesson_intro_text = (
+            "Descopera cum poti folosi variabilele pentru programe clare si utile."
+        )
+    lesson_examples_text = _sanitize_display_text(getattr(lesson, "explainer", ""), "")
+    if not lesson_examples_text:
+        lesson_examples_text = (
+            "Recapitulare rapida in trei idei: definesti o variabila, o afisezi, "
+            "apoi o actualizezi."
+        )
     lesson_story_anchor = _sanitize_display_text(lesson.story_anchor, "")
     lesson_skill_titles = _sanitize_display_list(
         [skill.title for skill in lesson.skills.all()],
-        ["Rezolvare de probleme", "Siguranță digitală"],
+        ["Rezolvare de probleme", "Siguranta digitala"],
     )
     lesson_track_items = _sanitize_display_list(
         [str(track) for track in lesson.content_tracks],
-        ["Traseu de bază", "Bonus pentru exploratori"],
+        ["Traseu de baza", "Bonus pentru exploratori"],
     )
     lesson_theory_points = _sanitize_display_list(
         [str(point) for point in lesson.theory_points()],
@@ -270,7 +432,123 @@ def build_lesson_detail_payload(
     )
     lesson_content_text = _sanitize_display_text(
         lesson.content,
-        "O variabilă păstrează o informație importantă pe care codul tău o poate folosi și modifica.",
+        (
+            "O variabila pastreaza o informatie importanta pe care codul tau "
+            "o poate folosi si modifica."
+        ),
+    )
+    lesson_example_cards = [
+        {
+            "title": "Definim o variabila",
+            "code": 'nume = "Ana"',
+            "note": "Atribui un nume unei valori ca sa o poti refolosi.",
+        },
+        {
+            "title": "Afisam rezultatul",
+            "code": 'print(f"Salut, {nume}!")',
+            "note": "Folosesti valoarea stocata exact unde ai nevoie.",
+        },
+        {
+            "title": "Actualizam rapid",
+            "code": "scor = scor + 1",
+            "note": "Schimbi valoarea fara sa rescrii tot programul.",
+        },
+    ]
+    junior_games = {}
+
+    if is_junior_track:
+        if lesson_theory_points:
+            lesson_theory_points = lesson_theory_points[:2]
+        if lesson_track_items:
+            lesson_track_items = lesson_track_items[:1]
+        lesson_content_text = lesson_intro_text or lesson_content_text
+        lesson_examples_text = (
+            "Priveste modelul, observa ordinea si continua cu jocul de potrivire."
+        )
+        lesson_example_cards = _build_junior_activity_cards(
+            lesson, practice, lesson_intro_text
+        )
+        junior_games = _build_junior_games(lesson, practice, lesson_intro_text)
+    elif not is_python_track:
+        lesson_examples_text = (
+            "Recapituleaza ideea principala, apoi raspunde la intrebarile de verificare."
+        )
+        lesson_example_cards = [
+            {
+                "title": "Ideea cheie",
+                "code": "Ce trebuie sa retii?",
+                "note": lesson_intro_text,
+            },
+            {
+                "title": "Exemplu simplu",
+                "code": "Unde vezi asta in viata reala?",
+                "note": "Leaga teoria de un exemplu apropiat de experienta ta.",
+            },
+            {
+                "title": "Verificare rapida",
+                "code": "Cum explici lectia in 1-2 propozitii?",
+                "note": "Pregateste raspunsul pentru mini-testul de la final.",
+            },
+        ]
+
+    show_robot_lab_preview = is_python_track and is_older_track
+    show_full_code_lab = show_robot_lab_preview
+    show_robot_lab_cta = show_robot_lab_preview
+    show_guided_code_snippet = is_python_track and not is_junior_track
+    example_nav_label = (
+        "Robot Lab"
+        if show_full_code_lab
+        else "Puzzle"
+        if is_junior_track
+        else "Exemple"
+    )
+    example_nav_hint = (
+        "Editor Python"
+        if show_full_code_lab
+        else "Potriviri vizuale"
+        if is_junior_track
+        else "Recapitulare"
+    )
+    practice_nav_label = "Jocuri" if is_junior_track else "Practica"
+    practice_nav_hint = "Puzzle" if is_junior_track else "Exercitii"
+    concept_examples_label = "Exemple vizuale" if is_junior_track else "Exemple"
+    example_section_title = (
+        "Robot Lab cu Python"
+        if show_full_code_lab
+        else "Puzzle si potriviri"
+        if is_junior_track
+        else "Exemple ghidate si intrebari"
+    )
+    example_section_description = (
+        "Robot Lab apare aici doar pentru 11+ si se controleaza prin cod Python."
+        if show_full_code_lab
+        else "Pentru 8-10 ani avem activitati vizuale, simple si cu putin text."
+        if is_junior_track
+        else "Consolidezi teoria prin exemple clare si intrebari scurte."
+    )
+    practice_section_title = "Puzzle si potriviri" if is_junior_track else "Practica"
+    practice_section_description = (
+        "Piese mari, reguli simple si feedback rapid."
+        if is_junior_track
+        else "Potrivesti concepte, primesti feedback instant si corectezi rapid."
+    )
+    practice_intro_text = (
+        "Trage piesele, gaseste perechile si apasa Verifica."
+        if is_junior_track
+        else "Aplica teoria in doi pasi: citeste scenariul, apoi potriveste conceptele. Daca te blochezi, apasa pe Tip."
+    )
+    practice_briefing_title = "1. Joc rapid" if is_junior_track else "1. Briefing"
+    practice_available_label = (
+        "Piese disponibile" if is_junior_track else "Elemente disponibile"
+    )
+    practice_target_label = (
+        "Gaseste perechea:" if is_junior_track else "Potriveste cu:"
+    )
+    practice_placeholder_text = (
+        "Pune piesa aici" if is_junior_track else "Trage elementul aici"
+    )
+    theory_question_prompts = _build_theory_question_prompts(
+        lesson, quiz_test, lesson_intro_text
     )
 
     prev_lesson = subject_lessons[current_index - 1] if current_index > 0 else None
@@ -342,6 +620,13 @@ def build_lesson_detail_payload(
         "lesson_media": lesson_media,
         "media_segments": media_segments,
         "is_intro_lesson": is_intro_lesson,
+        "is_python_track": is_python_track,
+        "is_junior_track": is_junior_track,
+        "is_older_track": is_older_track,
+        "learner_age": learner_age,
+        "effective_age_bracket": effective_age_bracket,
+        "age_mode_label": age_mode_label,
+        "age_mode_source": age_mode_source,
         "mentor_characters": mentor_characters,
         "code_arena_steps": code_arena_steps,
         "lesson_intro_text": lesson_intro_text,
@@ -350,4 +635,26 @@ def build_lesson_detail_payload(
         "lesson_track_items": lesson_track_items,
         "lesson_theory_points": lesson_theory_points,
         "lesson_content_text": lesson_content_text,
+        "lesson_examples_text": lesson_examples_text,
+        "lesson_example_cards": lesson_example_cards,
+        "junior_games": junior_games,
+        "show_robot_lab_preview": show_robot_lab_preview,
+        "show_full_code_lab": show_full_code_lab,
+        "show_robot_lab_cta": show_robot_lab_cta,
+        "show_guided_code_snippet": show_guided_code_snippet,
+        "example_nav_label": example_nav_label,
+        "example_nav_hint": example_nav_hint,
+        "practice_nav_label": practice_nav_label,
+        "practice_nav_hint": practice_nav_hint,
+        "concept_examples_label": concept_examples_label,
+        "example_section_title": example_section_title,
+        "example_section_description": example_section_description,
+        "practice_section_title": practice_section_title,
+        "practice_section_description": practice_section_description,
+        "practice_intro_text": practice_intro_text,
+        "practice_briefing_title": practice_briefing_title,
+        "practice_available_label": practice_available_label,
+        "practice_target_label": practice_target_label,
+        "practice_placeholder_text": practice_placeholder_text,
+        "theory_question_prompts": theory_question_prompts,
     }

@@ -2,6 +2,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from django.utils import timezone
 
+from inregistrare.models import Profile
+
 from .models import Lesson, LessonProgress, Subject
 from .services.lesson_detail import BlockingLessonRequired, prepare_lesson_detail
 
@@ -84,3 +86,73 @@ class LessonDetailServiceTests(TestCase):
         self.assertTrue(payload["lesson_track_items"])
         self.assertNotIn("Основной", " ".join(payload["lesson_track_items"]))
         self.assertNotIn("Текст", payload["lesson_content_text"])
+
+    def test_junior_python_track_uses_visual_mode_without_robot_lab(self):
+        self.subject.name = "Coding Quest"
+        self.subject.save(update_fields=["name"])
+        self.l1.age_bracket = Lesson.AGE_8_10
+        self.l1.save(update_fields=["age_bracket"])
+
+        payload = prepare_lesson_detail(self.user, self.l1.slug)
+
+        self.assertTrue(payload["is_python_track"])
+        self.assertTrue(payload["is_junior_track"])
+        self.assertFalse(payload["show_robot_lab_preview"])
+        self.assertFalse(payload["show_full_code_lab"])
+        self.assertEqual(payload["example_nav_label"], "Puzzle")
+        self.assertEqual(payload["practice_section_title"], "Puzzle si potriviri")
+        self.assertFalse(payload["show_guided_code_snippet"])
+        self.assertIn("order", payload["junior_games"])
+        self.assertIn("colors", payload["junior_games"])
+        self.assertIn("memory", payload["junior_games"])
+
+    def test_older_python_track_enables_robot_lab_code_mode(self):
+        self.subject.name = "Coding Quest"
+        self.subject.save(update_fields=["name"])
+        self.l1.age_bracket = Lesson.AGE_11_13
+        self.l1.save(update_fields=["age_bracket"])
+
+        payload = prepare_lesson_detail(self.user, self.l1.slug)
+
+        self.assertTrue(payload["is_python_track"])
+        self.assertFalse(payload["is_junior_track"])
+        self.assertTrue(payload["show_robot_lab_preview"])
+        self.assertTrue(payload["show_full_code_lab"])
+        self.assertTrue(payload["show_robot_lab_cta"])
+        self.assertEqual(payload["example_nav_label"], "Robot Lab")
+        self.assertTrue(payload["show_guided_code_snippet"])
+
+    def test_profile_age_can_force_junior_mode_for_python_lesson(self):
+        self.subject.name = "Coding Quest"
+        self.subject.save(update_fields=["name"])
+        self.l1.age_bracket = Lesson.AGE_11_13
+        self.l1.save(update_fields=["age_bracket"])
+        Profile.objects.update_or_create(
+            user=self.user,
+            defaults={"email": "ld@example.com", "age": 9},
+        )
+
+        payload = prepare_lesson_detail(self.user, self.l1.slug)
+
+        self.assertTrue(payload["is_junior_track"])
+        self.assertFalse(payload["show_robot_lab_preview"])
+        self.assertEqual(payload["age_mode_source"], "profile")
+        self.assertEqual(payload["learner_age"], 9)
+
+    def test_profile_age_can_force_code_mode_for_python_lesson(self):
+        self.subject.name = "Coding Quest"
+        self.subject.save(update_fields=["name"])
+        self.l1.age_bracket = Lesson.AGE_8_10
+        self.l1.save(update_fields=["age_bracket"])
+        Profile.objects.update_or_create(
+            user=self.user,
+            defaults={"email": "ld@example.com", "age": 12},
+        )
+
+        payload = prepare_lesson_detail(self.user, self.l1.slug)
+
+        self.assertFalse(payload["is_junior_track"])
+        self.assertTrue(payload["show_robot_lab_preview"])
+        self.assertTrue(payload["show_full_code_lab"])
+        self.assertEqual(payload["age_mode_source"], "profile")
+        self.assertEqual(payload["learner_age"], 12)

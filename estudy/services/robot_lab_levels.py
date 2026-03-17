@@ -7,6 +7,33 @@ from typing import Any
 
 LEVELS_ROOT = Path(__file__).resolve().parents[1] / "robot_lab" / "levels"
 LEVELS_INDEX = LEVELS_ROOT / "index.json"
+ROBOT_LAB_MODE_LABELS = {
+    "junior": "Mod Junior",
+    "code": "Mod Cod",
+}
+ROBOT_LAB_STAGE_LABELS = {
+    "buttons": "Butoane vizuale",
+    "buttons_code": "Butoane + cod",
+    "fill_gaps": "Cod ghidat",
+    "code": "Cod complet",
+}
+ROBOT_LAB_STAGE_DESCRIPTIONS = {
+    "buttons": "Apasa butoanele mari ca sa construiesti ruta pas cu pas.",
+    "buttons_code": "Construieste traseul cu butoane si observa cum apare codul Python.",
+    "fill_gaps": "Completeaza comanda lipsa direct in editor si ruleaza programul.",
+    "code": "Scrie singur programul complet si corecteaza-l cu ajutorul consolei.",
+}
+ROBOT_LAB_CONCEPT_LABELS = {
+    "sequencing": "ordine de pasi",
+    "debugging": "depanare",
+    "logic": "logica",
+    "functions": "functii",
+}
+ROBOT_LAB_DIFFICULTY_LABELS = {
+    "easy": "usor",
+    "medium": "mediu",
+    "hard": "greu",
+}
 
 
 class RobotLabLevelNotFoundError(KeyError):
@@ -18,6 +45,40 @@ def _read_json(path: Path) -> dict[str, Any]:
         data = json.load(fh)
     if not isinstance(data, dict):
         raise ValueError(f"Invalid JSON object in {path}")
+    return data
+
+
+def _normalize_level_metadata(level: dict[str, Any]) -> dict[str, Any]:
+    data = dict(level)
+    mode = str(data.get("mode") or "code").strip().lower()
+    if mode not in ROBOT_LAB_MODE_LABELS:
+        mode = "code"
+
+    stage = str(data.get("ui_stage") or "").strip().lower()
+    if stage not in ROBOT_LAB_STAGE_LABELS:
+        stage = "buttons" if mode == "junior" else "code"
+
+    data["mode"] = mode
+    data["mode_label"] = ROBOT_LAB_MODE_LABELS[mode]
+    data["ui_stage"] = stage
+    data["ui_stage_label"] = ROBOT_LAB_STAGE_LABELS[stage]
+    data["ui_stage_description"] = str(
+        data.get("ui_stage_description") or ROBOT_LAB_STAGE_DESCRIPTIONS[stage]
+    )
+    raw_concepts = data.get("concepts") or []
+    if not isinstance(raw_concepts, list):
+        raw_concepts = []
+    concepts = [str(item).strip() for item in raw_concepts if str(item).strip()]
+    data["concepts"] = concepts
+    data["concept_labels"] = [
+        ROBOT_LAB_CONCEPT_LABELS.get(item, item.replace("_", " ")) for item in concepts
+    ]
+    difficulty = str(data.get("difficulty") or "easy").strip().lower()
+    data["difficulty"] = difficulty
+    data["difficulty_label"] = ROBOT_LAB_DIFFICULTY_LABELS.get(difficulty, difficulty)
+    data["recommended_age"] = str(
+        data.get("recommended_age") or ("8-10" if mode == "junior" else "11+")
+    )
     return data
 
 
@@ -42,8 +103,10 @@ def load_level(level_id: str) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"Robot Lab level file not found: {path}")
     data = _read_json(path)
-    data.setdefault("id", level_id)
-    return data
+    merged = dict(level)
+    merged.update(data)
+    merged.setdefault("id", level_id)
+    return _normalize_level_metadata(merged)
 
 
 def list_level_entries() -> list[dict[str, Any]]:
@@ -54,7 +117,7 @@ def list_level_entries() -> list[dict[str, Any]]:
             continue
         if not raw.get("id"):
             continue
-        items.append(dict(raw))
+        items.append(_normalize_level_metadata(dict(raw)))
     items.sort(key=lambda x: (int(x.get("world", 0)), int(x.get("order", 0))))
     return items
 

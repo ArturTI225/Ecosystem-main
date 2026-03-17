@@ -24,6 +24,12 @@ class ExecuteRequest(BaseModel):
     time_limit_ms: int = 800
 
 
+def _payload_to_dict(payload: ExecuteRequest) -> dict[str, Any]:
+    if hasattr(payload, "model_dump"):
+        return payload.model_dump()
+    return payload.dict()
+
+
 def _authorized(auth_header: str | None) -> bool:
     expected = str(os.environ.get("ROBOT_RUNNER_TOKEN", "") or "").strip()
     if not expected:
@@ -63,7 +69,7 @@ def execute(
 
     context = mp.get_context("spawn")
     queue: mp.Queue = context.Queue()
-    process = context.Process(target=_worker, args=(payload.model_dump(), queue))
+    process = context.Process(target=_worker, args=(_payload_to_dict(payload), queue))
     process.start()
 
     timeout_s = max(0.1, int(payload.time_limit_ms) / 1000.0)

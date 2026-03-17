@@ -41,6 +41,12 @@
                 {{ form.email }}
                 {{ form.email.errors }}
             </div>
+            <div class="input-group">
+                {{ form.age.label_tag }}
+                {{ form.age }}
+                <small class="form-hint">Folosește vârsta reală pentru a primi activități potrivite nivelului tău.</small>
+                {{ form.age.errors }}
+            </div>
             <div class="input-group input-group--role">
                 {{ form.role.label_tag }}
                 <div class="role-selector" data-role-selector data-teacher-value="{{ form.fields.role.choices.1.0 }}">
@@ -64,6 +70,17 @@
                 {{ form.password2.label_tag }}
                 {{ form.password2 }}
                 {{ form.password2.errors }}
+            </div>
+            <div class="input-group input-group--checkbox">
+                <label class="checkbox-field" for="{{ form.accept_terms.id_for_label }}">
+                    {{ form.accept_terms }}
+                    <span>
+                        Am citit și accept <a href="{% url 'termeni_si_conditii' %}" target="_blank" rel="noopener">Termenii și condițiile</a>
+                        și <a href="{% url 'politica_cookie' %}" target="_blank" rel="noopener">Politica cookie</a>.
+                    </span>
+                </label>
+                <small class="form-hint">{{ form.accept_terms.help_text }}</small>
+                {{ form.accept_terms.errors }}
             </div>
             <button type="submit" class="btn btn-primary auth-submit"><i class="fa-solid fa-user-plus me-2"></i>Creează contul</button>
         </form>
