@@ -18,7 +18,7 @@
                     <div class="hub-notif__body">
                         <div class="hub-notif__title">{{ item.title }}</div>
                         <p class="hub-notif__msg">{{ item.message }}</p>
-                        <span class="hub-notif__time">{{ item.created_at|date:"d MMM, HH:mm" }}</span>
+                        <span class="hub-notif__time">{{ item.created_at|date:"d.m.Y, H:i" }}</span>
                         {% if item.link_url %}
                         <div class="hub-notif__action">
                             <a class="hub-btn hub-btn--small" href="{{ item.link_url }}">&#128279; Deschide</a>

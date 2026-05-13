@@ -9,7 +9,7 @@
         <h1 class="hub-thread-title">&#128172; {{ thread.title }}</h1>
         <div class="hub-thread-meta">
             <span>&#129489; {{ thread.author.get_short_name|default:thread.author.username }}</span>
-            <span>&#128197; {{ thread.created_at|date:"d MMM, HH:mm" }}</span>
+            <span>&#128197; {{ thread.created_at|date:"d.m.Y, H:i" }}</span>
         </div>
         <div class="hub-thread-body">{{ thread.body }}</div>
         {% if thread.tags %}
@@ -33,7 +33,7 @@
                 <div class="hub-reply__body">
                     <div class="hub-reply__header">
                         <span class="hub-reply__author">{{ reply.author.get_short_name|default:reply.author.username }}</span>
-                        <span class="hub-reply__time">{{ reply.created_at|date:"d MMM, HH:mm" }}</span>
+                        <span class="hub-reply__time">{{ reply.created_at|date:"d.m.Y, H:i" }}</span>
                     </div>
                     <p class="hub-reply__text">{{ reply.body }}</p>
                 </div>

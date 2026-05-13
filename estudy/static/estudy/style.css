@@ -1455,6 +1455,22 @@ a:hover {
     letter-spacing: 0.01em;
 }
 
+.site-navbar .navbar__brand,
+.site-navbar .navbar__brand:hover,
+.site-navbar .navbar__brand:focus-visible,
+.site-navbar .navbar__link,
+.site-navbar .nav-link {
+    color: #F8FAFC;
+    opacity: 1;
+}
+
+.site-navbar .navbar__link:hover,
+.site-navbar .navbar__link:focus-visible,
+.site-navbar .nav-link:hover,
+.site-navbar .nav-link:focus-visible {
+    color: #FFFFFF;
+}
+
 .navbar-brand {
     font-family: var(--font-display);
     letter-spacing: 0.06em;

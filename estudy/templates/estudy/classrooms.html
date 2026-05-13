@@ -51,7 +51,7 @@
                         <div class="hub-member-row__icon">&#127979;</div>
                         <div class="hub-member-row__info">
                             <span class="hub-member-row__name">{{ membership.classroom.name }}</span>
-                            <span class="hub-member-row__meta">Alaturat la {{ membership.joined_at|date:"d MMM Y" }}</span>
+                            <span class="hub-member-row__meta">Alaturat la {{ membership.joined_at|date:"d.m.Y" }}</span>
                         </div>
                         {% if profile.is_teacher %}
                         <a class="hub-btn hub-btn--small" href="{% url 'estudy:classroom_detail' membership.classroom.pk %}">Gestioneaza</a>

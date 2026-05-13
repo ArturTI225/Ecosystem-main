@@ -63,7 +63,7 @@
                         <td><a href="{% url 'estudy:lesson_detail' slug=lesson.slug %}" style="text-decoration:none;color:var(--color-primary,#7C3AED);font-weight:700;">{{ lesson.title }}</a></td>
                         <td>{{ lesson.subject.name }}</td>
                         <td>{{ lesson.student_count }}</td>
-                        <td>{{ lesson.updated_at|date:"d MMM Y" }}</td>
+                        <td>{{ lesson.updated_at|date:"d.m.Y" }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

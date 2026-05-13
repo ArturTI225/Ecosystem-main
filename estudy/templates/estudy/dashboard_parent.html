@@ -78,7 +78,7 @@
                     <div class="hub-notif__body">
                         <div class="hub-notif__title">{{ notification.title }}</div>
                         <p class="hub-notif__msg">{{ notification.message }}</p>
-                        <span class="hub-notif__time">{{ notification.created_at|date:"d MMM, HH:mm" }}</span>
+                        <span class="hub-notif__time">{{ notification.created_at|date:"d.m.Y, H:i" }}</span>
                     </div>
                 </div>
                 {% endfor %}

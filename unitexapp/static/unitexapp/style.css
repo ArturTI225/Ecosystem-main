@@ -372,7 +372,7 @@ html[data-theme='dark'] .site-navbar {
     display: inline-flex;
     align-items: center;
     gap: 0.9rem;
-    color: var(--color-text);
+    color: #F8FAFC;
     font-weight: 700;
     font-size: 1.2rem;
     letter-spacing: -0.02em;
@@ -412,7 +412,7 @@ html[data-theme='dark'] .site-navbar {
 }
 
 .navbar__link {
-    color: var(--color-text-muted);
+    color: rgba(248, 250, 252, 0.88);
     font-weight: 600;
     font-size: 0.98rem;
     position: relative;
@@ -436,7 +436,7 @@ html[data-theme='dark'] .site-navbar {
 .navbar__link:hover,
 .navbar__link:focus-visible,
 .navbar__link.active {
-    color: var(--color-primary-strong);
+    color: #FFFFFF;
 }
 
 .navbar__link:hover::after,

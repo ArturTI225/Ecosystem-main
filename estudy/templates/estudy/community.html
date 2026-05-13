@@ -26,7 +26,7 @@
                     <div class="hub-thread__avatar">&#129489;</div>
                     <div class="hub-thread__body">
                         <div class="hub-thread__title">{{ thread.title }}</div>
-                        <div class="hub-thread__meta">{{ thread.author.get_short_name|default:thread.author.username }} · {{ thread.created_at|date:"d MMM" }}</div>
+                        <div class="hub-thread__meta">{{ thread.author.get_short_name|default:thread.author.username }} · {{ thread.created_at|date:"d.m.Y" }}</div>
                         {% if thread.tags %}
                         <div class="hub-thread__tags">
                             {% for tag in thread.tags %}
